@@ -13,6 +13,7 @@ export 'helpers/user_repository.dart';
 export 'src/events/event.dart';
 export 'src/events/fifty_meter_race.dart';
 export 'src/events/hundred_meter_race.dart';
+export 'src/events/checkpoint.dart';
 
 // --- OBJECTS / MODELS ---
 export 'src/objects/analyzed_segment.dart';
