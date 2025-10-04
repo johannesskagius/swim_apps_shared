@@ -33,9 +33,3 @@ export 'src/objects/race_segment.dart';
 //export 'src/objects/swim_group.dart';
 //export 'src/objects/swim_set.dart';
 //export 'src/objects/user_subscription.dart';
-
-/// A Calculator.
-class Calculator {
-  /// Returns [value] plus 1.
-  int addOne(int value) => value + 1;
-}
