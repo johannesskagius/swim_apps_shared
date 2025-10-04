@@ -18,27 +18,7 @@ enum Stroke {
     try {
       return Stroke.values.firstWhere((e) => e.name == name);
     } catch (e) {
-      print('Warning: Unknown Stroke string: $name');
       return null; // Or a default, or rethrow
-    }
-  }
-
-  String get displayName {
-    switch (this) {
-      case Stroke.freestyle:
-        return 'Freestyle';
-      case Stroke.backstroke:
-        return 'Backstroke';
-      case Stroke.breaststroke:
-        return 'Breaststroke';
-      case Stroke.butterfly:
-        return 'Butterfly';
-      case Stroke.medley:
-        return 'IM';
-      case Stroke.choice:
-        return 'Choice';
-      case Stroke.unknown:
-        return 'unknown';
     }
   }
 }
