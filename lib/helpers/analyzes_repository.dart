@@ -1,10 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:swim_apps_shared/src/objects/race.dart';
 
-class Analyzes {
+class AnalyzesRepository {
   final FirebaseFirestore _db;
 
-  Analyzes(this._db);
+  AnalyzesRepository(this._db);
 
   CollectionReference<Race> get _racesRef => _db
       .collection('analyzes')

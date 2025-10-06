@@ -11,7 +11,7 @@ class FirestoreHelper {
   // --- Shared Repositories ---
   // These are available to all apps that use this package.
   late final UserRepository userRepository;
-  late final Analyzes raceRepository;
+  late final AnalyzesRepository raceRepository;
 
   // A private map to hold any app-specific repositories.
   final Map<Type, BaseRepository> _injectedRepositories = {};
@@ -19,7 +19,7 @@ class FirestoreHelper {
   FirestoreHelper({required FirebaseFirestore firestore}) : _db = firestore {
     // Initialize all shared repositories
     userRepository = UserRepository(_db);
-    raceRepository = Analyzes(_db);
+    raceRepository = AnalyzesRepository(_db);
   }
 
   /// Call this from main.dart to register an app-specific repository.
