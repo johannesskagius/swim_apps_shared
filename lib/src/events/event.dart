@@ -1,3 +1,4 @@
+import 'package:swim_apps_shared/src/objects/pool_length.dart';
 import 'package:swim_apps_shared/src/objects/stroke.dart';
 
 import 'checkpoint.dart';
@@ -8,7 +9,10 @@ abstract class Event {
   const Event({required this.stroke});
 
   String get name;
+
   int get distance;
-  int get poolLength;
+
+  PoolLength get poolLength;
+
   List<CheckPoint> get checkPoints;
 }
