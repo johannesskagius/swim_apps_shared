@@ -6,19 +6,19 @@ import 'package:swim_apps_shared/swim_apps_shared.dart';
 /// and standardized per-25m data for detailed analysis over time.
 class RaceAnalysis {
   final String? id;
-  final String eventName;
-  final String raceName;
-  final DateTime raceDate;
-  final PoolLength poolLength; // Changed to PoolLength enum
-  final Stroke stroke;
-  final int distance;
-  final String? coachId;
-  final String? swimmerId;
-  final List<AnalyzedSegment> segments;
+  String? eventName;
+  String? raceName;
+  DateTime? raceDate;
+  PoolLength? poolLength; // Changed to PoolLength enum
+  Stroke? stroke;
+  int? distance;
+  String? coachId;
+  String? swimmerId;
+  List<AnalyzedSegment> segments;
 
   // --- OVERALL RACE SUMMARY STATS ---
-  final int finalTime; // Total race time in milliseconds
-  final double totalDistance; // Sum of all segment distances
+  int finalTime; // Total race time in milliseconds
+  double totalDistance; // Sum of all segment distances
   final int totalStrokes;
   final double averageSpeedMetersPerSecond;
   final double averageStrokeFrequency; // Weighted by time
@@ -249,9 +249,10 @@ class RaceAnalysis {
     return {
       'eventName': eventName,
       'raceName': raceName,
-      'raceDate': Timestamp.fromDate(raceDate),
-      'poolLength': poolLength.name, // Convert enum to its string name
-      'stroke': stroke.name,
+      if (raceDate != null) 'raceDate': Timestamp.fromDate(raceDate!),
+      if (poolLength != null) 'poolLength': poolLength!.name,
+      // Convert enum to its string name
+      if (stroke != null) 'stroke': stroke!.name,
       'distance': distance,
       'segments': segments.map((s) => s.toJson()).toList(),
       'coachId': coachId,
@@ -278,9 +279,9 @@ class RaceAnalysis {
     final data = doc.data()!;
     return RaceAnalysis(
       id: doc.id,
-      eventName: data['eventName'] as String,
-      raceName: data['raceName'] as String,
-      raceDate: (data['raceDate'] as Timestamp).toDate(),
+      eventName: data['eventName'] as String?,
+      raceName: data['raceName'] as String?,
+      raceDate: data['raceDate']!=null ? (data['raceDate'] as Timestamp).toDate():null,
       poolLength: PoolLength.values.byName(
         data['poolLength'] as String? ?? 'unknown',
       ),
