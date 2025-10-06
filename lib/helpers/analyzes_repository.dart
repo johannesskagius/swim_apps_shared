@@ -7,7 +7,7 @@ class AnalyzesRepository {
   AnalyzesRepository(this._db);
 
   CollectionReference<RaceAnalysis> get _racesRef => _db
-      .collection('analyzes')
+      .collection('racesAnalyzes')
       .withConverter<RaceAnalysis>(
     fromFirestore: (snapshots, _) => RaceAnalysis.fromFirestore(snapshots),
     toFirestore: (race, _) => race.toJson(),
