@@ -15,6 +15,7 @@ class Swimmer extends AppUser {
     required super.id,
     required super.name,
     required super.email,
+    super.lastName,
     super.profilePicturePath,
     super.registerDate,
     super.clubId,
@@ -29,8 +30,9 @@ class Swimmer extends AppUser {
     return Swimmer(
       id: docId,
       name: json['name'] as String? ?? 'Swimmer',
-      // Default name
+      lastName: json['lastName'] as String?,
       email: json['email'] as String? ?? '',
+
       profilePicturePath: json['profilePicturePath'] as String?,
       registerDate: AppUser.parseDateTime(json['registerDate']),
       updatedAt: AppUser.parseDateTime(json['updatedAt']),
@@ -52,7 +54,7 @@ class Swimmer extends AppUser {
       if (coachCreatorId != null) 'coachCreatorId': coachCreatorId,
       if (secondCoachId != null) 'secondCoachId': secondCoachId,
       if (thirdCoachId != null) 'thirdCoachId': thirdCoachId,
-      if(memberOfTeams != null) 'memberOfTeams': memberOfTeams
+      if (memberOfTeams != null) 'memberOfTeams': memberOfTeams,
     });
     return json;
   }

@@ -1,8 +1,8 @@
 // lib/users/user.dart
-import 'package:flutter/material.dart';
-import 'package:swim_apps_shared/src/objects/swimmer.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:swim_apps_shared/src/objects/swimmer.dart';
 
 import 'coach.dart';
 import 'user_types.dart'; // Assuming UserType enum (athlete, coach, admin etc.) is here
@@ -11,18 +11,22 @@ import 'user_types.dart'; // Assuming UserType enum (athlete, coach, admin etc.)
 abstract class AppUser {
   String id;
   String name;
+  String? lastName;
   String email;
-  UserType userType; // This is key for polymorphism and set by subclass constructors
+  UserType
+  userType; // This is key for polymorphism and set by subclass constructors
   String? profilePicturePath;
   DateTime? registerDate;
   DateTime? updatedAt; // Added field
-  String? clubId; // Common: ID of the club the user is primarily associated with
+  String?
+  clubId; // Common: ID of the club the user is primarily associated with
 
   AppUser({
     required this.id,
     required this.name,
     required this.email,
     required this.userType, // Will be passed by subclass constructors
+    this.lastName,
     this.profilePicturePath,
     this.registerDate,
     this.updatedAt, // Added to constructor
@@ -34,6 +38,7 @@ abstract class AppUser {
     return {
       'id': id, //is often the document ID, but can be included if useful
       'name': name,
+      'lastName': lastName,
       'email': email,
       'userType': userType.name,
       // Store UserType as a string, crucial for fromJson dispatch
@@ -108,7 +113,6 @@ abstract class AppUser {
     // Note: Subclass implementations will have their own specific fields here
   });
 
-
   // ... (rest of your static signUpUserWithEmail and instance updateFirebaseAuthDisplayName methods)
   // These methods should also be reviewed to handle 'updatedAt' if applicable,
   // e.g., setting it during sign-up or updates.
@@ -143,7 +147,7 @@ abstract class AppUser {
       if (newName.isNotEmpty) {
         await firebaseUser.updateDisplayName(newName);
       }
-      
+
       final now = DateTime.now();
 
       Map<String, dynamic> profileJson = {
@@ -153,7 +157,9 @@ abstract class AppUser {
         'email': firebaseUser.email!,
         'userType': userType.name,
         'profilePicturePath': profilePicturePath ?? firebaseUser.photoURL,
-        'registerDate': Timestamp.fromDate(firebaseUser.metadata.creationTime ?? now),
+        'registerDate': Timestamp.fromDate(
+          firebaseUser.metadata.creationTime ?? now,
+        ),
         'updatedAt': Timestamp.fromDate(now), // Set updatedAt on creation
         'memberOfClubId': memberOfClubId,
         'memberOfTeams': userType == UserType.coach
@@ -170,9 +176,7 @@ abstract class AppUser {
       await FirebaseFirestore.instance
           .collection('users')
           .doc(newUserProfile.id)
-          .set(
-            newUserProfile.toJson(),
-          );
+          .set(newUserProfile.toJson());
 
       debugPrint(
         "User document created in Firestore for user ID: ${newUserProfile.id} as type ${newUserProfile.userType}",

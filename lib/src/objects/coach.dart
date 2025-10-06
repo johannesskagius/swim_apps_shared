@@ -11,6 +11,7 @@ class Coach extends AppUser {
     required super.id,
     required super.name,
     required super.email,
+    super.lastName,
     super.profilePicturePath,
     super.registerDate,
     super.updatedAt, // Added
@@ -28,6 +29,7 @@ class Coach extends AppUser {
     return Coach(
       id: docId,
       name: json['name'] as String? ?? 'Coach', // Default name
+      lastName: json['lastName'] as String?, // Default name
       email: json['email'] as String? ?? '',
       profilePicturePath: json['profilePicturePath'] as String?,
       registerDate: AppUser.parseDateTime(json['registerDate']),
