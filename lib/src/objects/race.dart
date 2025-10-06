@@ -145,7 +145,6 @@ class Race {
   }
 
   // --- CALCULATION HELPERS ---
-
   /// Calculates speed for each 25m interval based on split times.
   static List<double> _calculateSpeedPer25m(List<int> splits25m) {
     if (splits25m.isEmpty) return [];
