@@ -2,7 +2,7 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:swim_apps_shared/helpers/base_repository.dart';
-import 'package:swim_apps_shared/helpers/race_repository.dart';
+import 'package:swim_apps_shared/helpers/analyzes_repository.dart';
 import 'package:swim_apps_shared/helpers/user_repository.dart';
 
 class FirestoreHelper {
@@ -11,7 +11,7 @@ class FirestoreHelper {
   // --- Shared Repositories ---
   // These are available to all apps that use this package.
   late final UserRepository userRepository;
-  late final RaceRepository raceRepository;
+  late final Analyzes raceRepository;
 
   // A private map to hold any app-specific repositories.
   final Map<Type, BaseRepository> _injectedRepositories = {};
@@ -19,7 +19,7 @@ class FirestoreHelper {
   FirestoreHelper({required FirebaseFirestore firestore}) : _db = firestore {
     // Initialize all shared repositories
     userRepository = UserRepository(_db);
-    raceRepository = RaceRepository(_db);
+    raceRepository = Analyzes(_db);
   }
 
   /// Call this from main.dart to register an app-specific repository.

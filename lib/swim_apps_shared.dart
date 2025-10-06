@@ -6,7 +6,7 @@ export 'helpers/firestore_helper.dart';
 
 // --- REPOSITORIES ---
 // Note: Repositories seem to be in the helpers folder based on your example.
-export 'helpers/race_repository.dart';
+export 'helpers/analyzes_repository.dart';
 export 'helpers/user_repository.dart';
 
 // --- EVENTS ---
