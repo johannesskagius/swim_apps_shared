@@ -22,6 +22,15 @@ class AnalyzesRepository {
     return snapshot.docs.map((doc) => doc.data()).toList();
   }
 
+  /// Fetches a stream of races for a specific swimmer.
+  Stream<List<RaceAnalysis>> getStreamOfRacesForUser(String userId) {
+    return _racesRef
+        .where('swimmerId', isEqualTo: userId)
+        .orderBy('raceDate', descending: true) // Sort by date
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
+  }
+
   /// Fetches a single race by its document ID.
   Future<RaceAnalysis> getRace(String raceId) async {
     final doc = await _racesRef.doc(raceId).get();
