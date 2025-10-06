@@ -75,15 +75,12 @@ class RaceAnalysis {
     String? swimmerId,
   }) {
     // --- Overall Summary Calculations ---
-    final finalTime = segments
-        .map((s) => s.splitTimeMillis)
-        .reduce((a, b) => a + b);
-    final totalDistance = segments
-        .map((s) => s.distanceMeters)
-        .reduce((a, b) => a + b);
-    final totalStrokes = segments
-        .map((s) => s.strokes ?? 0)
-        .reduce((a, b) => a + b);
+    final finalTime =
+        segments.map((s) => s.splitTimeMillis).fold(0, (a, b) => a + b);
+    final totalDistance =
+        segments.map((s) => s.distanceMeters).fold(0.0, (a, b) => a + b);
+    final totalStrokes =
+        segments.map((s) => s.strokes ?? 0).fold(0, (a, b) => a + b);
 
     final averageSpeed = (totalDistance > 0 && finalTime > 0)
         ? (totalDistance / (finalTime / 1000.0))
@@ -105,9 +102,8 @@ class RaceAnalysis {
         totalDistForLength += segment.distanceMeters;
       }
     }
-    final avgFreq = (totalTimeForFreq > 0)
-        ? totalWeightedFreq / totalTimeForFreq
-        : 0.0;
+    final avgFreq =
+        (totalTimeForFreq > 0) ? totalWeightedFreq / totalTimeForFreq : 0.0;
     final avgLength = (totalDistForLength > 0)
         ? totalWeightedLength / totalDistForLength
         : 0.0;
@@ -208,9 +204,8 @@ class RaceAnalysis {
     double cumulativeDistance = 0;
     int cumulativeTime = 0;
     int segmentIndex = 0;
-    final double totalRaceDistance = segments
-        .map((s) => s.distanceMeters)
-        .reduce((a, b) => a + b);
+    final double totalRaceDistance =
+        segments.map((s) => s.distanceMeters).fold(0.0, (a, b) => a + b);
 
     while (targetDistance <= totalRaceDistance + 0.1) {
       // Epsilon for floating point
@@ -281,7 +276,8 @@ class RaceAnalysis {
       id: doc.id,
       eventName: data['eventName'] as String?,
       raceName: data['raceName'] as String?,
-      raceDate: data['raceDate']!=null ? (data['raceDate'] as Timestamp).toDate():null,
+      raceDate:
+          data['raceDate'] != null ? (data['raceDate'] as Timestamp).toDate() : null,
       poolLength: PoolLength.values.byName(
         data['poolLength'] as String? ?? 'unknown',
       ),
@@ -295,18 +291,19 @@ class RaceAnalysis {
       finalTime: data['finalTime'] as int,
       totalDistance: (data['totalDistance'] as num).toDouble(),
       totalStrokes: data['totalStrokes'] as int,
-      averageSpeedMetersPerSecond: (data['averageSpeedMetersPerSecond'] as num)
-          .toDouble(),
-      averageStrokeFrequency: (data['averageStrokeFrequency'] as num)
-          .toDouble(),
-      averageStrokeLengthMeters: (data['averageStrokeLengthMeters'] as num)
-          .toDouble(),
+      averageSpeedMetersPerSecond:
+          (data['averageSpeedMetersPerSecond'] as num).toDouble(),
+      averageStrokeFrequency:
+          (data['averageStrokeFrequency'] as num).toDouble(),
+      averageStrokeLengthMeters:
+          (data['averageStrokeLengthMeters'] as num).toDouble(),
       splits25m: List<int>.from(data['splits25m'] as List),
       splits50m: List<int>.from(data['splits50m'] as List),
       speedPer25m: List<double>.from(data['speedPer25m'] as List),
       strokesPer25m: List<int>.from(data['strokesPer25m'] as List),
       frequencyPer25m: List<double>.from(data['frequencyPer25m'] as List),
-      strokeLengthPer25m: List<double>.from(data['strokeLengthPer25m'] as List),
+      strokeLengthPer25m:
+          List<double>.from(data['strokeLengthPer25m'] as List),
     );
   }
 }
