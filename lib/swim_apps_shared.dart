@@ -30,3 +30,4 @@ export 'src/objects/user_role.dart';
 export 'src/objects/user_types.dart';
 export 'src/objects/pool_length.dart';
 export 'src/objects/distance_units.dart';
+export 'src/objects/percieved_exertion_level.dart';
