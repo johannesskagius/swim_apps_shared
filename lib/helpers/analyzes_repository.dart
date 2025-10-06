@@ -6,15 +6,15 @@ class AnalyzesRepository {
 
   AnalyzesRepository(this._db);
 
-  CollectionReference<Race> get _racesRef => _db
+  CollectionReference<RaceAnalysis> get _racesRef => _db
       .collection('analyzes')
-      .withConverter<Race>(
-    fromFirestore: (snapshots, _) => Race.fromFirestore(snapshots),
+      .withConverter<RaceAnalysis>(
+    fromFirestore: (snapshots, _) => RaceAnalysis.fromFirestore(snapshots),
     toFirestore: (race, _) => race.toJson(),
   );
 
   /// Fetches a list of races for a specific swimmer.
-  Future<List<Race>> getRacesForUser(String userId) async {
+  Future<List<RaceAnalysis>> getRacesForUser(String userId) async {
     final snapshot = await _racesRef
         .where('swimmerId', isEqualTo: userId)
         .orderBy('raceDate', descending: true) // Sort by date
@@ -23,13 +23,13 @@ class AnalyzesRepository {
   }
 
   /// Fetches a single race by its document ID.
-  Future<Race> getRace(String raceId) async {
+  Future<RaceAnalysis> getRace(String raceId) async {
     final doc = await _racesRef.doc(raceId).get();
     return doc.data()!;
   }
 
   /// Adds a new race to Firestore.
-  Future<void> addRace(Race race) {
+  Future<void> addRace(RaceAnalysis race) {
     return _racesRef.add(race);
   }
 }

@@ -1,16 +1,16 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'analyzed_segment.dart';
+import 'package:swim_apps_shared/swim_apps_shared.dart';
 
 /// Represents a full race analysis, ready to be stored in Firestore.
 /// This class contains both high-level summary statistics for the entire race
 /// and standardized per-25m data for detailed analysis over time.
-class Race {
+class RaceAnalysis {
   final String? id;
   final String eventName;
   final String raceName;
   final DateTime raceDate;
-  final int poolLength;
-  final String stroke;
+  final PoolLength poolLength; // Changed to PoolLength enum
+  final Stroke stroke;
   final int distance;
   final String? coachId;
   final String? swimmerId;
@@ -33,7 +33,7 @@ class Race {
   final List<double> strokeLengthPer25m; // Stroke length for each 25m interval
 
   /// The main constructor, which takes all fields.
-  Race({
+  RaceAnalysis({
     this.id,
     required this.eventName,
     required this.raceName,
@@ -62,13 +62,13 @@ class Race {
 
   /// Factory constructor to create a Race from raw segments, with automatic
   /// calculation of all summary and interval statistics.
-  factory Race.fromSegments({
+  factory RaceAnalysis.fromSegments({
     String? id,
     required String eventName,
     required String raceName,
     required DateTime raceDate,
-    required int poolLength,
-    required String stroke,
+    required PoolLength poolLength, // Changed to PoolLength enum
+    required Stroke stroke,
     required int distance,
     required List<AnalyzedSegment> segments,
     String? coachId,
@@ -118,7 +118,7 @@ class Race {
     final speedPer25m = _calculateSpeedPer25m(splits25m);
     final otherMetrics = _calculateMetricsPer25m(segments, splits25m.length);
 
-    return Race(
+    return RaceAnalysis(
       id: id,
       eventName: eventName,
       raceName: raceName,
@@ -250,8 +250,8 @@ class Race {
       'eventName': eventName,
       'raceName': raceName,
       'raceDate': Timestamp.fromDate(raceDate),
-      'poolLength': poolLength,
-      'stroke': stroke,
+      'poolLength': poolLength.name, // Convert enum to its string name
+      'stroke': stroke.name,
       'distance': distance,
       'segments': segments.map((s) => s.toJson()).toList(),
       'coachId': coachId,
@@ -272,15 +272,19 @@ class Race {
   }
 
   /// Creates a Race object from a Firestore document.
-  factory Race.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
+  factory RaceAnalysis.fromFirestore(
+    DocumentSnapshot<Map<String, dynamic>> doc,
+  ) {
     final data = doc.data()!;
-    return Race(
+    return RaceAnalysis(
       id: doc.id,
       eventName: data['eventName'] as String,
       raceName: data['raceName'] as String,
       raceDate: (data['raceDate'] as Timestamp).toDate(),
-      poolLength: data['poolLength'] as int,
-      stroke: data['stroke'] as String,
+      poolLength: PoolLength.values.byName(
+        data['poolLength'] as String? ?? 'unknown',
+      ),
+      stroke: Stroke.values.byName(data['stroke'] as String? ?? 'unknown'),
       distance: data['distance'] as int,
       segments: (data['segments'] as List<dynamic>)
           .map((s) => AnalyzedSegment.fromMap(s as Map<String, dynamic>))
