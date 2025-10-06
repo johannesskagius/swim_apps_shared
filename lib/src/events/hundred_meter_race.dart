@@ -9,7 +9,7 @@ class HundredMetersRace extends Event {
   @override
   int get distance => 100;
   @override
-  int get poolLength => 25;
+  PoolLength get poolLength => PoolLength.m25;
 
   @override
   List<CheckPoint> get checkPoints => [

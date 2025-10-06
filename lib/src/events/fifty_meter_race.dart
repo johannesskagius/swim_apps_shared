@@ -1,3 +1,5 @@
+import 'package:swim_apps_shared/src/objects/pool_length.dart';
+
 import 'checkpoint.dart';
 import 'event.dart';
 
@@ -9,7 +11,7 @@ class FiftyMeterRace extends Event {
   @override
   int get distance => 50;
   @override
-  int get poolLength => 25;
+  PoolLength get poolLength => PoolLength.m25;
 
   @override
   List<CheckPoint> get checkPoints => [
