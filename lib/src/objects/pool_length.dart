@@ -7,8 +7,8 @@ enum PoolLength {
   y25(25, DistanceUnit.yards),
   unknown(0, DistanceUnit.meters); // Default/fallback case
 
-  const PoolLength(this.value, this.distanceUnit);
-  final int value;
+  const PoolLength(this.distance, this.distanceUnit);
+  final int distance;
   final DistanceUnit distanceUnit;
 
   /// Returns a user-friendly display string (e.g., "25m", "25y").
