@@ -21,9 +21,9 @@ class Coach extends AppUser {
     List<String>? ownerOfTeams,
     this.coachCreatorId,
     this.isAccountHolder,
-  })  : memberOfTeams = memberOfTeams ?? [],
-        ownerOfTeams = ownerOfTeams ?? [],
-        super(userType: UserType.coach);
+  }) : memberOfTeams = memberOfTeams ?? [],
+       ownerOfTeams = ownerOfTeams ?? [],
+       super(userType: UserType.coach);
 
   factory Coach.fromJson(String docId, Map<String, dynamic> json) {
     return Coach(
@@ -35,9 +35,14 @@ class Coach extends AppUser {
       profilePicturePath: json['profilePicturePath'] as String?,
       registerDate: AppUser.parseDateTime(json['registerDate']),
       updatedAt: AppUser.parseDateTime(json['updatedAt']),
-      clubId: json['clubId'] as String?, // Standardized from memberOfClubId
-      memberOfTeams: json['memberOfTeams'] != null ? List<String>.from(json['memberOfTeams'] as List<dynamic>) : [],
-      ownerOfTeams: json['ownerOfTeams'] != null ? List<String>.from(json['ownerOfTeams'] as List<dynamic>) : [],
+      clubId: json['clubId'] as String?,
+      // Standardized from memberOfClubId
+      memberOfTeams: json['memberOfTeams'] != null
+          ? List<String>.from(json['memberOfTeams'] as List<dynamic>)
+          : [],
+      ownerOfTeams: json['ownerOfTeams'] != null
+          ? List<String>.from(json['ownerOfTeams'] as List<dynamic>)
+          : [],
       coachCreatorId: json['coachCreatorId'] as String?,
     );
   }
@@ -48,7 +53,7 @@ class Coach extends AppUser {
     json.addAll({
       'memberOfTeams': memberOfTeams,
       'ownerOfTeams': ownerOfTeams,
-      'isAccountHolder': isAccountHolder,
+      if (isAccountHolder != null) 'isAccountHolder': isAccountHolder,
       if (coachCreatorId != null) 'coachCreatorId': coachCreatorId,
     });
     return json;
@@ -77,7 +82,8 @@ class Coach extends AppUser {
       registerDate: registerDate ?? this.registerDate,
       updatedAt: updatedAt ?? this.updatedAt,
       clubId: clubId ?? this.clubId,
-      isAccountHolder: isAccountHolder ?? this.isAccountHolder, // Corrected logic
+      isAccountHolder: isAccountHolder ?? this.isAccountHolder,
+      // Corrected logic
       memberOfTeams: memberOfTeams ?? this.memberOfTeams,
       ownerOfTeams: ownerOfTeams ?? this.ownerOfTeams,
       coachCreatorId: coachCreatorId ?? this.coachCreatorId,
