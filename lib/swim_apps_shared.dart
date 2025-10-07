@@ -31,3 +31,7 @@ export 'src/objects/user_types.dart';
 export 'src/objects/pool_length.dart';
 export 'src/objects/distance_units.dart';
 export 'src/objects/percieved_exertion_level.dart';
+
+
+// --- widgets ---
+export 'src/widget/race_comparison_page.dart';

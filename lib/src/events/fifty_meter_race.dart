@@ -7,7 +7,7 @@ class FiftyMeterRace extends Event {
   const FiftyMeterRace({required super.stroke});
 
   @override
-  String get name => '50m $stroke';
+  String get name => '50m ${stroke.description}';
   @override
   int get distance => 50;
   @override
