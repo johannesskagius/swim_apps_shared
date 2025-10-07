@@ -14,6 +14,7 @@ class RaceAnalysis {
   int? distance;
   String? coachId;
   String? swimmerId;
+  String? swimmerName;
   List<AnalyzedSegment> segments;
 
   // --- OVERALL RACE SUMMARY STATS ---
@@ -44,6 +45,7 @@ class RaceAnalysis {
     required this.segments,
     this.coachId,
     this.swimmerId,
+    this.swimmerName,
     // Overall stats
     required this.finalTime,
     required this.totalDistance,
@@ -245,6 +247,7 @@ class RaceAnalysis {
       'eventName': eventName,
       'raceName': raceName,
       if (raceDate != null) 'raceDate': Timestamp.fromDate(raceDate!),
+      if(swimmerName != null) 'swimmerName':swimmerName,
       if (poolLength != null) 'poolLength': poolLength!.name,
       // Convert enum to its string name
       if (stroke != null) 'stroke': stroke!.name,
@@ -276,6 +279,7 @@ class RaceAnalysis {
       id: doc.id,
       eventName: data['eventName'] as String?,
       raceName: data['raceName'] as String?,
+      swimmerName: data['swimmerName'] as String?,
       raceDate:
           data['raceDate'] != null ? (data['raceDate'] as Timestamp).toDate() : null,
       poolLength: PoolLength.values.byName(
