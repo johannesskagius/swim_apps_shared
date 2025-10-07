@@ -54,6 +54,7 @@ class Coach extends AppUser {
       'memberOfTeams': memberOfTeams,
       'ownerOfTeams': ownerOfTeams,
       if (isAccountHolder != null) 'isAccountHolder': isAccountHolder,
+      if (clubId != null) 'clubId': clubId,
       if (coachCreatorId != null) 'coachCreatorId': coachCreatorId,
     });
     return json;
