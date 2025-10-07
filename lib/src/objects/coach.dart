@@ -1,11 +1,12 @@
-
 import 'package:swim_apps_shared/src/objects/user.dart';
 import 'package:swim_apps_shared/src/objects/user_types.dart';
 
 class Coach extends AppUser {
   List<String> memberOfTeams; // Teams the coach is directly coaching or part of
-  List<String> ownerOfTeams;  // Teams the coach created/manages in the app
-  String? coachCreatorId;     // Optional: ID of an admin or head coach who set up this coach account
+  List<String> ownerOfTeams; // Teams the coach created/manages in the app
+  String?
+  coachCreatorId; // Optional: ID of an admin or head coach who set up this coach account
+  bool isAccountHolder;
 
   Coach({
     required super.id,
@@ -19,21 +20,24 @@ class Coach extends AppUser {
     List<String>? memberOfTeams,
     List<String>? ownerOfTeams,
     this.coachCreatorId,
-  })  : memberOfTeams = memberOfTeams ?? [],
-        ownerOfTeams = ownerOfTeams ?? [],
-        super(
-        userType: UserType.coach,
-      );
+    this.isAccountHolder = false,
+  }) : memberOfTeams = memberOfTeams ?? [],
+       ownerOfTeams = ownerOfTeams ?? [],
+       super(userType: UserType.coach);
 
   factory Coach.fromJson(String docId, Map<String, dynamic> json) {
     return Coach(
       id: docId,
-      name: json['name'] as String? ?? 'Coach', // Default name
-      lastName: json['lastName'] as String?, // Default name
+      name: json['name'] as String? ?? 'Coach',
+      // Default name
+      lastName: json['lastName'] as String?,
+      // Default name
       email: json['email'] as String? ?? '',
+      isAccountHolder: json['isAccountHolder'] as bool? ?? false,
       profilePicturePath: json['profilePicturePath'] as String?,
       registerDate: AppUser.parseDateTime(json['registerDate']),
-      updatedAt: AppUser.parseDateTime(json['updatedAt']), // Added
+      updatedAt: AppUser.parseDateTime(json['updatedAt']),
+      // Added
       clubId: json['memberOfClubId'] as String?,
       memberOfTeams: json['memberOfTeams'] != null
           ? List<String>.from(json['memberOfTeams'] as List<dynamic>)
@@ -51,6 +55,7 @@ class Coach extends AppUser {
     json.addAll({
       'memberOfTeams': memberOfTeams,
       'ownerOfTeams': ownerOfTeams,
+      'isAccountHolder': isAccountHolder,
       if (coachCreatorId != null) 'coachCreatorId': coachCreatorId,
     });
     return json;
@@ -61,7 +66,8 @@ class Coach extends AppUser {
     String? id,
     String? name,
     String? email,
-    UserType? userType, // Kept for signature consistency, but ignored by Coach constructor
+    UserType?
+    userType, // Kept for signature consistency, but ignored by Coach constructor
     String? profilePicturePath,
     DateTime? registerDate,
     DateTime? updatedAt,
@@ -69,6 +75,7 @@ class Coach extends AppUser {
     List<String>? memberOfTeams,
     List<String>? ownerOfTeams,
     String? coachCreatorId,
+    bool? isAccountHolder,
   }) {
     return Coach(
       id: id ?? this.id,
@@ -79,6 +86,7 @@ class Coach extends AppUser {
       registerDate: registerDate ?? this.registerDate,
       updatedAt: updatedAt ?? this.updatedAt,
       clubId: memberOfClubId ?? clubId,
+      isAccountHolder: isAccountHolder ?? false,
       memberOfTeams: memberOfTeams ?? this.memberOfTeams,
       ownerOfTeams: ownerOfTeams ?? this.ownerOfTeams,
       coachCreatorId: coachCreatorId ?? this.coachCreatorId,
