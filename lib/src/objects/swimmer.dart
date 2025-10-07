@@ -1,11 +1,9 @@
-// --- Swimmer Class ---
-
+// lib/users/swimmer.dart
 import 'package:swim_apps_shared/src/objects/user.dart';
 import 'package:swim_apps_shared/src/objects/user_types.dart';
 
 class Swimmer extends AppUser {
-  String?
-  coachCreatorId; // Optional: ID of their primary coach or who added them
+  String? coachCreatorId;
   String? headCoachId;
   String? secondCoachId;
   String? thirdCoachId;
@@ -32,15 +30,11 @@ class Swimmer extends AppUser {
       name: json['name'] as String? ?? 'Swimmer',
       lastName: json['lastName'] as String?,
       email: json['email'] as String? ?? '',
-
       profilePicturePath: json['profilePicturePath'] as String?,
       registerDate: AppUser.parseDateTime(json['registerDate']),
       updatedAt: AppUser.parseDateTime(json['updatedAt']),
-      // Added
-      clubId: json['memberOfClubId'] as String?,
-      memberOfTeams: json['memberOfTeams'] != null
-          ? List<String>.from(json['memberOfTeams'] as List<dynamic>)
-          : [],
+      clubId: json['clubId'] as String?, // Standardized from memberOfClubId
+      memberOfTeams: json['memberOfTeams'] != null ? List<String>.from(json['memberOfTeams'] as List<dynamic>) : [],
       coachCreatorId: json['coachCreatorId'] as String?,
       secondCoachId: json['secondCoachId'] as String?,
       thirdCoachId: json['thirdCoachId'] as String?,
@@ -64,27 +58,24 @@ class Swimmer extends AppUser {
     String? id,
     String? name,
     String? email,
-    UserType?
-    userType, // Kept for signature consistency, but ignored by Swimmer constructor
+    UserType? userType,
     String? profilePicturePath,
     DateTime? registerDate,
     DateTime? updatedAt,
-    String? memberOfClubId,
+    String? clubId, // Standardized from memberOfClubId
     List<String>? memberOfTeams,
     String? coachCreatorId,
     String? secondCoachId,
     String? thirdCoachId,
-    // Add Swimmer-specific fields here if any, e.g. DateTime? dateOfBirth
   }) {
     return Swimmer(
       id: id ?? this.id,
       name: name ?? this.name,
       email: email ?? this.email,
-      // userType is fixed by the Swimmer constructor to UserType.swimmer
       profilePicturePath: profilePicturePath ?? this.profilePicturePath,
       registerDate: registerDate ?? this.registerDate,
       updatedAt: updatedAt ?? this.updatedAt,
-      clubId: memberOfClubId ?? clubId,
+      clubId: clubId ?? this.clubId,
       memberOfTeams: memberOfTeams ?? this.memberOfTeams,
       coachCreatorId: coachCreatorId ?? this.coachCreatorId,
     );
