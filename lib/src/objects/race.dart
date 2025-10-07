@@ -310,4 +310,22 @@ class RaceAnalysis {
           List<double>.from(data['strokeLengthPer25m'] as List),
     );
   }
+
+  /// Optimization: A map to cache pre-calculated data.
+  /// This avoids re-calculating expensive metrics every time the UI rebuilds.
+  final Map<String, dynamic> _extraData = {};
+
+  /// Caches a pre-calculated value.
+  void setExtraData(String key, dynamic value) {
+    _extraData[key] = value;
+  }
+
+  /// Retrieves a pre-calculated value from the cache.
+  /// Returns null if the value is not in the cache or the type is wrong.
+  T? getExtraData<T>(String key) {
+    if (_extraData.containsKey(key)) {
+      return _extraData[key] as T?;
+    }
+    return null;
+  }
 }
