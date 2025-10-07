@@ -16,6 +16,33 @@ class UserRepository {
 
   CollectionReference get _coachesCollection => _db.collection('coaches');
 
+
+  /// Returns a stream of all users belonging to a specific club.
+  ///
+  /// This is essential for the "Manage Club" page to display a list of all
+  /// members (coaches and swimmers).
+  Stream<List<AppUser>> getUsersByClub(String clubId) {
+    return usersCollection
+        .where('clubId', isEqualTo: clubId)
+        .snapshots()
+        .map((snapshot) {
+      try {
+        return snapshot.docs.map((doc) {
+          return AppUser.fromJson(doc.id, doc.data() as Map<String, dynamic>);
+        }).toList();
+      } catch (e) {
+        debugPrint("Error mapping users by club: $e");
+        // FIX: Explicitly type the empty list to avoid type conflicts.
+        return <AppUser>[];
+      }
+    }).handleError((error) {
+      debugPrint("Error in getUsersByClub stream: $error");
+      return <AppUser>[];
+    });
+  }
+
+
+
   Future<AppUser?> getUserDocument(String uid) async {
     if (uid.isEmpty) {
       debugPrint("Error: UID cannot be empty when fetching user document.");
