@@ -17,7 +17,7 @@ class RaceComparisonPage extends StatefulWidget {
   const RaceComparisonPage({
     super.key,
     required this.raceIds,
-    this.brandIconAssetPath, // Parameter added to constructor
+    required this.brandIconAssetPath, // Parameter added to constructor
   });
 
   @override

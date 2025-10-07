@@ -34,4 +34,5 @@ export 'src/objects/percieved_exertion_level.dart';
 
 
 // --- widgets ---
-export 'src/widget/race_comparison_page.dart';
+export 'src/widget/raceAnalyzesHistory/race_comparison_page.dart';
+export 'src/widget/raceAnalyzesHistory/race_history_page.dart';
