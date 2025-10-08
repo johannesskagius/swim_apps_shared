@@ -6,7 +6,7 @@ class Coach extends AppUser {
   List<String> memberOfTeams;
   List<String> ownerOfTeams;
   String? coachCreatorId;
-  bool? isAccountHolder;
+  bool isAccountHolder;
 
   Coach({
     required super.id,
@@ -20,7 +20,7 @@ class Coach extends AppUser {
     List<String>? memberOfTeams,
     List<String>? ownerOfTeams,
     this.coachCreatorId,
-    this.isAccountHolder,
+    this.isAccountHolder = false,
   }) : memberOfTeams = memberOfTeams ?? [],
        ownerOfTeams = ownerOfTeams ?? [],
        super(userType: UserType.coach);
