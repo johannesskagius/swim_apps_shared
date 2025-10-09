@@ -602,7 +602,9 @@ class _RaceComparisonPageState extends State<RaceComparisonPage> {
 
           // Optimization: The build method is now much lighter as it receives
           // pre-processed data.
-          return _buildComparisonTable(context, _loadedRaces!);
+          return SingleChildScrollView(
+            child: _buildComparisonTable(context, _loadedRaces!),
+          );
         },
       ),
     );
@@ -1020,8 +1022,9 @@ class _RaceComparisonPageState extends State<RaceComparisonPage> {
   }
 
   double? _calculateSpeed(num? strokeLength, num? strokeFrequency) {
-    if (strokeLength == null || strokeFrequency == null || strokeFrequency == 0)
+    if (strokeLength == null || strokeFrequency == null || strokeFrequency == 0) {
       return null;
+    }
     return (strokeLength * strokeFrequency) / 60.0;
   }
 
@@ -1076,14 +1079,16 @@ class _RaceComparisonPageState extends State<RaceComparisonPage> {
 
   DataCell _buildDifferenceCell(num? val2, num? val1, bool lowerIsBetter,
       String Function(num value)? formatter) {
-    if (val1 == null || val2 == null)
+    if (val1 == null || val2 == null) {
       return const DataCell(Center(child: Text('-')));
+    }
 
     final diff = val2 - val1;
     // Use a standard dash for zero difference, which is Unicode-safe.
-    if (diff.abs() < 0.01)
+    if (diff.abs() < 0.01) {
       return const DataCell(Center(
           child: Text('-', style: TextStyle(fontWeight: FontWeight.bold))));
+    }
 
     final bool isImprovement = lowerIsBetter ? diff < 0 : diff > 0;
     final color = isImprovement ? Colors.green.shade800 : Colors.red.shade700;
