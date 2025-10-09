@@ -62,7 +62,9 @@ class _RaceHistoryPageState extends State<RaceHistoryPage> {
 
       // --- FIX: Restored missing logic for Coach role ---
       if (currentUser is Coach) {
-        final swimmers = await userRepo.getAllSwimmersFromCoach(coachId: currentUser.id);
+        final swimmers = await userRepo.getAllSwimmersFromCoach(
+          coachId: currentUser.id,
+        );
         if (mounted) {
           setState(() {
             _currentUser = currentUser;
@@ -82,7 +84,9 @@ class _RaceHistoryPageState extends State<RaceHistoryPage> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error loading user data: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error loading user data: $e')));
       }
     }
   }
@@ -98,12 +102,6 @@ class _RaceHistoryPageState extends State<RaceHistoryPage> {
   }
 
   void _navigateToComparison() {
-    if (_selectedRaceIds.length < 2) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select at least two races to compare.')),
-      );
-      return;
-    }
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -128,23 +126,20 @@ class _RaceHistoryPageState extends State<RaceHistoryPage> {
       appBar: AppBar(
         title: Text(appBarTitle),
         actions: [
-          if (_selectedRaceIds.length >= 2)
-            IconButton(
-              icon: const Icon(Icons.compare_arrows),
-              onPressed: _navigateToComparison,
-              tooltip: 'Compare Selected',
-            ),
+          IconButton(
+            icon: const Icon(Icons.compare_arrows),
+            onPressed: _navigateToComparison,
+            tooltip: 'Compare Selected',
+          ),
         ],
       ),
       body: _buildBody(raceRepository),
-      floatingActionButton: _selectedRaceIds.length >= 2
-          ? FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton.extended(
         heroTag: 'race_history_fab',
         onPressed: _navigateToComparison,
         label: const Text('Compare'),
         icon: const Icon(Icons.compare_arrows),
-      )
-          : null,
+      ),
     );
   }
 
@@ -161,7 +156,9 @@ class _RaceHistoryPageState extends State<RaceHistoryPage> {
     }
 
     if (_currentUser == null) {
-      return const Center(child: Text('You must be logged in to view race history.'));
+      return const Center(
+        child: Text('You must be logged in to view race history.'),
+      );
     }
 
     // If the user is a coach, show a swimmer selector dropdown.
@@ -175,17 +172,24 @@ class _RaceHistoryPageState extends State<RaceHistoryPage> {
               hint: const Text('Select a Swimmer'),
               isExpanded: true,
               items: _swimmers.map((swimmer) {
-                return DropdownMenuItem(value: swimmer.id, child: Text(swimmer.name));
+                return DropdownMenuItem(
+                  value: swimmer.id,
+                  child: Text(swimmer.name),
+                );
               }).toList(),
               onChanged: (String? newValue) {
                 setState(() {
                   _selectedSwimmerId = newValue;
-                  _selectedRaceIds.clear(); // Reset selection when swimmer changes
+                  _selectedRaceIds
+                      .clear(); // Reset selection when swimmer changes
                 });
               },
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
               ),
             ),
           ),
@@ -194,16 +198,25 @@ class _RaceHistoryPageState extends State<RaceHistoryPage> {
               child: Center(
                 child: Padding(
                   padding: EdgeInsets.all(16.0),
-                  child: Text('You do not have any swimmers assigned to you.', textAlign: TextAlign.center),
+                  child: Text(
+                    'You do not have any swimmers assigned to you.',
+                    textAlign: TextAlign.center,
+                  ),
                 ),
               ),
             )
           else if (_selectedSwimmerId == null)
             const Expanded(
-              child: Center(child: Text('Please select a swimmer to view their race history.')),
+              child: Center(
+                child: Text(
+                  'Please select a swimmer to view their race history.',
+                ),
+              ),
             )
           else
-            Expanded(child: _buildRacesList(raceRepository, _selectedSwimmerId!)),
+            Expanded(
+              child: _buildRacesList(raceRepository, _selectedSwimmerId!),
+            ),
         ],
       );
     }
@@ -248,7 +261,9 @@ class _RaceHistoryPageState extends State<RaceHistoryPage> {
                     elevation: 1,
                     shape: RoundedRectangleBorder(
                       side: BorderSide(
-                        color: isSelected ? Theme.of(context).primaryColor : Colors.transparent,
+                        color: isSelected
+                            ? Theme.of(context).primaryColor
+                            : Colors.transparent,
                         width: 1.5,
                       ),
                       borderRadius: BorderRadius.circular(12),
@@ -274,8 +289,9 @@ class _RaceHistoryPageState extends State<RaceHistoryPage> {
   }
 
   Widget _buildRaceTile(RaceAnalysis race, bool isSelected) {
-    final raceDateFormatted =
-    race.raceDate != null ? DateFormat.yMMMd().format(race.raceDate!) : 'No Date';
+    final raceDateFormatted = race.raceDate != null
+        ? DateFormat.yMMMd().format(race.raceDate!)
+        : 'No Date';
 
     final strokeName = race.stroke?.name ?? 'Unknown Stroke';
     final titleText = '${race.distance}m $strokeName';
@@ -285,7 +301,9 @@ class _RaceHistoryPageState extends State<RaceHistoryPage> {
       title: Text(titleText),
       subtitle: Text(subtitleText),
       onTap: () => _toggleSelection(race.id!),
-      tileColor: isSelected ? Theme.of(context).primaryColor.withOpacity(0.15) : null,
+      tileColor: isSelected
+          ? Theme.of(context).primaryColor.withAlpha(15)
+          : null,
       trailing: isSelected
           ? Icon(Icons.check_circle, color: Theme.of(context).primaryColor)
           : const Icon(Icons.circle_outlined),
