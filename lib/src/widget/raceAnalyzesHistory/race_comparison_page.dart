@@ -45,9 +45,7 @@ class _RaceComparisonPageState extends State<RaceComparisonPage> {
 
     _racesFuture = Future.wait(widget.raceIds.map((id) => raceRepository.getRace(id)))
         .then((races) async {
-      // --- START: Performance Logging ---
       final stopwatch = Stopwatch()..start();
-      // --- END: Performance Logging ---
 
       final racesWithNames = await Future.wait(races.map((RaceAnalysis race) async {
         if (race.swimmerName == null || race.swimmerName!.isEmpty) {
@@ -56,7 +54,7 @@ class _RaceComparisonPageState extends State<RaceComparisonPage> {
             final name = '${user?.name ?? ''} ${user?.lastName ?? ''}'.trim();
             race.swimmerName = name.isNotEmpty ? name : 'Unknown Swimmer';
           } catch (e) {
-            print('Could not fetch user for race ${race.id}: $e');
+            debugPrint('Could not fetch user for race ${race.id}: $e');
             race.swimmerName = 'Unknown Swimmer';
           }
         }
@@ -69,7 +67,7 @@ class _RaceComparisonPageState extends State<RaceComparisonPage> {
 
       // --- START: Performance Logging ---
       stopwatch.stop();
-      print('Race data processing took ${stopwatch.elapsedMilliseconds}ms for ${races.length} races.');
+      debugPrint('Race data processing took ${stopwatch.elapsedMilliseconds}ms for ${races.length} races.');
       // --- END: Performance Logging ---
 
       if (mounted) {
@@ -133,7 +131,7 @@ class _RaceComparisonPageState extends State<RaceComparisonPage> {
         icon = pw.MemoryImage(iconData.buffer.asUint8List());
       } catch (e) {
         // Silently fail if the icon isn't found so it doesn't crash.
-        print('PDF share: Could not load brand icon: $e');
+        debugPrint('PDF share: Could not load brand icon: $e');
       }
     }
     // Correctly use swimmerName for display with the right method.

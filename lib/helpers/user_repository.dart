@@ -6,7 +6,6 @@ import '../src/objects/swimmer.dart';
 import '../src/objects/user.dart';
 import '../src/objects/user_types.dart';
 
-
 class UserRepository {
   final FirebaseFirestore _db;
 
@@ -15,7 +14,6 @@ class UserRepository {
   CollectionReference get usersCollection => _db.collection('users');
 
   CollectionReference get _coachesCollection => _db.collection('coaches');
-
 
   /// Returns a stream of all users belonging to a specific club.
   ///
@@ -26,22 +24,29 @@ class UserRepository {
         .where('clubId', isEqualTo: clubId)
         .snapshots()
         .map((snapshot) {
-      try {
-        return snapshot.docs.map((doc) {
-          return AppUser.fromJson(doc.id, doc.data() as Map<String, dynamic>);
-        }).toList();
-      } catch (e) {
-        debugPrint("Error mapping users by club: $e");
-        // FIX: Explicitly type the empty list to avoid type conflicts.
-        return <AppUser>[];
-      }
-    }).handleError((error) {
-      debugPrint("Error in getUsersByClub stream: $error");
-      return <AppUser>[];
-    });
+          try {
+            return snapshot.docs.map((doc) {
+              return AppUser.fromJson(
+                doc.id,
+                doc.data() as Map<String, dynamic>,
+              );
+            }).toList();
+          } catch (e) {
+            debugPrint("Error mapping users by club: $e");
+            // FIX: Explicitly type the empty list to avoid type conflicts.
+            return <AppUser>[];
+          }
+        })
+        .handleError((error) {
+          debugPrint("Error in getUsersByClub stream: $error");
+          return <AppUser>[];
+        });
   }
 
-
+  ///Updates userProfile
+  Future<void> updateUserProfile({required AppUser appUser}) async {
+    usersCollection.doc(appUser.id).update(appUser.toJson());
+  }
 
   Future<AppUser?> getUserDocument(String uid) async {
     if (uid.isEmpty) {
@@ -136,8 +141,6 @@ class UserRepository {
       return null;
     }
   }
-
-
 
   Future<void> updateUser(AppUser updatedUser) async {
     usersCollection.doc(updatedUser.id).set(updatedUser.toJson());
