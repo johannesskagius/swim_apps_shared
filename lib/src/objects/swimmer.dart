@@ -57,6 +57,7 @@ class Swimmer extends AppUser {
   Swimmer copyWith({
     String? id,
     String? name,
+    String? lastName,
     String? email,
     UserType? userType,
     String? profilePicturePath,
@@ -71,6 +72,7 @@ class Swimmer extends AppUser {
     return Swimmer(
       id: id ?? this.id,
       name: name ?? this.name,
+      lastName: lastName ?? this.lastName,
       email: email ?? this.email,
       profilePicturePath: profilePicturePath ?? this.profilePicturePath,
       registerDate: registerDate ?? this.registerDate,

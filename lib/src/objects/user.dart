@@ -74,6 +74,7 @@ abstract class AppUser {
   AppUser copyWith({
     String? id,
     String? name,
+    String? lastName,
     String? email,
     UserType? userType,
     String? profilePicturePath,

@@ -64,6 +64,7 @@ class Coach extends AppUser {
   Coach copyWith({
     String? id,
     String? name,
+    String? lastName,
     String? email,
     UserType? userType,
     String? profilePicturePath,
@@ -78,6 +79,7 @@ class Coach extends AppUser {
     return Coach(
       id: id ?? this.id,
       name: name ?? this.name,
+      lastName: lastName ?? this.name,
       email: email ?? this.email,
       profilePicturePath: profilePicturePath ?? this.profilePicturePath,
       registerDate: registerDate ?? this.registerDate,
