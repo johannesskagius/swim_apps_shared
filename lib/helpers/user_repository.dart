@@ -44,7 +44,7 @@ class UserRepository {
   }
 
   ///Updates userProfile
-  Future<void> updateUserProfile({required AppUser appUser}) async {
+  Future<void> updateMyProfile({required AppUser appUser}) async {
     usersCollection.doc(appUser.id).update(appUser.toJson());
   }
 
