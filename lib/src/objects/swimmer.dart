@@ -51,7 +51,7 @@ class Swimmer extends AppUser {
       if (memberOfTeams != null) 'memberOfTeams': memberOfTeams,
     });
     return json;
-  }
+  }//
 
   @override
   Swimmer copyWith({
