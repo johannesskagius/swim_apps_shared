@@ -43,6 +43,38 @@ class UserRepository {
         });
   }
 
+  ///Creates a new swimmer
+  Future<Swimmer> createSwimmer({
+    String? coachCreatorId,
+    String? clubId,
+    String? lastName,
+    required String name,
+    required String email,
+  }) async {
+    // Generate a new document reference with a unique ID from Firestore.
+    final newDocRef = usersCollection.doc();
+
+    // Create the Swimmer object using the new ID.
+    final newSwimmer = Swimmer(
+      id: newDocRef.id,
+      name: name,
+      email: email,
+      registerDate: DateTime.now(),
+      updatedAt: DateTime.now(),
+      coachCreatorId: coachCreatorId,
+      clubId: clubId,
+      lastName: lastName,
+    );
+
+    newSwimmer.userType = UserType.swimmer;
+
+    // Set the document data in Firestore.
+    await newDocRef.set(newSwimmer.toJson());
+
+    // Return the created object to be used immediately in the UI.
+    return newSwimmer;
+  }
+
   ///Updates userProfile
   Future<void> updateMyProfile({required AppUser appUser}) async {
     usersCollection.doc(appUser.id).update(appUser.toJson());
