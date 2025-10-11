@@ -43,7 +43,8 @@ class UserRepository {
         });
   }
 
-  ///Creates a new swimmer
+  ///Creates a new swimmer with optional
+  ///name & email are musts!
   Future<Swimmer> createSwimmer({
     String? coachCreatorId,
     String? clubId,
