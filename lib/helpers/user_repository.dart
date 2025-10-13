@@ -90,7 +90,7 @@ class UserRepository {
       email: email,
       registerDate: DateTime.now(),
       updatedAt: DateTime.now(),
-      coachCreatorId: coachCreatorId,
+      creatorId: coachCreatorId,
       clubId: clubId,
       lastName: lastName,
     );

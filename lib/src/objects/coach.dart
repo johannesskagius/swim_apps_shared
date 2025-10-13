@@ -42,7 +42,7 @@ class Coach extends AppUser {
       ownerOfTeams: json['ownerOfTeams'] != null
           ? List<String>.from(json['ownerOfTeams'] as List<dynamic>)
           : [],
-      creatorId: json['creatorId'] ?? json['coachCreatorId'] as String?
+      creatorId: json['creatorId'] ?? json['coachCreatorId'] as String?,
     );
   }
 
@@ -71,7 +71,7 @@ class Coach extends AppUser {
     String? clubId, // Standardized from memberOfClubId
     List<String>? memberOfTeams,
     List<String>? ownerOfTeams,
-    String? coachCreatorId,
+    String? creatorId,
     bool? isAccountHolder,
   }) {
     return Coach(
@@ -87,7 +87,7 @@ class Coach extends AppUser {
       // Corrected logic
       memberOfTeams: memberOfTeams ?? this.memberOfTeams,
       ownerOfTeams: ownerOfTeams ?? this.ownerOfTeams,
-      coachCreatorId: coachCreatorId ?? this.coachCreatorId,
+      creatorId: creatorId ?? this.creatorId,
     );
   }
 }

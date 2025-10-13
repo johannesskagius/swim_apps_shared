@@ -65,7 +65,7 @@ class Swimmer extends AppUser {
     DateTime? updatedAt,
     String? clubId, // Standardized from memberOfClubId
     List<String>? memberOfTeams,
-    String? coachCreatorId,
+    String? creatorId,
     String? secondCoachId,
     String? thirdCoachId,
   }) {
@@ -79,7 +79,7 @@ class Swimmer extends AppUser {
       updatedAt: updatedAt ?? this.updatedAt,
       clubId: clubId ?? this.clubId,
       memberOfTeams: memberOfTeams ?? this.memberOfTeams,
-      coachCreatorId: coachCreatorId ?? this.coachCreatorId,
+      creatorId: creatorId ?? this.creatorId,
     );
   }
 }
