@@ -43,6 +43,34 @@ class UserRepository {
         });
   }
 
+  /// Returns a stream of all users belonging to a specific club.
+  ///
+  /// This is essential for the "Manage Club" page to display a list of all
+  /// members (coaches and swimmers).
+  Stream<List<AppUser>> getUsersCreatedByMe({required String myId}) {
+    return usersCollection
+        .where('coachCreatorId', isEqualTo: myId)
+        .snapshots()
+        .map((snapshot) {
+          try {
+            return snapshot.docs.map((doc) {
+              return AppUser.fromJson(
+                doc.id,
+                doc.data() as Map<String, dynamic>,
+              );
+            }).toList();
+          } catch (e) {
+            debugPrint("Error mapping users by club: $e");
+            // FIX: Explicitly type the empty list to avoid type conflicts.
+            return <AppUser>[];
+          }
+        })
+        .handleError((error) {
+          debugPrint("Error in getUsersByClub stream: $error");
+          return <AppUser>[];
+        });
+  }
+
   ///Creates a new swimmer with optional
   ///name & email are musts!
   Future<Swimmer> createSwimmer({

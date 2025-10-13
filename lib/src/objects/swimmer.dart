@@ -3,7 +3,7 @@ import 'package:swim_apps_shared/src/objects/user.dart';
 import 'package:swim_apps_shared/src/objects/user_types.dart';
 
 class Swimmer extends AppUser {
-  String? coachCreatorId;
+  String? creatorId;
   String? headCoachId;
   String? secondCoachId;
   String? thirdCoachId;
@@ -19,7 +19,7 @@ class Swimmer extends AppUser {
     super.clubId,
     super.updatedAt,
     this.memberOfTeams,
-    this.coachCreatorId,
+    super.creatorId,
     this.secondCoachId,
     this.thirdCoachId,
   }) : super(userType: UserType.swimmer);
@@ -35,7 +35,7 @@ class Swimmer extends AppUser {
       updatedAt: AppUser.parseDateTime(json['updatedAt']),
       clubId: json['clubId'] as String?, // Standardized from memberOfClubId
       memberOfTeams: json['memberOfTeams'] != null ? List<String>.from(json['memberOfTeams'] as List<dynamic>) : [],
-      coachCreatorId: json['coachCreatorId'] as String?,
+      creatorId: json['creatorId'] ?? json['coachCreatorId'] as String?,
       secondCoachId: json['secondCoachId'] as String?,
       thirdCoachId: json['thirdCoachId'] as String?,
     );
@@ -45,7 +45,7 @@ class Swimmer extends AppUser {
   Map<String, dynamic> toJson() {
     final json = super.toJson();
     json.addAll({
-      if (coachCreatorId != null) 'coachCreatorId': coachCreatorId,
+      if (creatorId != null) 'coachCreatorId': creatorId,
       if (secondCoachId != null) 'secondCoachId': secondCoachId,
       if (thirdCoachId != null) 'thirdCoachId': thirdCoachId,
       if (memberOfTeams != null) 'memberOfTeams': memberOfTeams,

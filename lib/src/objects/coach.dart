@@ -5,7 +5,6 @@ import 'package:swim_apps_shared/src/objects/user_types.dart';
 class Coach extends AppUser {
   List<String> memberOfTeams;
   List<String> ownerOfTeams;
-  String? coachCreatorId;
   bool isAccountHolder;
 
   Coach({
@@ -17,9 +16,9 @@ class Coach extends AppUser {
     super.registerDate,
     super.updatedAt,
     super.clubId,
+    super.creatorId,
     List<String>? memberOfTeams,
     List<String>? ownerOfTeams,
-    this.coachCreatorId,
     this.isAccountHolder = false,
   }) : memberOfTeams = memberOfTeams ?? [],
        ownerOfTeams = ownerOfTeams ?? [],
@@ -43,7 +42,7 @@ class Coach extends AppUser {
       ownerOfTeams: json['ownerOfTeams'] != null
           ? List<String>.from(json['ownerOfTeams'] as List<dynamic>)
           : [],
-      coachCreatorId: json['coachCreatorId'] as String?,
+      creatorId: json['creatorId'] ?? json['coachCreatorId'] as String?
     );
   }
 
@@ -55,7 +54,6 @@ class Coach extends AppUser {
       'ownerOfTeams': ownerOfTeams,
       'isAccountHolder': isAccountHolder,
       if (clubId != null) 'clubId': clubId,
-      if (coachCreatorId != null) 'coachCreatorId': coachCreatorId,
     });
     return json;
   }

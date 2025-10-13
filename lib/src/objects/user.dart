@@ -17,6 +17,7 @@ abstract class AppUser {
   DateTime? registerDate;
   DateTime? updatedAt;
   String? clubId;
+  String? creatorId;
 
   AppUser({
     required this.id,
@@ -28,6 +29,7 @@ abstract class AppUser {
     this.registerDate,
     this.updatedAt,
     this.clubId,
+    this.creatorId,
   });
 
   Map<String, dynamic> toJson() {
@@ -39,13 +41,17 @@ abstract class AppUser {
       'userType': userType.name,
       if (clubId != null) 'clubId': clubId, // Added clubId to serialization
       if (profilePicturePath != null) 'profilePicturePath': profilePicturePath,
-      if (registerDate != null) 'registerDate': Timestamp.fromDate(registerDate!),
+      if (registerDate != null)
+        'registerDate': Timestamp.fromDate(registerDate!),
       if (updatedAt != null) 'updatedAt': Timestamp.fromDate(updatedAt!),
+      if (creatorId != null) 'creatorId': creatorId,
     };
   }
 
   factory AppUser.fromJson(String docId, Map<String, dynamic> json) {
-    UserType detectedUserType = _getUserTypeFromString(json['userType'] as String?);
+    UserType detectedUserType = _getUserTypeFromString(
+      json['userType'] as String?,
+    );
     json['userType'] = detectedUserType.name;
 
     switch (detectedUserType) {
@@ -97,7 +103,8 @@ abstract class AppUser {
     String? swimmerCoachCreatorId,
   }) async {
     try {
-      UserCredential userCred = await FirebaseAuth.instance.createUserWithEmailAndPassword(email: newEmail, password: password);
+      UserCredential userCred = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(email: newEmail, password: password);
       User? firebaseUser = userCred.user;
       if (firebaseUser == null) return null;
 
@@ -105,20 +112,31 @@ abstract class AppUser {
 
       final now = DateTime.now();
       Map<String, dynamic> profileJson = {
-        'name': newName.isNotEmpty ? newName : (firebaseUser.displayName ?? newEmail.split('@')[0]),
+        'name': newName.isNotEmpty
+            ? newName
+            : (firebaseUser.displayName ?? newEmail.split('@')[0]),
         'email': firebaseUser.email!,
         'userType': userType.name,
         'profilePicturePath': profilePicturePath ?? firebaseUser.photoURL,
-        'registerDate': Timestamp.fromDate(firebaseUser.metadata.creationTime ?? now),
+        'registerDate': Timestamp.fromDate(
+          firebaseUser.metadata.creationTime ?? now,
+        ),
         'updatedAt': Timestamp.fromDate(now),
         'clubId': clubId, // Standardized from memberOfClubId
-        'memberOfTeams': userType == UserType.coach ? coachMemberOfTeams : (userType == UserType.swimmer ? swimmerMemberOfTeams : []),
+        'memberOfTeams': userType == UserType.coach
+            ? coachMemberOfTeams
+            : (userType == UserType.swimmer ? swimmerMemberOfTeams : []),
         'ownerOfTeams': userType == UserType.coach ? coachOwnerOfTeams : [],
-        'coachCreatorId': userType == UserType.coach ? coachCoachCreatorId : (userType == UserType.swimmer ? swimmerCoachCreatorId : null),
+        'coachCreatorId': userType == UserType.coach
+            ? coachCoachCreatorId
+            : (userType == UserType.swimmer ? swimmerCoachCreatorId : null),
       };
 
       AppUser newUserProfile = AppUser.fromJson(firebaseUser.uid, profileJson);
-      await FirebaseFirestore.instance.collection('users').doc(newUserProfile.id).set(newUserProfile.toJson());
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(newUserProfile.id)
+          .set(newUserProfile.toJson());
       return newUserProfile;
     } catch (e) {
       debugPrint("Error during signUp process: $e");
