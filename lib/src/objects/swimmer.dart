@@ -3,7 +3,6 @@ import 'package:swim_apps_shared/src/objects/user.dart';
 import 'package:swim_apps_shared/src/objects/user_types.dart';
 
 class Swimmer extends AppUser {
-  String? creatorId;
   String? headCoachId;
   String? secondCoachId;
   String? thirdCoachId;
