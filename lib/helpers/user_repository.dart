@@ -33,7 +33,6 @@ class UserRepository {
             }).toList();
           } catch (e) {
             debugPrint("Error mapping users by club: $e");
-            // FIX: Explicitly type the empty list to avoid type conflicts.
             return <AppUser>[];
           }
         })
