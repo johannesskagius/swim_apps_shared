@@ -11,6 +11,7 @@ export 'helpers/user_repository.dart';
 
 // --- EVENTS ---
 export 'src/events/event.dart';
+export 'src/events/twenty_five_meter_race.dart';
 export 'src/events/fifty_meter_race.dart';
 export 'src/events/hundred_meter_race.dart';
 export 'src/events/checkpoint.dart';
