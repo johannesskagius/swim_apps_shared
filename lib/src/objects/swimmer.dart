@@ -34,7 +34,7 @@ class Swimmer extends AppUser {
       updatedAt: AppUser.parseDateTime(json['updatedAt']),
       clubId: json['clubId'] as String?, // Standardized from memberOfClubId
       memberOfTeams: json['memberOfTeams'] != null ? List<String>.from(json['memberOfTeams'] as List<dynamic>) : [],
-      creatorId: json['creatorId'] ?? json['coachCreatorId'] as String?,
+      creatorId: (json['creatorId'] ?? json['coachCreatorId']) as String?,
       secondCoachId: json['secondCoachId'] as String?,
       thirdCoachId: json['thirdCoachId'] as String?,
     );

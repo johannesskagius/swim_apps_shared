@@ -42,7 +42,7 @@ class Coach extends AppUser {
       ownerOfTeams: json['ownerOfTeams'] != null
           ? List<String>.from(json['ownerOfTeams'] as List<dynamic>)
           : [],
-      creatorId: json['creatorId'] ?? json['coachCreatorId'] as String?,
+      creatorId: (json['creatorId'] ?? json['coachCreatorId']) as String?,
     );
   }
 
