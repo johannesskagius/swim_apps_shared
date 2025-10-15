@@ -1,24 +1,31 @@
 // File: swim_apps_shared/lib/helpers/firestore_helper.dart
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:swim_apps_shared/helpers/base_repository.dart';
 import 'package:swim_apps_shared/helpers/analyzes_repository.dart';
+import 'package:swim_apps_shared/helpers/base_repository.dart';
 import 'package:swim_apps_shared/helpers/user_repository.dart';
+
+import '../auth_service.dart';
 
 class FirestoreHelper {
   final FirebaseFirestore _db;
+  final AuthService _authService;
 
   // --- Shared Repositories ---
-  // These are available to all apps that use this package.
   late final UserRepository userRepository;
   late final AnalyzesRepository raceRepository;
 
   // A private map to hold any app-specific repositories.
   final Map<Type, BaseRepository> _injectedRepositories = {};
 
-  FirestoreHelper({required FirebaseFirestore firestore}) : _db = firestore {
-    // Initialize all shared repositories
-    userRepository = UserRepository(_db);
+  FirestoreHelper({
+    required FirebaseFirestore firestore,
+    required AuthService authService,
+  }) : _db = firestore,
+       _authService = authService {
+    userRepository = UserRepository(_db, authService: _authService);
+
+    // The other repositories that don't need auth are fine.
     raceRepository = AnalyzesRepository(_db);
   }
 
@@ -33,7 +40,7 @@ class FirestoreHelper {
     if (repo == null) {
       throw Exception(
         'Repository of type $T was not registered. '
-            'Make sure to call registerRepository() in your main.dart setup.',
+        'Make sure to call registerRepository() in your main.dart setup.',
       );
     }
     return repo as T;

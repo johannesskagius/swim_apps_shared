@@ -1,19 +1,33 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
+import '../auth_service.dart';
 import '../src/objects/swimmer.dart';
 import '../src/objects/user.dart';
 import '../src/objects/user_types.dart';
 
 class UserRepository {
   final FirebaseFirestore _db;
+  final AuthService _authService;
 
-  UserRepository(this._db);
+  UserRepository(this._db, {required AuthService authService})
+      : _authService = authService;
 
   CollectionReference get usersCollection => _db.collection('users');
 
   CollectionReference get _coachesCollection => _db.collection('coaches');
+
+  /// Returns a stream of the current user's profile.
+  /// This is a new, robust method for the initial auth flow in your main app.
+  Stream<AppUser?> myProfileStream() {
+    return _authService.authStateChanges.asyncMap((user) {
+      if (user != null) {
+        return getUserDocument(user.uid);
+      } else {
+        return null;
+      }
+    });
+  }
 
   /// Returns a stream of all users belonging to a specific club.
   ///
@@ -24,56 +38,55 @@ class UserRepository {
         .where('clubId', isEqualTo: clubId)
         .snapshots()
         .map((snapshot) {
-          try {
-            return snapshot.docs.map((doc) {
-              return AppUser.fromJson(
-                doc.id,
-                doc.data() as Map<String, dynamic>,
-              );
-            }).toList();
-          } catch (e) {
-            debugPrint("Error mapping users by club: $e");
-            return <AppUser>[];
-          }
-        })
-        .handleError((error) {
-          debugPrint("Error in getUsersByClub stream: $error");
-          return <AppUser>[];
-        });
+      try {
+        return snapshot.docs.map((doc) {
+          return AppUser.fromJson(
+            doc.id,
+            doc.data() as Map<String, dynamic>,
+          );
+        }).toList();
+      } catch (e) {
+        debugPrint("Error mapping users by club: $e");
+        return <AppUser>[];
+      }
+    }).handleError((error) {
+      debugPrint("Error in getUsersByClub stream: $error");
+      return <AppUser>[];
+    });
   }
 
-  /// Returns a stream of all users belonging to a specific club.
-  ///
-  /// This is essential for the "Manage Club" page to display a list of all
-  /// members (coaches and swimmers).
-  Stream<List<AppUser>> getUsersCreatedByMe({required String myId}) {
+  /// Returns a stream of all users created by the currently logged-in user.
+  Stream<List<AppUser>> getUsersCreatedByMe() {
+    final myId = _authService.currentUserId;
+    if (myId == null) {
+      // If there's no user logged in, return a stream with an empty list.
+      return Stream.value([]);
+    }
+
     return usersCollection
         .where('coachCreatorId', isEqualTo: myId)
         .snapshots()
         .map((snapshot) {
-          try {
-            return snapshot.docs.map((doc) {
-              return AppUser.fromJson(
-                doc.id,
-                doc.data() as Map<String, dynamic>,
-              );
-            }).toList();
-          } catch (e) {
-            debugPrint("Error mapping users by club: $e");
-            // FIX: Explicitly type the empty list to avoid type conflicts.
-            return <AppUser>[];
-          }
-        })
-        .handleError((error) {
-          debugPrint("Error in getUsersByClub stream: $error");
-          return <AppUser>[];
-        });
+      try {
+        return snapshot.docs.map((doc) {
+          return AppUser.fromJson(
+            doc.id,
+            doc.data() as Map<String, dynamic>,
+          );
+        }).toList();
+      } catch (e) {
+        debugPrint("Error mapping users created by me: $e");
+        return <AppUser>[];
+      }
+    }).handleError((error) {
+      debugPrint("Error in getUsersCreatedByMe stream: $error");
+      return <AppUser>[];
+    });
   }
 
   ///Creates a new swimmer with optional
   ///name & email are musts!
   Future<Swimmer> createSwimmer({
-    String? coachCreatorId,
     String? clubId,
     String? lastName,
     required String name,
@@ -89,7 +102,8 @@ class UserRepository {
       email: email,
       registerDate: DateTime.now(),
       updatedAt: DateTime.now(),
-      creatorId: coachCreatorId,
+      // FIX 5: Reliably get the creator's ID from the injected service.
+      creatorId: _authService.currentUserId,
       clubId: clubId,
       lastName: lastName,
     );
@@ -105,7 +119,7 @@ class UserRepository {
 
   ///Updates userProfile
   Future<void> updateMyProfile({required AppUser appUser}) async {
-    usersCollection.doc(appUser.id).update(appUser.toJson());
+    await usersCollection.doc(appUser.id).update(appUser.toJson());
   }
 
   Future<AppUser?> getUserDocument(String uid) async {
@@ -152,7 +166,7 @@ class UserRepository {
             .get();
         users.addAll(
           snapshot.docs.map(
-            (doc) =>
+                (doc) =>
                 AppUser.fromJson(doc.id, doc.data() as Map<String, dynamic>),
           ),
         );
@@ -176,8 +190,8 @@ class UserRepository {
       return snapshot.docs
           .map(
             (doc) =>
-                Swimmer.fromJson(doc.id, doc.data() as Map<String, dynamic>),
-          )
+            Swimmer.fromJson(doc.id, doc.data() as Map<String, dynamic>),
+      )
           .toList();
     } catch (e) {
       debugPrint("Error fetching all swimmers from coach: $e");
@@ -192,7 +206,7 @@ class UserRepository {
   Future<AppUser?> getCoach(String coachId) async {
     try {
       DocumentSnapshot doc = await _coachesCollection.doc(coachId).get();
-      if (doc.exists) {
+      if (doc.exists && doc.data() != null) {
         return AppUser.fromJson(doc.id, doc.data() as Map<String, dynamic>);
       }
       return null;
@@ -203,12 +217,12 @@ class UserRepository {
   }
 
   Future<void> updateUser(AppUser updatedUser) async {
-    usersCollection.doc(updatedUser.id).set(updatedUser.toJson());
+    await usersCollection.doc(updatedUser.id).set(updatedUser.toJson());
   }
 
   Future<AppUser?> getMyProfile() async {
-    String? myUid = FirebaseAuth.instance.currentUser?.uid;
-    if (myUid != null) {
+    String? myUid = _authService.currentUserId;
+    if(myUid != null) {
       return await getUserDocument(myUid);
     }
     return null;
