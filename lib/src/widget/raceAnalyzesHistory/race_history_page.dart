@@ -134,7 +134,7 @@ class _RaceHistoryPageState extends State<RaceHistoryPage> {
         ],
       ),
       body: _buildBody(raceRepository),
-      floatingActionButton: _selectedRaceIds.isEmpty? FloatingActionButton.extended(
+      floatingActionButton: _selectedRaceIds.isNotEmpty ? FloatingActionButton.extended(
         heroTag: 'race_history_fab',
         onPressed: _navigateToComparison,
         label: const Text('Compare'),
