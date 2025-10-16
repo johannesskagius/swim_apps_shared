@@ -134,12 +134,12 @@ class _RaceHistoryPageState extends State<RaceHistoryPage> {
         ],
       ),
       body: _buildBody(raceRepository),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: _selectedRaceIds.isEmpty? FloatingActionButton.extended(
         heroTag: 'race_history_fab',
         onPressed: _navigateToComparison,
         label: const Text('Compare'),
-        icon: const Icon(Icons.compare_arrows),
-      ),
+        icon:  Icon(_selectedRaceIds.length == 1 ? Icons.details:Icons.compare_arrows),
+      ):const SizedBox.shrink(),
     );
   }
 
