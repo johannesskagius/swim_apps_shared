@@ -137,7 +137,7 @@ class _RaceHistoryPageState extends State<RaceHistoryPage> {
       floatingActionButton: _selectedRaceIds.isNotEmpty ? FloatingActionButton.extended(
         heroTag: 'race_history_fab',
         onPressed: _navigateToComparison,
-        label: const Text('Compare'),
+        label: Text(_selectedRaceIds.length == 1 ? 'View':'Compare'),
         icon:  Icon(_selectedRaceIds.length == 1 ? Icons.details:Icons.compare_arrows),
       ):const SizedBox.shrink(),
     );
@@ -166,7 +166,7 @@ class _RaceHistoryPageState extends State<RaceHistoryPage> {
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: DropdownButtonFormField<String>(
-              value: _selectedSwimmerId,
+              initialValue: _selectedSwimmerId,
               hint: const Text('Select a Swimmer'),
               isExpanded: true,
               items: _swimmers.map((swimmer) {
