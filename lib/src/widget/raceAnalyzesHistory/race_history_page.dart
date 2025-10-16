@@ -149,8 +149,6 @@ class _RaceHistoryPageState extends State<RaceHistoryPage> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    // --- MODIFICATION: Prioritize widget.swimmerId ---
-    // If a swimmer ID was passed directly, show their races immediately.
     if (widget.swimmerId != null) {
       return _buildRacesList(raceRepository, widget.swimmerId!);
     }
@@ -294,7 +292,7 @@ class _RaceHistoryPageState extends State<RaceHistoryPage> {
         : 'No Date';
 
     final strokeName = race.stroke?.name ?? 'Unknown Stroke';
-    final titleText = '${race.distance}m $strokeName';
+    final titleText = '${race.raceName} $strokeName';
     final subtitleText = '${race.eventName ?? 'Practice'} • $raceDateFormatted';
 
     return ListTile(

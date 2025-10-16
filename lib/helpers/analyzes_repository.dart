@@ -6,12 +6,12 @@ class AnalyzesRepository {
 
   AnalyzesRepository(this._db);
 
-  CollectionReference<RaceAnalysis> get _racesRef => _db
-      .collection('racesAnalyzes')
-      .withConverter<RaceAnalysis>(
-    fromFirestore: (snapshots, _) => RaceAnalysis.fromFirestore(snapshots),
-    toFirestore: (race, _) => race.toJson(),
-  );
+  CollectionReference<RaceAnalysis> get _racesRef =>
+      _db.collection('racesAnalyzes').withConverter<RaceAnalysis>(
+            fromFirestore: (snapshot, _) =>
+                RaceAnalysis.fromFirestore(snapshot.data()),
+            toFirestore: (race, _) => race.toJson(),
+          );
 
   /// Fetches a list of races for a specific swimmer.
   Future<List<RaceAnalysis>> getRacesForUser(String userId) async {
