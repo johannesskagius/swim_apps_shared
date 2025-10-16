@@ -124,15 +124,7 @@ class _RaceHistoryPageState extends State<RaceHistoryPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(appBarTitle),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.compare_arrows),
-            onPressed: _navigateToComparison,
-            tooltip: 'Compare Selected',
-          ),
-        ],
-      ),
+        title: Text(appBarTitle)),
       body: _buildBody(raceRepository),
       floatingActionButton: _selectedRaceIds.isNotEmpty ? FloatingActionButton.extended(
         heroTag: 'race_history_fab',
