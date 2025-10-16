@@ -8,8 +8,8 @@ class AnalyzesRepository {
 
   CollectionReference<RaceAnalysis> get _racesRef =>
       _db.collection('racesAnalyzes').withConverter<RaceAnalysis>(
-            fromFirestore: (snapshot, _) =>
-                RaceAnalysis.fromFirestore(snapshot.data()),
+            fromFirestore: (DocumentSnapshot<Map<String, dynamic>> snapshot, _) =>
+                RaceAnalysis.fromFirestore(snapshot),
             toFirestore: (race, _) => race.toJson(),
           );
 
