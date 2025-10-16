@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:swim_apps_shared/src/objects/race.dart';
 import 'package:swim_apps_shared/swim_apps_shared.dart';
 
 class AnalyzesRepository {
