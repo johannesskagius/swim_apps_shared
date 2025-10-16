@@ -7,6 +7,7 @@ class Swimmer extends AppUser {
   String? secondCoachId;
   String? thirdCoachId;
   List<String>? memberOfTeams;
+  final List<String> mainEventIds;
 
   Swimmer({
     required super.id,
@@ -21,6 +22,7 @@ class Swimmer extends AppUser {
     super.creatorId,
     this.secondCoachId,
     this.thirdCoachId,
+    this.mainEventIds = const [],
   }) : super(userType: UserType.swimmer);
 
   factory Swimmer.fromJson(String docId, Map<String, dynamic> json) {
@@ -32,8 +34,11 @@ class Swimmer extends AppUser {
       profilePicturePath: json['profilePicturePath'] as String?,
       registerDate: AppUser.parseDateTime(json['registerDate']),
       updatedAt: AppUser.parseDateTime(json['updatedAt']),
-      clubId: json['clubId'] as String?, // Standardized from memberOfClubId
-      memberOfTeams: json['memberOfTeams'] != null ? List<String>.from(json['memberOfTeams'] as List<dynamic>) : [],
+      clubId: json['clubId'] as String?,
+      // Standardized from memberOfClubId
+      memberOfTeams: json['memberOfTeams'] != null
+          ? List<String>.from(json['memberOfTeams'] as List<dynamic>)
+          : [],
       creatorId: json['creatorId'] as String?,
       secondCoachId: json['secondCoachId'] as String?,
       thirdCoachId: json['thirdCoachId'] as String?,
@@ -50,7 +55,7 @@ class Swimmer extends AppUser {
       if (memberOfTeams != null) 'memberOfTeams': memberOfTeams,
     });
     return json;
-  }//
+  } //
 
   @override
   Swimmer copyWith({
@@ -64,12 +69,14 @@ class Swimmer extends AppUser {
     DateTime? updatedAt,
     String? clubId, // Standardized from memberOfClubId
     List<String>? memberOfTeams,
+    List<String>? mainEventIds,
     String? creatorId,
     String? secondCoachId,
     String? thirdCoachId,
   }) {
     return Swimmer(
       id: id ?? this.id,
+      mainEventIds: mainEventIds ?? this.mainEventIds,
       name: name ?? this.name,
       lastName: lastName ?? this.lastName,
       email: email ?? this.email,
