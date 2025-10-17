@@ -57,6 +57,34 @@ class AnalyzesRepository {
         .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
   }
 
+  /// Fetches multiple 'Off The Block' analyses by their document IDs.
+  Future<List<OffTheBlockAnalysisData>> getOffTheBlockAnalysesByIds(
+      {required List<String> analysisIds}) async {
+    if (analysisIds.isEmpty) {
+      return [];
+    }
+
+    // Firestore 'whereIn' queries are limited to 10 items.
+    // We need to fetch the data in chunks if there are more than 10 IDs.
+    List<OffTheBlockAnalysisData> allAnalyses = [];
+    for (var i = 0; i < analysisIds.length; i += 10) {
+      final chunk = analysisIds.sublist(
+          i, i + 10 > analysisIds.length ? analysisIds.length : i + 10);
+      final snapshot =
+          await _offTheBlockRef.where(FieldPath.documentId, whereIn: chunk).get();
+      allAnalyses.addAll(snapshot.docs.map((doc) => doc.data()));
+    }
+
+    // The 'whereIn' query does not guarantee order, so we reorder the results
+    // based on the original list of IDs.
+    final analysisMap = {for (var analysis in allAnalyses) analysis.id: analysis};
+    return analysisIds
+        .map((id) => analysisMap[id])
+        .where((analysis) => analysis != null)
+        .cast<OffTheBlockAnalysisData>()
+        .toList();
+  }
+
   /// Fetches a single 'Off The Block' analysis by its document ID.
   Future<OffTheBlockAnalysisData> getOffTheBlockAnalysis(
       String analysisId) async {
