@@ -199,6 +199,28 @@ class UserRepository {
     }
   }
 
+  /// Fetches a list of swimmers for a specific club.
+  Future<List<Swimmer>> getSwimmersForClub({
+    required String clubId,
+  }) async {
+    try {
+      final QuerySnapshot snapshot = await usersCollection
+          .where('clubId', isEqualTo: clubId)
+          .where('userType', isEqualTo: UserType.swimmer.name)
+          .orderBy('name')
+          .get();
+      return snapshot.docs
+          .map(
+            (doc) =>
+                Swimmer.fromJson(doc.id, doc.data() as Map<String, dynamic>),
+          )
+          .toList();
+    } catch (e) {
+      debugPrint("Error fetching swimmers for club $clubId: $e");
+      return [];
+    }
+  }
+
   Future<void> createAppUser({required AppUser newUser}) async {
     await usersCollection.doc(newUser.id).set(newUser.toJson());
   }

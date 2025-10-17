@@ -47,6 +47,16 @@ class AnalyzesRepository {
         .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
   }
 
+  /// Fetches a stream of 'Off The Block' analyses for a specific club.
+  Stream<List<OffTheBlockAnalysisData>> getStreamOfOffTheBlockAnalysesForClub(
+      String clubId) {
+    return _offTheBlockRef
+        .where('clubId', isEqualTo: clubId)
+        .orderBy('date', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
+  }
+
   /// Fetches a single 'Off The Block' analysis by its document ID.
   Future<OffTheBlockAnalysisData> getOffTheBlockAnalysis(
       String analysisId) async {
