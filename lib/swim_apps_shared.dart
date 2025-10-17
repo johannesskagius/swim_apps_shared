@@ -19,7 +19,7 @@ export 'src/events/checkpoint.dart';
 // --- OBJECTS / MODELS ---
 export 'src/objects/analyzed_segment.dart';
 export 'src/objects/coach.dart';
-export 'src/objects/induvidual_result.dart';
+export 'src/objects/individual_result.dart';
 export 'src/objects/interval_attributes.dart';
 export 'src/objects/race.dart';
 export 'src/objects/race_segment.dart';
@@ -31,7 +31,7 @@ export 'src/objects/user_role.dart';
 export 'src/objects/user_types.dart';
 export 'src/objects/pool_length.dart';
 export 'src/objects/distance_units.dart';
-export 'src/objects/percieved_exertion_level.dart';
+export 'src/objects/perceived_exertion_level.dart';
 export 'src/objects/off_the_block_model.dart';
 export 'src/objects/intensity_zones.dart';
 
