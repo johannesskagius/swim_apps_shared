@@ -1,4 +1,3 @@
-// lib/users/swimmer.dart
 import 'package:swim_apps_shared/src/objects/user.dart';
 import 'package:swim_apps_shared/src/objects/user_types.dart';
 
@@ -15,6 +14,7 @@ class Swimmer extends AppUser {
     required super.email,
     super.lastName,
     super.profilePicturePath,
+    super.photoUrl,
     super.registerDate,
     super.clubId,
     super.updatedAt,
@@ -32,10 +32,10 @@ class Swimmer extends AppUser {
       lastName: json['lastName'] as String?,
       email: json['email'] as String? ?? '',
       profilePicturePath: json['profilePicturePath'] as String?,
+      photoUrl: json['photoUrl'] as String?, // ✅ new
       registerDate: AppUser.parseDateTime(json['registerDate']),
       updatedAt: AppUser.parseDateTime(json['updatedAt']),
       clubId: json['clubId'] as String?,
-      // Standardized from memberOfClubId
       memberOfTeams: json['memberOfTeams'] != null
           ? List<String>.from(json['memberOfTeams'] as List<dynamic>)
           : [],
@@ -55,7 +55,7 @@ class Swimmer extends AppUser {
       if (memberOfTeams != null) 'memberOfTeams': memberOfTeams,
     });
     return json;
-  } //
+  }
 
   @override
   Swimmer copyWith({
@@ -65,9 +65,10 @@ class Swimmer extends AppUser {
     String? email,
     UserType? userType,
     String? profilePicturePath,
+    String? photoUrl, // ✅ new
     DateTime? registerDate,
     DateTime? updatedAt,
-    String? clubId, // Standardized from memberOfClubId
+    String? clubId,
     List<String>? memberOfTeams,
     List<String>? mainEventIds,
     String? creatorId,
@@ -81,11 +82,14 @@ class Swimmer extends AppUser {
       lastName: lastName ?? this.lastName,
       email: email ?? this.email,
       profilePicturePath: profilePicturePath ?? this.profilePicturePath,
+      photoUrl: photoUrl ?? this.photoUrl, // ✅ new
       registerDate: registerDate ?? this.registerDate,
       updatedAt: updatedAt ?? this.updatedAt,
       clubId: clubId ?? this.clubId,
       memberOfTeams: memberOfTeams ?? this.memberOfTeams,
       creatorId: creatorId ?? this.creatorId,
+      secondCoachId: secondCoachId ?? this.secondCoachId,
+      thirdCoachId: thirdCoachId ?? this.thirdCoachId,
     );
   }
 }

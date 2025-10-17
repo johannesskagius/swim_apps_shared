@@ -12,6 +12,7 @@ abstract class AppUser {
   String name;
   String? lastName;
   String email;
+  String? photoUrl;
   UserType userType;
   String? profilePicturePath;
   DateTime? registerDate;
@@ -24,6 +25,7 @@ abstract class AppUser {
     required this.name,
     required this.email,
     required this.userType,
+    this.photoUrl,
     this.lastName,
     this.profilePicturePath,
     this.registerDate,
@@ -39,6 +41,7 @@ abstract class AppUser {
       'lastName': lastName,
       'email': email,
       'userType': userType.name,
+      'photoUrl':photoUrl,
       if (clubId != null) 'clubId': clubId, // Added clubId to serialization
       if (profilePicturePath != null) 'profilePicturePath': profilePicturePath,
       if (registerDate != null)

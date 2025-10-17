@@ -1,4 +1,3 @@
-// lib/users/coach.dart
 import 'package:swim_apps_shared/src/objects/user.dart';
 import 'package:swim_apps_shared/src/objects/user_types.dart';
 
@@ -13,6 +12,7 @@ class Coach extends AppUser {
     required super.email,
     super.lastName,
     super.profilePicturePath,
+    super.photoUrl, // ✅ new
     super.registerDate,
     super.updatedAt,
     super.clubId,
@@ -20,9 +20,9 @@ class Coach extends AppUser {
     List<String>? memberOfTeams,
     List<String>? ownerOfTeams,
     this.isAccountHolder = false,
-  }) : memberOfTeams = memberOfTeams ?? [],
-       ownerOfTeams = ownerOfTeams ?? [],
-       super(userType: UserType.coach);
+  })  : memberOfTeams = memberOfTeams ?? [],
+        ownerOfTeams = ownerOfTeams ?? [],
+        super(userType: UserType.coach);
 
   factory Coach.fromJson(String docId, Map<String, dynamic> json) {
     return Coach(
@@ -32,10 +32,10 @@ class Coach extends AppUser {
       email: json['email'] as String? ?? '',
       isAccountHolder: json['isAccountHolder'] as bool? ?? false,
       profilePicturePath: json['profilePicturePath'] as String?,
+      photoUrl: json['photoUrl'] as String?,
       registerDate: AppUser.parseDateTime(json['registerDate']),
       updatedAt: AppUser.parseDateTime(json['updatedAt']),
       clubId: json['clubId'] as String?,
-      // Standardized from memberOfClubId
       memberOfTeams: json['memberOfTeams'] != null
           ? List<String>.from(json['memberOfTeams'] as List<dynamic>)
           : [],
@@ -66,9 +66,10 @@ class Coach extends AppUser {
     String? email,
     UserType? userType,
     String? profilePicturePath,
+    String? photoUrl, // ✅ new
     DateTime? registerDate,
     DateTime? updatedAt,
-    String? clubId, // Standardized from memberOfClubId
+    String? clubId,
     List<String>? memberOfTeams,
     List<String>? ownerOfTeams,
     String? creatorId,
@@ -77,14 +78,14 @@ class Coach extends AppUser {
     return Coach(
       id: id ?? this.id,
       name: name ?? this.name,
-      lastName: lastName ?? this.name,
+      lastName: lastName ?? this.lastName,
       email: email ?? this.email,
       profilePicturePath: profilePicturePath ?? this.profilePicturePath,
+      photoUrl: photoUrl ?? this.photoUrl, // ✅ new
       registerDate: registerDate ?? this.registerDate,
       updatedAt: updatedAt ?? this.updatedAt,
       clubId: clubId ?? this.clubId,
       isAccountHolder: isAccountHolder ?? this.isAccountHolder,
-      // Corrected logic
       memberOfTeams: memberOfTeams ?? this.memberOfTeams,
       ownerOfTeams: ownerOfTeams ?? this.ownerOfTeams,
       creatorId: creatorId ?? this.creatorId,
