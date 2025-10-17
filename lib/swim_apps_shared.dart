@@ -33,6 +33,7 @@ export 'src/objects/pool_length.dart';
 export 'src/objects/distance_units.dart';
 export 'src/objects/percieved_exertion_level.dart';
 export 'src/objects/off_the_block_model.dart';
+export 'src/objects/intensity_zones.dart';
 
 
 // --- widgets ---
