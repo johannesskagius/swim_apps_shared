@@ -8,6 +8,7 @@ export 'helpers/firestore_helper.dart';
 // Note: Repositories seem to be in the helpers folder based on your example.
 export 'helpers/analyzes_repository.dart';
 export 'helpers/user_repository.dart';
+export 'helpers/club_repository.dart';
 
 // --- EVENTS ---
 export 'src/events/event.dart';
@@ -34,6 +35,8 @@ export 'src/objects/distance_units.dart';
 export 'src/objects/perceived_exertion_level.dart';
 export 'src/objects/off_the_block_model.dart';
 export 'src/objects/intensity_zones.dart';
+export 'src/objects/swim_club.dart';
+
 
 
 // --- widgets ---
