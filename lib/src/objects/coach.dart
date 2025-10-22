@@ -20,9 +20,9 @@ class Coach extends AppUser {
     List<String>? memberOfTeams,
     List<String>? ownerOfTeams,
     this.isAccountHolder = false,
-  })  : memberOfTeams = memberOfTeams ?? [],
-        ownerOfTeams = ownerOfTeams ?? [],
-        super(userType: UserType.coach);
+  }) : memberOfTeams = memberOfTeams ?? [],
+       ownerOfTeams = ownerOfTeams ?? [],
+       super(userType: UserType.coach);
 
   factory Coach.fromJson(String docId, Map<String, dynamic> json) {
     return Coach(
@@ -37,10 +37,22 @@ class Coach extends AppUser {
       updatedAt: AppUser.parseDateTime(json['updatedAt']),
       clubId: json['clubId'] as String?,
       memberOfTeams: json['memberOfTeams'] != null
-          ? List<String>.from(json['memberOfTeams'] as List<dynamic>)
+          ? (json['memberOfTeams'] is List
+                ? List<String>.from(json['memberOfTeams'])
+                : (json['memberOfTeams'] is Map
+                      ? (json['memberOfTeams'] as Map).values
+                            .map((e) => e.toString())
+                            .toList()
+                      : []))
           : [],
       ownerOfTeams: json['ownerOfTeams'] != null
-          ? List<String>.from(json['ownerOfTeams'] as List<dynamic>)
+          ? (json['ownerOfTeams'] is List
+                ? List<String>.from(json['ownerOfTeams'])
+                : (json['ownerOfTeams'] is Map
+                      ? (json['ownerOfTeams'] as Map).values
+                            .map((e) => e.toString())
+                            .toList()
+                      : []))
           : [],
       creatorId: json['creatorId'] as String?,
     );
@@ -81,7 +93,8 @@ class Coach extends AppUser {
       lastName: lastName ?? this.lastName,
       email: email ?? this.email,
       profilePicturePath: profilePicturePath ?? this.profilePicturePath,
-      photoUrl: photoUrl ?? this.photoUrl, // ✅ new
+      photoUrl: photoUrl ?? this.photoUrl,
+      // ✅ new
       registerDate: registerDate ?? this.registerDate,
       updatedAt: updatedAt ?? this.updatedAt,
       clubId: clubId ?? this.clubId,
