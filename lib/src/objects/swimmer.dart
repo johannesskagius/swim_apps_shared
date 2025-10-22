@@ -26,23 +26,25 @@ class Swimmer extends AppUser {
   }) : super(userType: UserType.swimmer);
 
   factory Swimmer.fromJson(String docId, Map<String, dynamic> json) {
+    // Defensive cast for list/map variations (web safe)
+    List<String> parseStringList(dynamic value) {
+      if (value == null) return [];
+      if (value is List) return List<String>.from(value.map((e) => e.toString()));
+      if (value is Map) return value.values.map((e) => e.toString()).toList();
+      return [];
+    }
+
     return Swimmer(
       id: docId,
       name: json['name'] as String? ?? 'Swimmer',
       lastName: json['lastName'] as String?,
       email: json['email'] as String? ?? '',
       profilePicturePath: json['profilePicturePath'] as String?,
-      photoUrl: json['photoUrl'] as String?, // ✅ new
+      photoUrl: json['photoUrl'] as String?,
       registerDate: AppUser.parseDateTime(json['registerDate']),
       updatedAt: AppUser.parseDateTime(json['updatedAt']),
       clubId: json['clubId'] as String?,
-      memberOfTeams: json['memberOfTeams'] != null
-          ? (json['memberOfTeams'] is List
-          ? List<String>.from(json['memberOfTeams'])
-          : (json['memberOfTeams'] is Map
-          ? (json['memberOfTeams'] as Map).values.map((e) => e.toString()).toList()
-          : []))
-          : [],
+      memberOfTeams: parseStringList(json['memberOfTeams']),
       creatorId: json['creatorId'] as String?,
       secondCoachId: json['secondCoachId'] as String?,
       thirdCoachId: json['thirdCoachId'] as String?,
@@ -69,7 +71,7 @@ class Swimmer extends AppUser {
     String? email,
     UserType? userType,
     String? profilePicturePath,
-    String? photoUrl, // ✅ new
+    String? photoUrl,
     DateTime? registerDate,
     DateTime? updatedAt,
     String? clubId,
@@ -86,7 +88,7 @@ class Swimmer extends AppUser {
       lastName: lastName ?? this.lastName,
       email: email ?? this.email,
       profilePicturePath: profilePicturePath ?? this.profilePicturePath,
-      photoUrl: photoUrl ?? this.photoUrl, // ✅ new
+      photoUrl: photoUrl ?? this.photoUrl,
       registerDate: registerDate ?? this.registerDate,
       updatedAt: updatedAt ?? this.updatedAt,
       clubId: clubId ?? this.clubId,

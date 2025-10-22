@@ -12,7 +12,7 @@ class Coach extends AppUser {
     required super.email,
     super.lastName,
     super.profilePicturePath,
-    super.photoUrl, // ✅ new
+    super.photoUrl,
     super.registerDate,
     super.updatedAt,
     super.clubId,
@@ -20,11 +20,18 @@ class Coach extends AppUser {
     List<String>? memberOfTeams,
     List<String>? ownerOfTeams,
     this.isAccountHolder = false,
-  }) : memberOfTeams = memberOfTeams ?? [],
-       ownerOfTeams = ownerOfTeams ?? [],
-       super(userType: UserType.coach);
+  })  : memberOfTeams = memberOfTeams ?? [],
+        ownerOfTeams = ownerOfTeams ?? [],
+        super(userType: UserType.coach);
 
   factory Coach.fromJson(String docId, Map<String, dynamic> json) {
+    List<String> parseStringList(dynamic value) {
+      if (value == null) return [];
+      if (value is List) return List<String>.from(value.map((e) => e.toString()));
+      if (value is Map) return value.values.map((e) => e.toString()).toList();
+      return [];
+    }
+
     return Coach(
       id: docId,
       name: json['name'] as String? ?? 'Coach',
@@ -36,24 +43,8 @@ class Coach extends AppUser {
       registerDate: AppUser.parseDateTime(json['registerDate']),
       updatedAt: AppUser.parseDateTime(json['updatedAt']),
       clubId: json['clubId'] as String?,
-      memberOfTeams: json['memberOfTeams'] != null
-          ? (json['memberOfTeams'] is List
-                ? List<String>.from(json['memberOfTeams'])
-                : (json['memberOfTeams'] is Map
-                      ? (json['memberOfTeams'] as Map).values
-                            .map((e) => e.toString())
-                            .toList()
-                      : []))
-          : [],
-      ownerOfTeams: json['ownerOfTeams'] != null
-          ? (json['ownerOfTeams'] is List
-                ? List<String>.from(json['ownerOfTeams'])
-                : (json['ownerOfTeams'] is Map
-                      ? (json['ownerOfTeams'] as Map).values
-                            .map((e) => e.toString())
-                            .toList()
-                      : []))
-          : [],
+      memberOfTeams: parseStringList(json['memberOfTeams']),
+      ownerOfTeams: parseStringList(json['ownerOfTeams']),
       creatorId: json['creatorId'] as String?,
     );
   }
@@ -78,7 +69,7 @@ class Coach extends AppUser {
     String? email,
     UserType? userType,
     String? profilePicturePath,
-    String? photoUrl, // ✅ new
+    String? photoUrl,
     DateTime? registerDate,
     DateTime? updatedAt,
     String? clubId,
@@ -94,7 +85,6 @@ class Coach extends AppUser {
       email: email ?? this.email,
       profilePicturePath: profilePicturePath ?? this.profilePicturePath,
       photoUrl: photoUrl ?? this.photoUrl,
-      // ✅ new
       registerDate: registerDate ?? this.registerDate,
       updatedAt: updatedAt ?? this.updatedAt,
       clubId: clubId ?? this.clubId,

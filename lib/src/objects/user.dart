@@ -1,9 +1,7 @@
-// lib/users/user.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:swim_apps_shared/src/objects/swimmer.dart';
-
 import 'coach.dart';
 import 'user_types.dart';
 
@@ -41,8 +39,8 @@ abstract class AppUser {
       'lastName': lastName,
       'email': email,
       'userType': userType.name,
-      'photoUrl':photoUrl,
-      if (clubId != null) 'clubId': clubId, // Added clubId to serialization
+      'photoUrl': photoUrl,
+      if (clubId != null) 'clubId': clubId,
       if (profilePicturePath != null) 'profilePicturePath': profilePicturePath,
       if (registerDate != null)
         'registerDate': Timestamp.fromDate(registerDate!),
@@ -52,9 +50,12 @@ abstract class AppUser {
   }
 
   factory AppUser.fromJson(String docId, Map<String, dynamic> json) {
-    UserType detectedUserType = _getUserTypeFromString(
-      json['userType'] as String?,
-    );
+    if (json.isEmpty) {
+      debugPrint("⚠️ Empty user document for $docId");
+      return Swimmer(id: docId, name: 'Unknown', email: '');
+    }
+
+    UserType detectedUserType = _getUserTypeFromString(json['userType'] as String?);
     json['userType'] = detectedUserType.name;
 
     switch (detectedUserType) {
@@ -69,7 +70,7 @@ abstract class AppUser {
     if (nameFromJson == null) return UserType.swimmer;
     try {
       return UserType.values.firstWhere((e) => e.name == nameFromJson);
-    } catch (e) {
+    } catch (_) {
       return UserType.swimmer;
     }
   }
@@ -89,7 +90,7 @@ abstract class AppUser {
     String? profilePicturePath,
     DateTime? registerDate,
     DateTime? updatedAt,
-    String? clubId, // Standardized from memberOfClubId
+    String? clubId,
   });
 
   static Future<AppUser?> signUpUserWithEmail({
@@ -98,7 +99,7 @@ abstract class AppUser {
     required String password,
     required UserType userType,
     String? profilePicturePath,
-    String? clubId, // Standardized from memberOfClubId
+    String? clubId,
     List<String>? coachMemberOfTeams,
     List<String>? coachOwnerOfTeams,
     String? coachCoachCreatorId,
@@ -125,7 +126,7 @@ abstract class AppUser {
           firebaseUser.metadata.creationTime ?? now,
         ),
         'updatedAt': Timestamp.fromDate(now),
-        'clubId': clubId, // Standardized from memberOfClubId
+        'clubId': clubId,
         'memberOfTeams': userType == UserType.coach
             ? coachMemberOfTeams
             : (userType == UserType.swimmer ? swimmerMemberOfTeams : []),
