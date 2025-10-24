@@ -51,9 +51,10 @@ class SectionHeaderParserUtil {
 
   // The same explicit typing fix is applied here for safety and consistency.
   static SetType _mapKeywordToSetType(String keyword) {
-    final normalized = keyword.toLowerCase().replaceAll(RegExp(r"[\s:-]+"), "");
+    final normalizedKeyword = keyword.toLowerCase().replaceAll(RegExp(r"[\s:-]+"), "");
 
     for (final type in SetType.values) {
+      // Combine all forms: display string + parsing keywords
       final allForms = {
         type.toDisplayString(),
         ...type.parsingKeywords,
@@ -61,12 +62,14 @@ class SectionHeaderParserUtil {
 
       for (final form in allForms) {
         final normalizedForm = form.toLowerCase().replaceAll(RegExp(r"[\s:-]+"), "");
-        if (normalizedForm == normalized) return type;
+        if (normalizedForm == normalizedKeyword) {
+          return type;
+        }
       }
     }
 
-    debugPrint("Warning: Unrecognized set type keyword: $keyword");
-    return SetType.mainSet;
+    debugPrint("⚠️ Unrecognized set type keyword after regex match: $keyword");
+    return SetType.mainSet; // fallback
   }
 
 

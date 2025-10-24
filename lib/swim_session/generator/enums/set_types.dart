@@ -17,11 +17,11 @@ extension SetTypeParsingInfoHelper on SetType {
   List<String> get parsingKeywords {
     switch (this) {
       case SetType.warmUp:
-        return ['warm up', 'wu', 'Warm-up:'];
+        return ['warm up', 'wu'];
       case SetType.preSet:
-        return ['pre set', 'pre-set', 'pre', 'Pre-set:'];
+        return ['pre set', 'pre-set', 'pre'];
       case SetType.mainSet:
-        return ['main set', 'main', 'ms', 'Main set:'];
+        return ['main set', 'main', 'ms'];
       case SetType.drillSet:
         return [
           'drill set',
@@ -32,13 +32,13 @@ extension SetTypeParsingInfoHelper on SetType {
       case SetType.pullSet:
         return ['pull set', 'pull only']; // Keep distinct from SwimWays.pull
       case SetType.coolDown:
-        return ['cool down', 'cd', 'warm down', 'wd', 'Cool-down:'];
+        return ['cool down', 'cd', 'warm down', 'wd'];
       case SetType.custom:
         return []; // Custom is usually by exclusion or explicit naming
       case SetType.recovery:
         return ['easy', 'rec', 'recovery'];
       case SetType.postSet:
-        return ['warm down', 'post set','Post-set:'];
+        return ['warm down', 'post set'];
     }
   }
 
