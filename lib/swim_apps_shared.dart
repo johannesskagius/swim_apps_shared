@@ -3,17 +3,19 @@ library swim_apps_shared;
 // --- REPOSITORIES ---
 // Note: Repositories seem to be in the repositories folder based on your example.
 export 'repositories/analyzes_repository.dart';
-// --- HELPERS ---
+// --- Repositories ---
 export 'repositories/base_repository.dart';
 export 'repositories/club_repository.dart';
 export 'repositories/firestore_helper.dart';
 export 'repositories/user_repository.dart';
+export 'repositories/swimmer_focus_profile_repository.dart';
 export 'src/events/checkpoint.dart';
 // --- EVENTS ---
 export 'src/events/event.dart';
 export 'src/events/fifty_meter_race.dart';
 export 'src/events/hundred_meter_race.dart';
 export 'src/events/twenty_five_meter_race.dart';
+
 // --- OBJECTS / MODELS ---
 export 'src/objects/analyzed_segment.dart';
 export 'src/objects/user/coach.dart';
@@ -33,10 +35,13 @@ export 'src/objects/user/swimmer.dart';
 export 'src/objects/user/user.dart';
 export 'src/objects/user/user_role.dart';
 export 'src/objects/user/user_types.dart';
+export 'src/objects/user/swimmer_focus_profile.dart';
+
 // --- widgets ---
 export 'src/widget/raceAnalyzesHistory/race_comparison_page.dart';
 export 'src/widget/raceAnalyzesHistory/race_history_page.dart';
-///Swim session
+
+// ---- Swim session ----
 export 'swim_session/generator/config/advanced_generator_config.dart';
 export 'swim_session/generator/config/setconfig_to_text_parser.dart';
 export 'swim_session/generator/enums/equipment.dart';
