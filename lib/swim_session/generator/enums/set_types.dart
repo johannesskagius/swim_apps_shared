@@ -17,7 +17,7 @@ extension SetTypeParsingInfoHelper on SetType {
   List<String> get parsingKeywords {
     switch (this) {
       case SetType.warmUp:
-        return ['warm up', 'wu'];
+        return ['warm up', 'wu','warm-up'];
       case SetType.preSet:
         return ['pre set', 'pre-set', 'pre'];
       case SetType.mainSet:
