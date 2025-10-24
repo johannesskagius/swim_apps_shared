@@ -8,7 +8,7 @@ import '../src/objects/swimmer.dart';
 import '../src/objects/user.dart';
 import '../src/objects/user_types.dart';
 
-class UserRepository extends BaseRepository{
+class UserRepository extends BaseRepository {
   final FirebaseFirestore _db;
   final AuthService _authService;
   final FirebaseCrashlytics _crashlytics;
