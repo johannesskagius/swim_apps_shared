@@ -1,30 +1,47 @@
-// lib/swim/generator/focus/race_pace_speed_focus.dart
 import 'package:swim_apps_shared/swim_apps_shared.dart';
+import 'training_focus.dart';
 
 class RacePaceSpeedFocus extends TrainingFocus {
   @override
   String get name => 'Race Pace';
 
   @override
-  List<IntensityZone> get preferredIntensityZones => [
-    IntensityZone.racePace,
-    IntensityZone.sp1,
-    IntensityZone.sp2,
+  int get warmUpRatio => 20;
+  @override
+  int get preSetRatio => 10;
+  @override
+  int get mainSetRatio => 60;
+  @override
+  int get coolDownRatio => 10;
+
+  @override
+  List<EquipmentType> get recommendedEquipment => [
+    EquipmentType.paddles,
+    EquipmentType.pullBuoy,
   ];
 
   @override
+  List<String> get aiPromptTags => ['race pace', 'speed endurance', 'competition'];
+
+  @override
   String generatePrompt() => """
-You are designing a **Race-Pace swim session**.
+### Training Focus: Race Pace
+**Tags:** ${aiPromptTags.join(", ")}
+**Structure Ratios:** Warm-up $warmUpRatio%, Pre-set $preSetRatio%, Main-set $mainSetRatio%, Cool-down $coolDownRatio%
+**Recommended Equipment:** ${recommendedEquipment.map((e) => e.name).join(", ")}
+
+You are generating a **Race-Pace swim session**.
 
 Key principles:
-- Focus on replicating competition speed and efficiency.
-- Use short-to-medium intervals (25–100m) at race pace with structured rest.
-- Maintain form and precision at speed (zones: ${preferredIntensityZones.map((z) => z.name).join(", ")}).
-- Include broken swims, descending efforts, or negative splits.
-- Emphasize pacing consistency and stroke rhythm under fatigue.
-- Warm-up should include build and pace-target sets.
-- Total session range: 2500–4000m.
+- Train precise pacing and efficiency at race speed.
+- Use structured intervals (25–100m) with consistent effort.
+- Include broken swims and negative splits.
+- Focus on form under fatigue.
 
-Goal: Develop the ability to sustain target race speed efficiently.
+Session requirements:
+- Match effort to ${aiPromptTags.join(", ")}.
+- Keep total distance 2500–4000m.
+- Return only plain-text workout formatted for textToSessionParser.
 """;
+
 }

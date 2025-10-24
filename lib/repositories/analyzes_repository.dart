@@ -3,6 +3,8 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:swim_apps_shared/swim_apps_shared.dart';
 
+import 'base_repository.dart';
+
 class AnalyzesRepository extends BaseRepository {
   final FirebaseFirestore _db;
   final FirebaseCrashlytics _crashlytics;

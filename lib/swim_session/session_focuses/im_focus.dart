@@ -1,33 +1,47 @@
-// lib/swim/generator/focus/im_focus.dart
 import 'package:swim_apps_shared/swim_apps_shared.dart';
+import 'training_focus.dart';
 
 class IMFocus extends TrainingFocus {
   @override
   String get name => 'Medley';
 
   @override
-  List<IntensityZone> get preferredIntensityZones => [
-    IntensityZone.i2,
-    IntensityZone.i3,
-    IntensityZone.sp1,
+  int get warmUpRatio => 25;
+  @override
+  int get preSetRatio => 15;
+  @override
+  int get mainSetRatio => 50;
+  @override
+  int get coolDownRatio => 10;
+
+  @override
+  List<EquipmentType> get recommendedEquipment => [
+    EquipmentType.fins,
+    EquipmentType.paddles,
   ];
 
   @override
+  List<String> get aiPromptTags => ['medley', 'im', 'stroke variety', 'transitions'];
+
+  @override
   String generatePrompt() => """
-You are designing an **Individual Medley (IM)-focused swim session**.
+### Training Focus: Medley
+**Tags:** ${aiPromptTags.join(", ")}
+**Structure Ratios:** Warm-up $warmUpRatio%, Pre-set $preSetRatio%, Main-set $mainSetRatio%, Cool-down $coolDownRatio%
+**Recommended Equipment:** ${recommendedEquipment.map((e) => e.name).join(", ")}
+
+You are generating an **Individual Medley (IM)-focused swim session**.
 
 Key principles:
-- Integrate all four strokes (Fly, Back, Breast, Free) in balanced sets.
-- Include stroke transitions and stroke-specific drills.
-- Emphasize technique and pacing consistency across strokes.
-- Use mixed IM order (IM or Reverse IM) for variety.
-- Incorporate kick and drill sets targeting stroke balance and rhythm.
-- Intensity: moderate to high aerobic (zones: ${preferredIntensityZones.map((z) => z.name).join(", ")}).
-- Include short sprint work for transitions and turns.
-- Typical total volume: 3000–5000m.
-- Warm-up should include all strokes; main set combines IM sequences.
+- Incorporate all four strokes in balanced sequences.
+- Emphasize transitions, rhythm, and stroke control.
+- Include drills and kick sets for each stroke.
+- Use IM and Reverse IM order for variation.
 
-Goal: Develop complete medley performance with balanced endurance and efficiency.
-Return only plain-text workout in textToSessionParser format.
+Session requirements:
+- Respect ${aiPromptTags.join(", ")}.
+- Keep total distance 3000–5000m.
+- Return only plain-text workout formatted for textToSessionParser.
 """;
+
 }

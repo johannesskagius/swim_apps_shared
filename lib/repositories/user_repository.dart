@@ -1,12 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:swim_apps_shared/helpers/base_repository.dart';
 
 import '../auth_service.dart';
-import '../src/objects/swimmer.dart';
-import '../src/objects/user.dart';
-import '../src/objects/user_types.dart';
+import '../src/objects/user/swimmer.dart';
+import '../src/objects/user/user.dart';
+import '../src/objects/user/user_types.dart';
+import 'base_repository.dart';
 
 class UserRepository extends BaseRepository {
   final FirebaseFirestore _db;

@@ -1,12 +1,12 @@
-// File: swim_apps_shared/lib/helpers/firestore_helper.dart
+// File: swim_apps_shared/lib/repositories/firestore_helper.dart
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
-import 'package:swim_apps_shared/helpers/analyzes_repository.dart';
-import 'package:swim_apps_shared/helpers/base_repository.dart';
-import 'package:swim_apps_shared/helpers/user_repository.dart';
+import 'package:swim_apps_shared/repositories/user_repository.dart';
 
 import '../auth_service.dart';
+import 'analyzes_repository.dart';
+import 'base_repository.dart';
 
 class FirestoreHelper {
   final FirebaseFirestore _db;

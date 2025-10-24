@@ -1,30 +1,47 @@
-// lib/swim/generator/focus/recovery_focus.dart
 import 'package:swim_apps_shared/swim_apps_shared.dart';
+import 'training_focus.dart';
 
 class RecoveryFocus extends TrainingFocus {
   @override
   String get name => 'Recovery';
 
   @override
-  List<IntensityZone> get preferredIntensityZones => [
-    IntensityZone.i2,
-    IntensityZone.i1,
-    IntensityZone.drill,
+  int get warmUpRatio => 30;
+  @override
+  int get preSetRatio => 10;
+  @override
+  int get mainSetRatio => 40;
+  @override
+  int get coolDownRatio => 20;
+
+  @override
+  List<EquipmentType> get recommendedEquipment => [
+    EquipmentType.fins,
+    EquipmentType.snorkel,
   ];
 
   @override
+  List<String> get aiPromptTags => ['recovery', 'aerobic', 'easy', 'drills'];
+
+  @override
   String generatePrompt() => """
-You are designing a **Recovery-focused swim session**.
+### Training Focus: Recovery
+**Tags:** ${aiPromptTags.join(", ")}
+**Structure Ratios:** Warm-up $warmUpRatio%, Pre-set $preSetRatio%, Main-set $mainSetRatio%, Cool-down $coolDownRatio%
+**Recommended Equipment:** ${recommendedEquipment.map((e) => e.name).join(", ")}
+
+You are generating a **Recovery-focused swim session**.
 
 Key principles:
-- Emphasize relaxation, mobility, and active regeneration.
-- Use easy aerobic swimming with drills and long rest intervals.
-- Maintain very low intensity (zones: ${preferredIntensityZones.map((z) => z.name).join(", ")}).
-- Include mixed strokes and kicking to enhance blood flow.
-- Avoid fatigue; keep heart rate low and focus on technique.
-- Warm-up and cool-down blend together into continuous easy movement.
-- Total distance should stay between 1500–3000m.
+- Use easy aerobic swimming and gentle drills.
+- Emphasize relaxation, technique, and blood flow.
+- Avoid fatigue; maintain low heart rate.
+- Include mixed strokes or kicking.
 
-The workout should leave swimmers feeling refreshed, not tired.
+Session requirements:
+- Match ${aiPromptTags.join(", ")} goals.
+- Keep total distance 1500–3000m.
+- Return only plain-text workout formatted for textToSessionParser.
 """;
+
 }

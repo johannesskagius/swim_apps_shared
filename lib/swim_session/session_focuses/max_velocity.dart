@@ -1,34 +1,48 @@
-// lib/swim/generator/focus/max_velocity_sprint_focus.dart
 import 'package:swim_apps_shared/swim_apps_shared.dart';
+import 'training_focus.dart';
 
 class MaxVelocitySprintFocus extends TrainingFocus {
-  static const int maxSprintSessionVolume = 400;
-
   @override
   String get name => 'Max Velocity Sprint';
 
   @override
-  List<IntensityZone> get preferredIntensityZones => [
-    IntensityZone.max,
-    IntensityZone.sp3,
+  int get warmUpRatio => 30;
+  @override
+  int get preSetRatio => 10;
+  @override
+  int get mainSetRatio => 50;
+  @override
+  int get coolDownRatio => 10;
+
+  @override
+  List<EquipmentType> get recommendedEquipment => [
+    EquipmentType.fins,
+    EquipmentType.resistanceBand,
+    EquipmentType.parachute,
   ];
 
   @override
+  List<String> get aiPromptTags => ['max velocity', 'sprint', 'power', 'explosive'];
+
+  @override
   String generatePrompt() => """
-You are designing a **Max Velocity Sprint-focused swim session**.
+### Training Focus: Max Velocity Sprint
+**Tags:** ${aiPromptTags.join(", ")}
+**Structure Ratios:** Warm-up $warmUpRatio%, Pre-set $preSetRatio%, Main-set $mainSetRatio%, Cool-down $coolDownRatio%
+**Recommended Equipment:** ${recommendedEquipment.map((e) => e.name).join(", ")}
+
+You are generating a **Max Velocity Sprint-focused swim session**.
 
 Key principles:
-- Focus on maximum power and pure speed over very short distances (10–25m).
-- Total high-quality sprint volume should not exceed $maxSprintSessionVolume meters.
-- Work-to-rest ratio: 1:5 to 1:10 — full recovery between efforts.
-- Include resisted (tubing, parachute) and assisted (fins, cords) sprint variations.
-- Keep technique pristine; stop the set if speed drops.
-- Avoid aerobic fatigue; this is neural, not endurance work.
-- Include long warm-up with speed-activation drills.
-- Use cooldown to reset the nervous system and stretch out.
+- Prioritize short (10–25m) all-out efforts.
+- Use full recovery (1:5–1:10 work:rest).
+- Combine resisted and assisted sprints.
+- Stop before fatigue reduces quality.
 
-Preferred intensity zones: ${preferredIntensityZones.map((z) => z.name).join(", ")}.
-Goal: Achieve maximum velocity, not conditioning.
-Return a plain-text swim session matching these rules.
+Session requirements:
+- Match ${aiPromptTags.join(", ")} intent.
+- Keep total sprint volume ≤400m.
+- Return only plain-text workout formatted for textToSessionParser.
 """;
+
 }

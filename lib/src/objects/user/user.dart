@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:swim_apps_shared/src/objects/swimmer.dart';
+import 'package:swim_apps_shared/src/objects/user/swimmer.dart';
 
 import 'coach.dart';
 import 'user_types.dart';

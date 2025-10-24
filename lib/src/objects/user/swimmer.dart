@@ -1,5 +1,5 @@
-import 'package:swim_apps_shared/src/objects/user.dart';
-import 'package:swim_apps_shared/src/objects/user_types.dart';
+import 'package:swim_apps_shared/src/objects/user/user.dart';
+import 'package:swim_apps_shared/src/objects/user/user_types.dart';
 
 class Swimmer extends AppUser {
   String? headCoachId;

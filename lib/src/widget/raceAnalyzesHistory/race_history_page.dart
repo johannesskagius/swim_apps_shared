@@ -4,6 +4,9 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:swim_apps_shared/swim_apps_shared.dart';
 
+import '../../../repositories/analyzes_repository.dart';
+import '../../../repositories/user_repository.dart';
+
 class RaceHistoryPage extends StatefulWidget {
   final String? brandIconAssetPath;
   final String? swimmerId;
@@ -123,15 +126,20 @@ class _RaceHistoryPageState extends State<RaceHistoryPage> {
         : 'Race History';
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(appBarTitle)),
+      appBar: AppBar(title: Text(appBarTitle)),
       body: _buildBody(raceRepository),
-      floatingActionButton: _selectedRaceIds.isNotEmpty ? FloatingActionButton.extended(
-        heroTag: 'race_history_fab',
-        onPressed: _navigateToComparison,
-        label: Text(_selectedRaceIds.length == 1 ? 'View':'Compare'),
-        icon:  Icon(_selectedRaceIds.length == 1 ? Icons.details:Icons.compare_arrows),
-      ):const SizedBox.shrink(),
+      floatingActionButton: _selectedRaceIds.isNotEmpty
+          ? FloatingActionButton.extended(
+              heroTag: 'race_history_fab',
+              onPressed: _navigateToComparison,
+              label: Text(_selectedRaceIds.length == 1 ? 'View' : 'Compare'),
+              icon: Icon(
+                _selectedRaceIds.length == 1
+                    ? Icons.details
+                    : Icons.compare_arrows,
+              ),
+            )
+          : const SizedBox.shrink(),
     );
   }
 

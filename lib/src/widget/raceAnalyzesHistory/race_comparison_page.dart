@@ -10,6 +10,7 @@ import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
 import 'package:swim_apps_shared/swim_apps_shared.dart';
 
+
 class RaceComparisonPage extends StatefulWidget {
   final List<String> raceIds;
   final String? brandIconAssetPath; // New optional parameter

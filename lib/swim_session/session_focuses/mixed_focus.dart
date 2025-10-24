@@ -1,30 +1,47 @@
-// lib/swim/generator/focus/mixed_focus.dart
 import 'package:swim_apps_shared/swim_apps_shared.dart';
+import 'training_focus.dart';
 
 class MixedFocus extends TrainingFocus {
   @override
-  String get name => "Mixed";
+  String get name => 'Mixed';
 
   @override
-  List<IntensityZone> get preferredIntensityZones => [
-    IntensityZone.i1,
-    IntensityZone.i2,
-    IntensityZone.i3,
-    IntensityZone.drill,
+  int get warmUpRatio => 20;
+  @override
+  int get preSetRatio => 20;
+  @override
+  int get mainSetRatio => 50;
+  @override
+  int get coolDownRatio => 10;
+
+  @override
+  List<EquipmentType> get recommendedEquipment => [
+    EquipmentType.fins,
+    EquipmentType.pullBuoy,
   ];
 
   @override
+  List<String> get aiPromptTags => ['mixed', 'varied', 'general', 'balance'];
+
+  @override
   String generatePrompt() => """
-You are designing a **Mixed / General-purpose swim session**.
+### Training Focus: Mixed
+**Tags:** ${aiPromptTags.join(", ")}
+**Structure Ratios:** Warm-up $warmUpRatio%, Pre-set $preSetRatio%, Main-set $mainSetRatio%, Cool-down $coolDownRatio%
+**Recommended Equipment:** ${recommendedEquipment.map((e) => e.name).join(", ")}
+
+You are generating a **Mixed / General-purpose swim session**.
 
 Key principles:
-- Blend aerobic endurance, technique, and controlled speed work.
-- Alternate between different intensities (zones: ${preferredIntensityZones.map((z) => z.name).join(", ")}).
-- Include at least one skill-oriented part (e.g. drills or stroke variations).
-- Structure: moderate warm-up → balanced main set → relaxed cool-down.
-- Ideal for maintenance or transition days.
-- Keep total distance between 3000–5000m depending on athlete level.
+- Blend aerobic, technique, and controlled speed work.
+- Alternate between intensity levels and stroke focuses.
+- Include one or more drill components.
+- End with relaxed recovery swimming.
 
-Goal: Provide a complete, balanced workout stimulating multiple systems.
+Session requirements:
+- Focus on variety and balance.
+- Keep total distance 3000–5000m.
+- Return only plain-text workout formatted for textToSessionParser.
 """;
+
 }

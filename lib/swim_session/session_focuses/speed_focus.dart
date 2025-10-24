@@ -1,36 +1,47 @@
 import 'package:swim_apps_shared/swim_apps_shared.dart';
 
 class SpeedFocus extends TrainingFocus {
-  static const int maxPureSpeedVolumeSP1 = 400;
-  static const int maxPureSpeedVolumeSP2 = 600;
-  static const int maxPureSpeedVolumeSP3 = 800;
-
   @override
   String get name => 'Speed';
 
   @override
-  List<IntensityZone> get preferredIntensityZones => [
-    IntensityZone.sp1,
-    IntensityZone.sp2,
-    IntensityZone.sp3,
-    IntensityZone.max,
-    IntensityZone.racePace,
+  int get warmUpRatio => 25;
+  @override
+  int get preSetRatio => 15;
+  @override
+  int get mainSetRatio => 50;
+  @override
+  int get coolDownRatio => 10;
+
+  @override
+  List<EquipmentType> get recommendedEquipment => [
+    EquipmentType.fins,
+    EquipmentType.parachute,
+    EquipmentType.resistanceBand,
   ];
 
   @override
+  List<String> get aiPromptTags => ['speed', 'explosive', 'sprint', 'power'];
+
+  @override
   String generatePrompt() => """
-You are designing a **Speed-focused swim session**.
+### Training Focus: Speed
+**Tags:** ${aiPromptTags.join(", ")}
+**Structure Ratios:** Warm-up $warmUpRatio%, Pre-set $preSetRatio%, Main-set $mainSetRatio%, Cool-down $coolDownRatio%
+**Recommended Equipment:** ${recommendedEquipment.map((e) => e.name).join(", ")}
+
+You are generating a **Speed-focused swim session**.
 
 Key principles:
-- Emphasize short, explosive efforts (15–50m) at maximum velocity.
-- Prioritize full recovery between reps (1:3 to 1:6 work-rest ratio).
-- Use total sprint volume between $maxPureSpeedVolumeSP1–$maxPureSpeedVolumeSP3 meters.
-- Keep technique sharp and avoid fatigue deterioration.
-- Integrate short resisted sprints or assisted speed when possible.
-- Warm-up includes activation drills and short progressive accelerations.
-- Main set builds towards maximum velocity segments.
-- Cool-down must be easy and promote recovery.
+- Focus on short, explosive efforts (15–50m) at near-max intensity.
+- Allow full recovery between efforts (1:3–1:6).
+- Maintain excellent technique at high velocity.
+- Optionally integrate resisted or assisted sprinting.
 
-Preferred intensity zones: ${preferredIntensityZones.map((z) => z.name).join(", ")}.
+Session requirements:
+- Respect energy system and recovery balance.
+- Use up to ~800m total sprinting.
+- Return only plain-text workout formatted for textToSessionParser.
 """;
+
 }
