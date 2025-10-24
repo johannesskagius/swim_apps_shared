@@ -36,6 +36,7 @@ export 'src/objects/user/user.dart';
 export 'src/objects/user/user_role.dart';
 export 'src/objects/user/user_types.dart';
 export 'src/objects/user/swimmer_focus_profile.dart';
+export 'src/objects/user/event_specialization.dart';
 
 // --- widgets ---
 export 'src/widget/raceAnalyzesHistory/race_comparison_page.dart';
