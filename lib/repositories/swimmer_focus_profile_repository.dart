@@ -5,7 +5,7 @@ class SwimmerFocusProfileRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   CollectionReference<Map<String, dynamic>> get _collection =>
-      _firestore.collection('swimmerFocusProfiles');
+      _firestore.collection('swimmerFocusProfile');
 
   Future<void> saveProfile(SwimmerFocusProfile profile) async {
     await _collection.doc(profile.id).set(profile.toJson(), SetOptions(merge: true));
