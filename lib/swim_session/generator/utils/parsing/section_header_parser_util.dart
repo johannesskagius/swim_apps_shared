@@ -1,4 +1,6 @@
 
+import 'package:flutter/foundation.dart';
+
 import '../../enums/set_types.dart';
 
 class SectionHeaderParseResult {
@@ -72,7 +74,7 @@ class SectionHeaderParserUtil {
       }
     }
 
-    print("Warning: Unrecognized set type keyword after regex match: $keyword");
+    debugPrint("Warning: Unrecognized set type keyword after regex match: $keyword");
     return SetType.mainSet; // Default or throw error
   }
 
