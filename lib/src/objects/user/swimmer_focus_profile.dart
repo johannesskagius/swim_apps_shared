@@ -1,15 +1,14 @@
 // lib/swim/ai/swimmer_focus_profile.dart
 import 'package:swim_apps_shared/swim_apps_shared.dart';
-import 'package:swim_apps_shared/swim_session/training_focus_factory.dart';
 
 class SwimmerFocusProfile {
-  final String id; // Unique document ID (Firestore or local)
-  final String swimmerId;
-  final String swimmerName;
-  final TrainingFocus trainingFocus;
-  final List<Stroke> focusStrokes;
-  final int targetDistance; // in meters
-  final Duration? targetDuration; // optional, for timed sessions
+  String id; // Unique document ID (Firestore or local)
+  String swimmerId;
+  String swimmerName;
+  TrainingFocus trainingFocus;
+  List<Stroke> focusStrokes;
+  int targetDistance; // in meters
+  Duration? targetDuration; // optional, for timed sessions
 
   SwimmerFocusProfile({
     required this.id,
