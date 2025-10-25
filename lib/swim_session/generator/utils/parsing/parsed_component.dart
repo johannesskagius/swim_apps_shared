@@ -1,4 +1,6 @@
-import 'package:swim_apps_shared/swim_apps_shared.dart';
+
+import '../../../../objects/stroke.dart';
+import '../../enums/swim_way.dart';
 
 class ParsedItemComponents {
   // Simplified from previous if description is removed

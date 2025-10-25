@@ -2,9 +2,9 @@
 import 'package:swim_apps_shared/swim_session/generator/enums/set_types.dart';
 import 'package:swim_apps_shared/swim_session/generator/utils/parsing/tag_parser_util.dart';
 
-import '../../../objects/planned/set_item.dart';
-import '../../../objects/planned/swim_set.dart';
-import '../../../objects/planned/swim_set_config.dart';
+import '../../../../objects/planned/set_item.dart';
+import '../../../../objects/planned/swim_set.dart';
+import '../../../../objects/planned/swim_set_config.dart';
 
 class SectionTitleParseResult {
   final SetType setType;

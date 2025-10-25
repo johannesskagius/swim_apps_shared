@@ -1,4 +1,4 @@
-import 'package:swim_apps_shared/swim_apps_shared.dart';
+import '../generator/enums/equipment.dart';
 import 'training_focus.dart';
 
 class TechniqueFocus extends TrainingFocus {

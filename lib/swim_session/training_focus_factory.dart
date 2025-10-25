@@ -1,4 +1,13 @@
-import 'package:swim_apps_shared/swim_apps_shared.dart';
+
+import 'package:swim_apps_shared/swim_session/session_focuses/endurance_focus.dart';
+import 'package:swim_apps_shared/swim_session/session_focuses/im_focus.dart';
+import 'package:swim_apps_shared/swim_session/session_focuses/max_velocity.dart';
+import 'package:swim_apps_shared/swim_session/session_focuses/mixed_focus.dart';
+import 'package:swim_apps_shared/swim_session/session_focuses/race_pace_speed_focus.dart';
+import 'package:swim_apps_shared/swim_session/session_focuses/recovery_focus.dart';
+import 'package:swim_apps_shared/swim_session/session_focuses/speed_focus.dart';
+import 'package:swim_apps_shared/swim_session/session_focuses/technique_focus.dart';
+import 'package:swim_apps_shared/swim_session/session_focuses/training_focus.dart';
 
 /// Enum representing all known training focus types.
 enum TrainingFocusType {

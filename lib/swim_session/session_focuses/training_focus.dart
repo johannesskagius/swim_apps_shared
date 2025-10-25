@@ -1,7 +1,8 @@
 // lib/swim/generator/focus/training_focus.dart
 import 'dart:math';
 
-import 'package:swim_apps_shared/swim_apps_shared.dart';
+import '../generator/enums/equipment.dart';
+
 
 abstract class TrainingFocus {
   abstract final String name;

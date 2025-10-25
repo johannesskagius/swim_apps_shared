@@ -2,10 +2,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:swim_apps_shared/swim_apps_shared.dart';
+import 'package:swim_apps_shared/race_analyzes/race_comparison_page.dart';
 
-import '../../../repositories/analyzes_repository.dart';
-import '../../../repositories/user_repository.dart';
+import '../objects/race.dart';
+import '../objects/user/coach.dart';
+import '../objects/user/swimmer.dart';
+import '../objects/user/user.dart';
+import '../repositories/analyzes_repository.dart';
+import '../repositories/user_repository.dart';
 
 class RaceHistoryPage extends StatefulWidget {
   final String? brandIconAssetPath;

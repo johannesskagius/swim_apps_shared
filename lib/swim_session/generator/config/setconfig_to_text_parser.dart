@@ -1,4 +1,11 @@
-import 'package:swim_apps_shared/swim_apps_shared.dart';
+import 'package:swim_apps_shared/swim_session/generator/enums/set_types.dart';
+import 'package:swim_apps_shared/swim_session/generator/enums/distance_units.dart';
+
+import '../../../objects/planned/set_item.dart';
+import '../../../objects/planned/sub_item.dart';
+import '../../../objects/planned/swim_set_config.dart';
+import '../../../objects/stroke.dart';
+import '../enums/swim_way.dart';
 
 class SessionSetConfigToTextParser {
   static final _lapsHeaderRegex = RegExp(r"^\d+\s*x|^\d+\s*rounds?");
@@ -176,7 +183,7 @@ class SessionSetConfigToTextParser {
     if (item.equipment != null && item.equipment!.isNotEmpty) {
       sb.write("[");
       sb.write(
-        item.equipment!.map((e) => e.name).join(" "),
+        item.equipment!.map((e) => e.toString()).join(" "),
       ); // Or e.toDisplayString()
       sb.write("] ");
     }
@@ -220,7 +227,7 @@ class SessionSetConfigToTextParser {
     if (subItem.equipment.isNotEmpty) {
       sb.write("[");
       sb.write(
-        subItem.equipment.map((e) => e.name).join(" "),
+        subItem.equipment.map((e) => e?.toString()).join(" "),
       ); // Or e.toDisplayString()
       sb.write("] ");
     }

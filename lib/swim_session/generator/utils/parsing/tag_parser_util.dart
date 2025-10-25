@@ -1,6 +1,8 @@
 // lib/swim/text_parser/tag_parser_util.dart
 
-import 'package:swim_apps_shared/swim_apps_shared.dart';
+
+import '../../../../objects/planned/swim_groups.dart';
+import '../../../../objects/user/swimmer.dart';
 
 /// Holds the result of extracting tags from a line of text.
 class TagExtractionResult {

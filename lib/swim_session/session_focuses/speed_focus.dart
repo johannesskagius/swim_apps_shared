@@ -1,4 +1,7 @@
-import 'package:swim_apps_shared/swim_apps_shared.dart';
+
+import 'package:swim_apps_shared/swim_session/session_focuses/training_focus.dart';
+
+import '../generator/enums/equipment.dart';
 
 class SpeedFocus extends TrainingFocus {
   @override

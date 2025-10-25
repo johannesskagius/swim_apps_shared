@@ -1,7 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
-import 'package:swim_apps_shared/swim_apps_shared.dart';
+
+import '../../swim_session/generator/enums/distance_units.dart';
+import '../../swim_session/generator/enums/session_slot.dart';
+import '../perceived_exertion_level.dart';
+import '../result.dart';
+import 'completed_set_configuration.dart';
 
 // Import the new ActualSetConfiguration class
 

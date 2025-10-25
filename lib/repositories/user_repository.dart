@@ -3,9 +3,9 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/cupertino.dart';
 
 import '../auth_service.dart';
-import '../src/objects/user/swimmer.dart';
-import '../src/objects/user/user.dart';
-import '../src/objects/user/user_types.dart';
+import '../objects/user/swimmer.dart';
+import '../objects/user/user.dart';
+import '../objects/user/user_types.dart';
 import 'base_repository.dart';
 
 class UserRepository extends BaseRepository {

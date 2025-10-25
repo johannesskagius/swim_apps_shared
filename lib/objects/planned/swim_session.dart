@@ -1,7 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
-import 'package:swim_apps_shared/swim_apps_shared.dart';
+import 'package:swim_apps_shared/objects/planned/set_item.dart';
+import 'package:swim_apps_shared/objects/planned/swim_set.dart';
+import 'package:swim_apps_shared/objects/planned/swim_set_config.dart';
+import 'package:swim_apps_shared/swim_session/generator/enums/equipment.dart';
+
+import '../../swim_session/generator/enums/distance_units.dart';
+import '../../swim_session/generator/enums/session_slot.dart';
+import '../stroke.dart';
 
 class SwimSession {
   String? id;

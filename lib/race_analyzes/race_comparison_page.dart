@@ -8,7 +8,10 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
-import 'package:swim_apps_shared/swim_apps_shared.dart';
+
+import '../objects/race.dart';
+import '../repositories/analyzes_repository.dart';
+import '../repositories/user_repository.dart';
 
 
 class RaceComparisonPage extends StatefulWidget {

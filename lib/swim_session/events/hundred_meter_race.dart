@@ -1,4 +1,7 @@
+import '../../objects/pool_length.dart';
 import '../../swim_apps_shared.dart';
+import 'checkpoint.dart';
+import 'event.dart';
 
 class HundredMetersRace extends Event {
   const HundredMetersRace({required super.stroke});

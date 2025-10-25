@@ -1,6 +1,6 @@
-import 'package:swim_apps_shared/src/objects/pool_length.dart';
-import 'package:swim_apps_shared/src/objects/stroke.dart';
 
+import '../../objects/pool_length.dart';
+import '../../objects/stroke.dart';
 import 'checkpoint.dart';
 
 abstract class

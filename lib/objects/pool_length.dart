@@ -1,4 +1,4 @@
-import 'distance_units.dart';
+import '../../swim_session/generator/enums/distance_units.dart';
 
 /// Enum representing standard pool lengths.
 enum PoolLength {

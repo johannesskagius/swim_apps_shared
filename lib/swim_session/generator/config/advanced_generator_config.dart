@@ -1,6 +1,11 @@
-import 'package:swim_apps_shared/swim_apps_shared.dart';
 
 // Enums for Generator Configuration
+import '../../../objects/stroke.dart';
+import '../../session_focuses/training_focus.dart';
+import '../enums/distance_units.dart';
+import '../enums/equipment.dart';
+import '../enums/session_slot.dart';
+
 enum SessionDifficulty { easy, medium, hard }
 
 class AdvancedGeneratorConfig {

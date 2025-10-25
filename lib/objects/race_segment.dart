@@ -1,4 +1,5 @@
-import 'package:swim_apps_shared/src/events/checkpoint.dart';
+
+import '../swim_session/events/checkpoint.dart';
 
 /// Represents a single recorded moment in a race.
 class RaceSegment {

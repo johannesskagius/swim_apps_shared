@@ -1,5 +1,10 @@
 import 'package:flutter/foundation.dart';
-import 'package:swim_apps_shared/swim_apps_shared.dart';
+
+import '../../swim_session/generator/enums/distance_units.dart';
+import '../../swim_session/generator/enums/equipment.dart';
+import '../intensity_zones.dart';
+import '../planned/set_item.dart';
+import '../stroke.dart';
 
 @immutable
 class CompletedSetItem {

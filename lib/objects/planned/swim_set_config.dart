@@ -1,4 +1,5 @@
-import 'package:swim_apps_shared/swim_session/objects/planned/swim_set.dart';
+
+import 'package:swim_apps_shared/objects/planned/swim_set.dart';
 
 class SessionSetConfiguration {
   String sessionSetConfigId;

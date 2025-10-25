@@ -1,6 +1,23 @@
-import 'package:swim_apps_shared/swim_apps_shared.dart';
 
 // Removed ItemNoteParserUtil import from here as it's already specific above
+
+import 'package:swim_apps_shared/swim_session/generator/utils/parsing/equipment_parser_util.dart';
+import 'package:swim_apps_shared/swim_session/generator/utils/parsing/interval_parser_util.dart';
+import 'package:swim_apps_shared/swim_session/generator/utils/parsing/item_note_parser_util.dart';
+import 'package:swim_apps_shared/swim_session/generator/utils/parsing/parsed_component.dart';
+import 'package:swim_apps_shared/swim_session/generator/utils/parsing/section_title_parser_util.dart';
+import 'package:swim_apps_shared/swim_session/generator/utils/parsing/swim_way_stroke_parser_util.dart';
+import 'package:swim_apps_shared/swim_session/generator/utils/parsing/tag_parser_util.dart';
+
+import '../../objects/intensity_zones.dart';
+import '../../objects/planned/set_item.dart';
+import '../../objects/planned/swim_groups.dart';
+import '../../objects/planned/swim_set.dart';
+import '../../objects/planned/swim_set_config.dart';
+import '../../objects/user/swimmer.dart';
+import 'enums/distance_units.dart';
+import 'enums/equipment.dart';
+import 'enums/set_types.dart';
 
 class TextToSessionObjectParser {
   final RegExp lineBreakRegex = RegExp(r'\r\n?|\n');

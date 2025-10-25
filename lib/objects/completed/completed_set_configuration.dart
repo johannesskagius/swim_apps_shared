@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
-import 'package:swim_apps_shared/swim_session/objects/planned/swim_set_config.dart';
 
+import '../planned/swim_set_config.dart';
 import 'completed_swim_set.dart';
 
 @immutable

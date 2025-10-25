@@ -1,5 +1,5 @@
-import 'package:swim_apps_shared/src/objects/pool_length.dart';
 
+import '../../objects/pool_length.dart';
 import 'checkpoint.dart';
 import 'event.dart';
 

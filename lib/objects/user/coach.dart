@@ -1,14 +1,14 @@
-import 'package:swim_apps_shared/src/objects/user/user.dart';
-import 'package:swim_apps_shared/src/objects/user/user_types.dart';
 
-class Swimmer extends AppUser {
-  String? headCoachId;
-  String? secondCoachId;
-  String? thirdCoachId;
-  List<String>? memberOfTeams;
-  final List<String> mainEventIds;
 
-  Swimmer({
+import 'package:swim_apps_shared/objects/user/user.dart';
+import 'package:swim_apps_shared/objects/user/user_types.dart';
+
+class Coach extends AppUser {
+  List<String> memberOfTeams;
+  List<String> ownerOfTeams;
+  bool isAccountHolder;
+
+  Coach({
     required super.id,
     required super.name,
     required super.email,
@@ -16,17 +16,17 @@ class Swimmer extends AppUser {
     super.profilePicturePath,
     super.photoUrl,
     super.registerDate,
-    super.clubId,
     super.updatedAt,
-    this.memberOfTeams,
+    super.clubId,
     super.creatorId,
-    this.secondCoachId,
-    this.thirdCoachId,
-    this.mainEventIds = const [],
-  }) : super(userType: UserType.swimmer);
+    List<String>? memberOfTeams,
+    List<String>? ownerOfTeams,
+    this.isAccountHolder = false,
+  })  : memberOfTeams = memberOfTeams ?? [],
+        ownerOfTeams = ownerOfTeams ?? [],
+        super(userType: UserType.coach);
 
-  factory Swimmer.fromJson(String docId, Map<String, dynamic> json) {
-    // Defensive cast for list/map variations (web safe)
+  factory Coach.fromJson(String docId, Map<String, dynamic> json) {
     List<String> parseStringList(dynamic value) {
       if (value == null) return [];
       if (value is List) return List<String>.from(value.map((e) => e.toString()));
@@ -34,20 +34,20 @@ class Swimmer extends AppUser {
       return [];
     }
 
-    return Swimmer(
+    return Coach(
       id: docId,
-      name: json['name'] as String? ?? 'Swimmer',
+      name: json['name'] as String? ?? 'Coach',
       lastName: json['lastName'] as String?,
       email: json['email'] as String? ?? '',
+      isAccountHolder: json['isAccountHolder'] as bool? ?? false,
       profilePicturePath: json['profilePicturePath'] as String?,
       photoUrl: json['photoUrl'] as String?,
       registerDate: AppUser.parseDateTime(json['registerDate']),
       updatedAt: AppUser.parseDateTime(json['updatedAt']),
       clubId: json['clubId'] as String?,
       memberOfTeams: parseStringList(json['memberOfTeams']),
+      ownerOfTeams: parseStringList(json['ownerOfTeams']),
       creatorId: json['creatorId'] as String?,
-      secondCoachId: json['secondCoachId'] as String?,
-      thirdCoachId: json['thirdCoachId'] as String?,
     );
   }
 
@@ -55,16 +55,16 @@ class Swimmer extends AppUser {
   Map<String, dynamic> toJson() {
     final json = super.toJson();
     json.addAll({
-      if (creatorId != null) 'coachCreatorId': creatorId,
-      if (secondCoachId != null) 'secondCoachId': secondCoachId,
-      if (thirdCoachId != null) 'thirdCoachId': thirdCoachId,
-      if (memberOfTeams != null) 'memberOfTeams': memberOfTeams,
+      'memberOfTeams': memberOfTeams,
+      'ownerOfTeams': ownerOfTeams,
+      'isAccountHolder': isAccountHolder,
+      if (clubId != null) 'clubId': clubId,
     });
     return json;
   }
 
   @override
-  Swimmer copyWith({
+  Coach copyWith({
     String? id,
     String? name,
     String? lastName,
@@ -76,14 +76,12 @@ class Swimmer extends AppUser {
     DateTime? updatedAt,
     String? clubId,
     List<String>? memberOfTeams,
-    List<String>? mainEventIds,
+    List<String>? ownerOfTeams,
     String? creatorId,
-    String? secondCoachId,
-    String? thirdCoachId,
+    bool? isAccountHolder,
   }) {
-    return Swimmer(
+    return Coach(
       id: id ?? this.id,
-      mainEventIds: mainEventIds ?? this.mainEventIds,
       name: name ?? this.name,
       lastName: lastName ?? this.lastName,
       email: email ?? this.email,
@@ -92,10 +90,10 @@ class Swimmer extends AppUser {
       registerDate: registerDate ?? this.registerDate,
       updatedAt: updatedAt ?? this.updatedAt,
       clubId: clubId ?? this.clubId,
+      isAccountHolder: isAccountHolder ?? this.isAccountHolder,
       memberOfTeams: memberOfTeams ?? this.memberOfTeams,
+      ownerOfTeams: ownerOfTeams ?? this.ownerOfTeams,
       creatorId: creatorId ?? this.creatorId,
-      secondCoachId: secondCoachId ?? this.secondCoachId,
-      thirdCoachId: thirdCoachId ?? this.thirdCoachId,
     );
   }
 }

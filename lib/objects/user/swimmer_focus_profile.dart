@@ -1,10 +1,11 @@
-// lib/swim/ai/swimmer_focus_profile.dart
-import 'package:swim_apps_shared/src/objects/user/event_specialization.dart';
-import 'package:swim_apps_shared/swim_apps_shared.dart';
+import '../stroke.dart';
+import 'event_specialization.dart';
 
 class SwimmerFocusProfile {
   String id; // Unique document ID (Firestore or local)
   String swimmerId;
+  String clubId;
+  String coachId;
   String swimmerName;
   EventSpecialization eventSpecialization;
   List<Stroke> focusStrokes;
@@ -15,6 +16,8 @@ class SwimmerFocusProfile {
     required this.id,
     required this.swimmerId,
     required this.swimmerName,
+    required this.coachId,
+    required this.clubId,
     required this.eventSpecialization,
     required this.focusStrokes,
     required this.targetDistance,
@@ -25,6 +28,8 @@ class SwimmerFocusProfile {
     'id': id,
     'swimmerId': swimmerId,
     'swimmerName': swimmerName,
+    'coachId': coachId,
+    'clubId': clubId,
     'eventSpecializationName': eventSpecialization.name,
     'focusStrokes': focusStrokes.map((s) => s.name).toList(),
     'targetDistance': targetDistance,
@@ -37,6 +42,8 @@ class SwimmerFocusProfile {
       id: json['id'] ?? '',
       swimmerId: json['swimmerId'] ?? '',
       swimmerName: json['swimmerName'] ?? '',
+      coachId: json['coachId'] ?? '',
+      clubId: json['clubId'] ?? '',
       eventSpecialization: EventSpecialization.fromString(json['eventSpecializationName']),
       focusStrokes: (json['focusStrokes'] as List<dynamic>? ?? [])
           .map((name) => Stroke.fromString(name))

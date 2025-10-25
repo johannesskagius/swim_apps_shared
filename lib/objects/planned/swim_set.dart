@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
-import 'package:swim_apps_shared/swim_session/objects/planned/set_item.dart';
-
-import '../../generator/enums/set_types.dart';
+import 'package:swim_apps_shared/objects/planned/set_item.dart';
+import '../../swim_session/generator/enums/set_types.dart';
 
 class SwimSet {
   String setId; // Firestore document ID or UUID

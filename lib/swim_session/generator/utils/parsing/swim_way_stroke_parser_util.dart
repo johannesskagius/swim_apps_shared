@@ -1,4 +1,8 @@
-import 'package:swim_apps_shared/swim_apps_shared.dart';
+
+import 'package:swim_apps_shared/swim_session/generator/utils/parsing/parsed_component.dart';
+
+import '../../../../objects/stroke.dart';
+import '../../enums/swim_way.dart';
 
 class SwimWayStrokeParserUtil {
   /// Parses the main component text to identify the SwimWay and Stroke.

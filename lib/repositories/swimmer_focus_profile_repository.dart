@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
-import 'package:swim_apps_shared/swim_apps_shared.dart';
+
+import '../objects/user/swimmer_focus_profile.dart';
 
 /// A repository for managing swimmer focus profiles in Firestore.
 ///
