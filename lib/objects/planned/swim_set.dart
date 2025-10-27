@@ -15,6 +15,9 @@ class SwimSet {
   DateTime? updatedAt;
   String? coachId;
 
+  // 🆕 Added support for AI-generated / temporary subgroup names
+  final List<String>? assignedGroupNames; // e.g. ['Middle', 'General']
+
   // --------------------------------------------------------------------------
   // ✅ Default constructor
   // --------------------------------------------------------------------------
@@ -30,6 +33,7 @@ class SwimSet {
     this.createdAt,
     this.updatedAt,
     this.coachId,
+    this.assignedGroupNames,
   });
 
   // --------------------------------------------------------------------------
@@ -47,6 +51,7 @@ class SwimSet {
     this.createdAt,
     this.updatedAt,
     this.coachId,
+    this.assignedGroupNames,
   });
 
   // --------------------------------------------------------------------------
@@ -65,6 +70,8 @@ class SwimSet {
       createdAt: createdAt,
       updatedAt: updatedAt,
       coachId: coachId,
+      assignedGroupNames:
+      assignedGroupNames != null ? List.of(assignedGroupNames!) : null,
     );
   }
 
@@ -84,19 +91,23 @@ class SwimSet {
         'totalSetDurationEstimated': totalSetDurationEstimated!.inSeconds,
       if (rawTextLine != null) 'rawTextLine': rawTextLine,
       if (coachId != null) 'coachId': coachId,
+
+      // 🆕 Store AI subgroup names (only if present)
+      if (assignedGroupNames != null && assignedGroupNames!.isNotEmpty)
+        'assignedGroupNames': assignedGroupNames,
     };
   }
 
   // --------------------------------------------------------------------------
-  // ✅ Firestore deserialization (with ID)
+  // ✅ Firestore deserialization (with explicit ID)
   // --------------------------------------------------------------------------
   factory SwimSet.fromJsonWithId(String id, Map<String, dynamic> json) {
     final rawItems = json['items'];
     final safeItems = (rawItems is List)
         ? rawItems
-              .whereType<Map<String, dynamic>>()
-              .map(SetItem.fromJson)
-              .toList()
+        .whereType<Map<String, dynamic>>()
+        .map(SetItem.fromJson)
+        .toList()
         : <SetItem>[];
 
     SetType? safeType;
@@ -120,6 +131,8 @@ class SwimSet {
       ),
       rawTextLine: json['rawTextLine'] as String?,
       coachId: json['coachId'] as String?,
+      assignedGroupNames:
+      (json['assignedGroupNames'] as List?)?.whereType<String>().toList(),
     );
   }
 
@@ -130,9 +143,9 @@ class SwimSet {
     final rawItems = json['items'];
     final safeItems = (rawItems is List)
         ? rawItems
-              .whereType<Map<String, dynamic>>()
-              .map(SetItem.fromJson)
-              .toList()
+        .whereType<Map<String, dynamic>>()
+        .map(SetItem.fromJson)
+        .toList()
         : <SetItem>[];
 
     SetType? safeType;
@@ -156,6 +169,43 @@ class SwimSet {
       ),
       rawTextLine: json['rawTextLine'] as String?,
       coachId: json['coachId'] as String?,
+      assignedGroupNames:
+      (json['assignedGroupNames'] as List?)?.whereType<String>().toList(),
+    );
+  }
+
+  // --------------------------------------------------------------------------
+  // ✅ Utility for updating this set immutably
+  // --------------------------------------------------------------------------
+  SwimSet copyWith({
+    String? setId,
+    SetType? type,
+    String? customTypeName,
+    List<SetItem>? items,
+    String? setNotes,
+    int? totalSetDistance,
+    Duration? totalSetDurationEstimated,
+    String? rawTextLine,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    String? coachId,
+    List<String>? assignedGroupNames,
+  }) {
+    return SwimSet(
+      setId: setId ?? this.setId,
+      type: type ?? this.type,
+      customTypeName: customTypeName ?? this.customTypeName,
+      items: items ?? this.items,
+      setNotes: setNotes ?? this.setNotes,
+      totalSetDistance: totalSetDistance ?? this.totalSetDistance,
+      totalSetDurationEstimated:
+      totalSetDurationEstimated ?? this.totalSetDurationEstimated,
+      rawTextLine: rawTextLine ?? this.rawTextLine,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      coachId: coachId ?? this.coachId,
+      assignedGroupNames:
+      assignedGroupNames ?? this.assignedGroupNames,
     );
   }
 }

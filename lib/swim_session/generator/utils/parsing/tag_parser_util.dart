@@ -1,5 +1,4 @@
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
-
 import '../../../../objects/planned/swim_groups.dart';
 import '../../../../objects/user/swimmer.dart';
 
@@ -14,10 +13,14 @@ class TagExtractionResult {
   /// A list of unique IDs for all groups identified by #group tags, in order of appearance.
   final List<String> groupIds;
 
+  /// 🆕 A list of human-readable group names from #group tags (including AI-generated ones).
+  final List<String> groupNames;
+
   TagExtractionResult({
     required this.remainingLine,
     required this.swimmerIds,
     required this.groupIds,
+    required this.groupNames,
   });
 }
 
@@ -27,12 +30,14 @@ class _FoundTag {
   final int endIndex;
   final String tagType; // 'swimmer' or 'group'
   final List<String> resolvedIds;
+  final List<String> resolvedNames;
 
   _FoundTag({
     required this.startIndex,
     required this.endIndex,
     required this.tagType,
     required this.resolvedIds,
+    required this.resolvedNames,
   });
 }
 
@@ -44,35 +49,32 @@ class TagExtractUtil {
     caseSensitive: false,
   );
 
-  /// Extracts #swimmer and #group tags and resolves them to IDs.
+  /// Extracts #swimmer and #group tags and resolves them to IDs and names.
   ///
-  /// This function is designed to be robust against malformed input. It uses try-catch blocks
-  /// to handle potential parsing errors gracefully. Non-fatal errors are logged to
-  /// Firebase Crashlytics to help with debugging and monitoring.
+  /// This version handles both known and unknown (AI-generated) groups gracefully.
   static TagExtractionResult extractTagsFromLine(
-    String line,
-    List<Swimmer> availableSwimmers,
-    List<SwimGroup> availableGroups,
-  ) {
+      String line,
+      List<Swimmer> availableSwimmers,
+      List<SwimGroup> availableGroups,
+      ) {
     try {
-      // Sort entities by name length to prioritize longer, more specific matches first.
-      // This prevents "John" from matching before "John Doe".
       final sortedSwimmers = _sortByNameLength(availableSwimmers);
       final sortedGroups = _sortByNameLength(availableGroups);
 
       final foundTags = _findAllTags(line, sortedSwimmers, sortedGroups);
 
-      // Remove tag text from the original line to get the remaining content.
       String remainingLine = _stripTagsFromLine(line, foundTags);
 
-      // Collect unique IDs from all found tags, preserving the order of appearance.
       final swimmerIds = <String>{};
       final groupIds = <String>{};
+      final groupNames = <String>{};
+
       for (final tag in foundTags) {
         if (tag.tagType == 'swimmer') {
           swimmerIds.addAll(tag.resolvedIds);
         } else {
           groupIds.addAll(tag.resolvedIds);
+          groupNames.addAll(tag.resolvedNames);
         }
       }
 
@@ -80,11 +82,9 @@ class TagExtractUtil {
         remainingLine: remainingLine,
         swimmerIds: swimmerIds.toList(),
         groupIds: groupIds.toList(),
+        groupNames: groupNames.toList(),
       );
     } catch (e, s) {
-      // This is a critical error handler. If any unexpected exception occurs during parsing,
-      // we log it to Crashlytics for immediate investigation.
-      // To prevent a crash, we return the original line with no tags extracted, ensuring the app remains stable.
       FirebaseCrashlytics.instance.recordError(
         e,
         s,
@@ -94,6 +94,7 @@ class TagExtractUtil {
         remainingLine: line,
         swimmerIds: [],
         groupIds: [],
+        groupNames: [],
       );
     }
   }
@@ -110,12 +111,11 @@ class TagExtractUtil {
   }
 
   /// Iterates through the line to find all valid #swimmer and #group tags.
-  /// This function was refactored from the main loop in `extractTagsFromLine` to improve clarity.
   static List<_FoundTag> _findAllTags(
-    String line,
-    List<Swimmer> sortedSwimmers,
-    List<SwimGroup> sortedGroups,
-  ) {
+      String line,
+      List<Swimmer> sortedSwimmers,
+      List<SwimGroup> sortedGroups,
+      ) {
     final foundTags = <_FoundTag>[];
     int offset = 0;
 
@@ -123,18 +123,14 @@ class TagExtractUtil {
       final match = _tagPrefixRegex.firstMatch(line.substring(offset));
       if (match == null) break;
 
-      // The use of `group(1)` is safe here because the regex `r"#\s*(swimmer|group)\b"` guarantees
-      // that if a match is found, group(1) will contain either "swimmer" or "group".
-      // A null-check is added for extra safety.
       final tagType = match.group(1)?.toLowerCase();
       if (tagType == null) {
-        offset += match.end; // Skip invalid match
+        offset += match.end;
         continue;
       }
 
       final tagStart = offset + match.start;
       final contentStart = offset + match.end;
-
       final afterTag = line.substring(contentStart).trimLeft();
       final consumedWhitespace = line.length - afterTag.length - contentStart;
 
@@ -143,8 +139,13 @@ class TagExtractUtil {
 
       final entities = tagType == 'swimmer' ? sortedSwimmers : sortedGroups;
       final resolvedIds = _resolveCommaSeparatedNames(tagContent, entities);
+      final resolvedNames = _resolveCommaSeparatedNamesOrFallback(
+        tagContent,
+        entities,
+        tagType,
+      );
 
-      if (resolvedIds.isNotEmpty) {
+      if (resolvedIds.isNotEmpty || resolvedNames.isNotEmpty) {
         final tagEnd = contentStart + consumedWhitespace + segmentEndIndex;
         foundTags.add(
           _FoundTag(
@@ -152,6 +153,7 @@ class TagExtractUtil {
             endIndex: tagEnd,
             tagType: tagType,
             resolvedIds: resolvedIds,
+            resolvedNames: resolvedNames,
           ),
         );
       }
@@ -161,21 +163,17 @@ class TagExtractUtil {
   }
 
   /// Removes all identified tag sections from the line.
-  /// Refactored for better separation of concerns.
   static String _stripTagsFromLine(String line, List<_FoundTag> tags) {
     String remaining = line;
-    // Tags are removed in reverse order to ensure start/end indices remain valid.
     for (final tag in tags.reversed) {
       remaining =
           remaining.substring(0, tag.startIndex) +
-          remaining.substring(tag.endIndex);
+              remaining.substring(tag.endIndex);
     }
-    // Normalize spacing by replacing multiple whitespace characters with a single space.
     return remaining.replaceAll(RegExp(r'\s+'), ' ').trim();
   }
 
-  /// Finds the end of a tag's content, which is terminated by another tag, a quote, or the end of the line.
-  /// This logic was extracted into its own method for improved testability and clarity.
+  /// Finds the end of a tag's content.
   static int _findEndOfTagRegion(String text) {
     final nextTagMatch = RegExp(
       r"#\s*(swimmer|group)",
@@ -191,12 +189,11 @@ class TagExtractUtil {
     return nextTag < nextQuote ? nextTag : nextQuote;
   }
 
-  /// Resolves a comma-separated string of names into a list of unique IDs.
-  /// This function was an ideal candidate for refactoring as it performs a distinct, testable task.
+  /// Resolves known entity names (Swimmer/Group) to IDs only.
   static List<String> _resolveCommaSeparatedNames(
-    String content,
-    List<dynamic> entities,
-  ) {
+      String content,
+      List<dynamic> entities,
+      ) {
     final ids = <String>[];
     final parts = content
         .split(',')
@@ -204,10 +201,10 @@ class TagExtractUtil {
         .where((s) => s.isNotEmpty);
     for (final name in parts) {
       final match = entities.cast<dynamic?>().firstWhere(
-        (e) =>
-            (e is Swimmer ? e.name : (e as SwimGroup).name)
-                .toLowerCase()
-                .trim() ==
+            (e) =>
+        (e is Swimmer ? e.name : (e as SwimGroup).name)
+            .toLowerCase()
+            .trim() ==
             name.toLowerCase().trim(),
         orElse: () => null,
       );
@@ -217,5 +214,37 @@ class TagExtractUtil {
         ids.add(match.id!);
     }
     return ids;
+  }
+
+  /// 🆕 Resolves group/swimmer names but keeps unknown names as plain text.
+  static List<String> _resolveCommaSeparatedNamesOrFallback(
+      String content,
+      List<dynamic> entities,
+      String tagType,
+      ) {
+    final names = <String>[];
+    final parts = content
+        .split(',')
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty);
+
+    for (final name in parts) {
+      final match = entities.cast<dynamic?>().firstWhere(
+            (e) =>
+        (e is Swimmer ? e.name : (e as SwimGroup).name)
+            .toLowerCase()
+            .trim() ==
+            name.toLowerCase().trim(),
+        orElse: () => null,
+      );
+
+      if (match != null) {
+        names.add(name); // known entity name
+      } else if (tagType == 'group') {
+        // Keep AI-generated or unknown group names (e.g., #group Middle)
+        names.add(name);
+      }
+    }
+    return names;
   }
 }

@@ -178,6 +178,13 @@ class TextToSessionObjectParser {
     return (zone: null, line: line);
   }
 
+  // 🔹 NEW — extracts #group names even if not existing in Firestore
+  List<String> _extractGroupNames(String text) {
+    final matches = RegExp(r'#group\s+([\w\s\-]+)', caseSensitive: false)
+        .allMatches(text);
+    return matches.map((m) => m.group(1)!.trim()).toList();
+  }
+
   List<SessionSetConfiguration> parseTextToSetConfigurations({
     required String? unParsedText,
     required String coachId,
@@ -226,7 +233,6 @@ class TextToSessionObjectParser {
           currentConfig = result.newConfig;
           activeSetType = result.newActiveSetType;
           currentItems.clear();
-
           continue;
         } else if (internalRepMatch != null) {
           continue;
@@ -271,6 +277,7 @@ class TextToSessionObjectParser {
         setId: _generateUniqueId("set_def_"),
         type: activeSetType,
         items: [],
+        assignedGroupNames: tagResult.groupNames, // 🆕 link group names early if found
       ),
       rawSetTypeHeaderFromText: "(Default Set) ${activeSetType.toDisplayString()}",
       unparsedTextLines: [],
@@ -287,11 +294,17 @@ class TextToSessionObjectParser {
     if (config == null) return;
 
     if (items.isNotEmpty) {
+      // 🔹 Detect any #group mentions within this set's text
+      final rawText = config.unparsedTextLines?.join(" ") ?? "";
+      final extractedGroupNames = _extractGroupNames(rawText);
+
       config.swimSet = SwimSet(
         setId: config.swimSet?.setId ?? _generateUniqueId("set_last_"),
         type: config.swimSet?.type ?? activeSetType,
         items: List.from(items),
         setNotes: config.swimSet?.setNotes,
+        assignedGroupNames: (config.swimSet?.assignedGroupNames ?? []) +
+            extractedGroupNames, // merge both parsed and text-found names
       );
     }
 
