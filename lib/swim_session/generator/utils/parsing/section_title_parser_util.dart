@@ -21,18 +21,36 @@ class SectionTitleLineResult {
 }
 
 class SectionTitleUtil {
+  // --- Added: repetition tracking state shared between parsing steps ---
+  static int? _pendingRepetitions;
+
+  /// Applies a repetition (Nx) to the active configuration if pending.
+  static void applyPendingRepetitions(SessionSetConfiguration config) {
+    if (_pendingRepetitions != null) {
+      config.repetitions = _pendingRepetitions!;
+      _pendingRepetitions = null;
+    }
+  }
+
+  /// Detects if a line is a set-laps (e.g. "2x", "3x") instruction and stores it temporarily.
+  static bool detectAndStoreRepetitionMarker(String line) {
+    final trimmed = line.trim();
+    if (RegExp(r'^\d+\s*x\s*$').hasMatch(trimmed)) {
+      try {
+        _pendingRepetitions = int.parse(trimmed.replaceAll('x', '').trim());
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+    return false;
+  }
+
   /// Parses the set type and notes from a regex match of a section title.
-  ///
-  /// This function is now safer, handling cases where regex groups might be null.
-  static SectionTitleParseResult parseSectionTitleDetails(
-      Match sectionTitleMatch,
-      ) {
-    // Use null-safe access for the regex group and provide a default empty string.
-    // This prevents a crash if group(1) is unexpectedly null.
+  static SectionTitleParseResult parseSectionTitleDetails(Match sectionTitleMatch) {
     String typeName = (sectionTitleMatch.group(1) ?? '').trim().toLowerCase();
     String? notesKeyword = sectionTitleMatch.group(2);
 
-    // Refactored the long if-else chain into a more readable and maintainable switch statement.
     SetType determinedSetType;
     switch (typeName) {
       case "warm up":
@@ -66,13 +84,11 @@ class SectionTitleUtil {
         determinedSetType = SetType.postSet;
         break;
       default:
-      // Default to mainSet for any unrecognized type.
         determinedSetType = SetType.mainSet;
         break;
     }
 
     String? setNotes;
-    // The conditional check for notes remains as it is clear and effective.
     if (notesKeyword != null && notesKeyword.isNotEmpty) {
       setNotes = notesKeyword.trim();
     }
@@ -80,8 +96,7 @@ class SectionTitleUtil {
     return SectionTitleParseResult(determinedSetType, setNotes);
   }
 
-  /// Refactored from `handleSectionTitleLine` to specifically handle the finalization
-  /// of the previous set configuration. This improves separation of concerns.
+  /// Finalizes and adds the previous configuration to the parsed list.
   static void _finalizeAndAddPreviousConfig({
     required SessionSetConfiguration? config,
     required List<SetItem> items,
@@ -90,9 +105,7 @@ class SectionTitleUtil {
     required SetType activeSetType,
     required String newSetId,
   }) {
-    if (config == null) {
-      return; // Nothing to do if there's no previous config.
-    }
+    if (config == null) return;
 
     try {
       if (items.isNotEmpty) {
@@ -104,7 +117,9 @@ class SectionTitleUtil {
         );
       }
 
-      // Refactored complex boolean logic into a separate, well-named private method for clarity.
+      // ✅ Apply any pending repetitions here as well before finalizing
+      applyPendingRepetitions(config);
+
       if (_shouldAddConfig(config)) {
         if (config.coachId.isEmpty) {
           config.coachId = coachId;
@@ -112,8 +127,6 @@ class SectionTitleUtil {
         parsedConfigsList.add(config);
       }
     } catch (e, s) {
-      // Added a try-catch block to handle any unexpected errors during finalization.
-      // This is a critical stability improvement.
       print('Error finalizing previous config: $e');
       FirebaseCrashlytics.instance.recordError(
         e,
@@ -124,22 +137,16 @@ class SectionTitleUtil {
   }
 
   /// Determines if a SessionSetConfiguration should be added to the final list.
-  /// Logic is extracted from the main function for improved readability and testability.
   static bool _shouldAddConfig(SessionSetConfiguration config) {
     final swimSet = config.swimSet;
     final notes = config.notesForThisInstanceOfSet;
 
-    // Condition 1: The set has actual content (items or repeated notes).
     final bool hasActualContent = (swimSet != null && swimSet.items.isNotEmpty) ||
         (config.repetitions > 1 && notes != null && notes.isNotEmpty);
 
-    // Condition 2: The set is an "empty title card" meant for display.
-    // Null-safe operators `?.` are used to prevent crashes on `rawSetTypeHeaderFromText`.
     final bool isEmptyTitleCard = (swimSet == null || swimSet.items.isEmpty) &&
         (notes == null || notes.isEmpty) &&
         config.repetitions == 1 &&
-        // Added a null-check on rawSetTypeHeaderFromText before calling toLowerCase().
-        // This was a potential crash point.
         (config.rawSetTypeHeaderFromText?.toLowerCase().contains("(default)") == false);
 
     return hasActualContent || isEmptyTitleCard;
@@ -159,7 +166,6 @@ class SectionTitleUtil {
     required String setId,
     required String swimSetId,
   }) {
-    // 1. Finalize the previous section by calling the new, separated function.
     _finalizeAndAddPreviousConfig(
       config: previousCurrentConfig,
       items: previousCurrentItems,
@@ -169,12 +175,9 @@ class SectionTitleUtil {
       newSetId: setId,
     );
 
-    // 2. Parse details for the new section title.
     final SectionTitleParseResult sectionDetails =
     SectionTitleUtil.parseSectionTitleDetails(sectionTitleMatch);
 
-    // 3. Create the new SessionSetConfiguration for the current section.
-    // This logic remains largely the same as it was already clear.
     final SessionSetConfiguration newConfig = SessionSetConfiguration(
       sessionSetConfigId: setId,
       swimSetId: swimSetId,
@@ -194,6 +197,9 @@ class SectionTitleUtil {
       notesForThisInstanceOfSet: sectionDetails.setNotes,
       unparsedTextLines: [],
     );
+
+    // ✅ Apply any pending Nx marker directly after creating this section
+    applyPendingRepetitions(newConfig);
 
     return SectionTitleLineResult(newConfig, sectionDetails.setType);
   }
