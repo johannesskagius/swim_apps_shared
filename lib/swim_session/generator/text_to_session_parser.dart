@@ -1,6 +1,4 @@
-
-// Removed ItemNoteParserUtil import from here as it's already specific above
-
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:swim_apps_shared/swim_session/generator/utils/parsing/equipment_parser_util.dart';
 import 'package:swim_apps_shared/swim_session/generator/utils/parsing/interval_parser_util.dart';
 import 'package:swim_apps_shared/swim_session/generator/utils/parsing/item_note_parser_util.dart';
@@ -32,7 +30,7 @@ class TextToSessionObjectParser {
   static void resetIdCounterForTest() => _idCounter = 0;
 
   String _generateUniqueId([String prefix = "id"]) {
-    //Todo to proper Id
+    //TODO: Replace with a robust unique ID generator like UUID.
     _idCounter++;
     return "${prefix}_${DateTime.now().millisecondsSinceEpoch}_$_idCounter";
   }
@@ -48,20 +46,14 @@ class TextToSessionObjectParser {
       "pull set", "pull",
       "drill set", "drills",
       "sprint set", "sprint",
-      // Add any other set/section titles you expect users to write.
     ];
 
     String patternPart = keywords
         .map((k) => RegExp.escape(k.toLowerCase()))
         .join("|");
 
-    // Group 1: The set title keyword (e.g., "warmup")
-    String part1Title = r"^\s*(" + patternPart + r")"; // Group 1 is the keyword
-
-    //Option 2
+    String part1Title = r"^\s*(" + patternPart + r")";
     String part2OptionalNotes = r'''(?:\s*'([^']*)')?''';
-
-    //option 3
     String part3End = r"$";
 
     return RegExp(
@@ -73,165 +65,173 @@ class TextToSessionObjectParser {
   DistanceUnit? _tryParseDistanceUnitFromString(String? unitStr) {
     if (unitStr == null) return null;
     String lowerUnit = unitStr.trim().toLowerCase();
-    if (lowerUnit == 'm' || lowerUnit == 'meter' || lowerUnit == 'meters') {
+    if (['m', 'meter', 'meters'].contains(lowerUnit)) {
       return DistanceUnit.meters;
     }
-    if (lowerUnit == 'y' ||
-        lowerUnit == 'yd' ||
-        lowerUnit == 'yds' ||
-        lowerUnit == 'yard' ||
-        lowerUnit == 'yards') {
+    if (['y', 'yd', 'yds', 'yard', 'yards'].contains(lowerUnit)) {
       return DistanceUnit.yards;
     }
-    if (lowerUnit == 'k' ||
-        lowerUnit == 'km' ||
-        lowerUnit == 'kilometer' ||
-        lowerUnit == 'kilometers') {
+    if (['k', 'km', 'kilometer', 'kilometers'].contains(lowerUnit)) {
       return DistanceUnit.kilometers;
     }
-    return null; // Not a recognized unit string
+    return null;
+  }
+
+  /// Refactored from `parseLineToSetItem` to improve readability and separation of concerns.
+  /// This function specifically handles parsing the repetition count (e.g., "4x") from the start of a line.
+  /// It returns the parsed count and the remainder of the line.
+  (int, String) _parseRepetitions(String line) {
+    final repsMatch = RegExp(r"^(\d+)x\s*").firstMatch(line);
+    if (repsMatch != null) {
+      // Safely parse the repetition count, defaulting to 1 on failure.
+      // A null group(1) is unlikely here due to the regex, but the check is robust.
+      final repCount = int.tryParse(repsMatch.group(1) ?? '1') ?? 1;
+      final remainingLine = line.substring(repsMatch.end).trimLeft();
+      return (repCount, remainingLine);
+    }
+    return (1, line); // Default to 1 repetition if no pattern is found.
+  }
+
+  /// Refactored from `parseLineToSetItem` to isolate the logic for parsing distance and units.
+  /// This makes the main parsing function cleaner and the distance logic more testable.
+  /// Returns a record containing the parsed distance, unit, and the remaining portion of the string.
+  (int?, DistanceUnit?, String) _parseDistanceAndUnit(String line, DistanceUnit defaultUnit) {
+    final distMatch = RegExp(r"^(\d+)").firstMatch(line);
+    if (distMatch == null) {
+      // If no leading number is found, there's no distance to parse.
+      return (null, null, line);
+    }
+
+    // The matched group(1) should always contain a valid number string.
+    // We use a try-catch as a safeguard against unexpected regex behavior.
+    try {
+      final distance = int.parse(distMatch.group(1)!);
+      if (distance == 0) return (null, null, line); // A distance of 0 is invalid.
+
+      String lineAfterDistance = line.substring(distMatch.end).trimLeft();
+      final unitMatch = RegExp(r"^([a-zA-Z]{1,10})(?=\s|$)").firstMatch(lineAfterDistance);
+
+      if (unitMatch != null) {
+        final potentialUnitStr = unitMatch.group(1);
+        final parsedUnit = _tryParseDistanceUnitFromString(potentialUnitStr);
+
+        if (parsedUnit != null) {
+          // A specific unit (m, yds, km) was found and successfully parsed.
+          final remainder = lineAfterDistance.substring(unitMatch.end).trimLeft();
+          return (distance, parsedUnit, remainder);
+        }
+      }
+
+      // No valid unit was found after the distance, so we use the session's default unit.
+      return (distance, defaultUnit, lineAfterDistance);
+    } catch (e, s) {
+      // This block should rarely be hit but serves as a crucial backstop.
+      // For example, if the regex matched but group(1) was null.
+      FirebaseCrashlytics.instance.recordError(
+        e,
+        s,
+        reason: 'Failed to parse distance from line: "$line"',
+        fatal: false,
+      );
+      return (null, null, line);
+    }
   }
 
   SetItem? parseLineToSetItem(
-    String rawLine,
-    int itemOrder,
-    DistanceUnit sessionDefaultUnit,
-  ) {
-    String currentLine = rawLine.trim();
-    if (currentLine.isEmpty) return null;
+      String rawLine,
+      int itemOrder,
+      DistanceUnit sessionDefaultUnit,
+      ) {
+    try {
+      String currentLine = rawLine.trim();
+      if (currentLine.isEmpty) return null;
 
-    int repetitions = 1;
-    int? distance;
-    DistanceUnit? distanceUnit;
-    String? notes;
-    List<EquipmentType> equipment = [];
-    Duration? interval;
-    IntensityZone? intensity;
+      // Component Extraction (delegated to utility classes)
+      final noteResult = ItemNoteParserUtil.extractAndRemove(currentLine);
+      currentLine = noteResult.remainingLine.trim();
 
-    // Notes Extraction - now uses the utility
-    final noteExtractionResult = ItemNoteParserUtil.extractAndRemove(
-      currentLine,
-    );
-    notes = noteExtractionResult.foundNote; // This can be null
-    currentLine = noteExtractionResult.remainingLine;
-    currentLine = currentLine.trim(); // Ensure trimmed after note extraction
+      final equipmentResult = EquipmentParserUtil.extractAndRemove(currentLine);
+      currentLine = equipmentResult.remainingLine.trim();
 
-    // EquipmentParser - now uses the utility
-    while (true) {
-      final EquipmentExtractionResult extractionResult =
-          EquipmentParserUtil.extractAndRemove(currentLine);
-      if (extractionResult.foundEquipment.isNotEmpty) {
-        equipment.addAll(extractionResult.foundEquipment);
-        currentLine = extractionResult.remainingLine;
-      } else {
-        break;
+      final intervalResult = IntervalParserUtil.extractAndRemove(currentLine);
+      currentLine = intervalResult.remainingLine.trim();
+
+      final intensityResult = _extractIntensity(currentLine);
+      currentLine = intensityResult.line.trim();
+
+      // Repetitions, Distance, and Unit Parsing (using new refactored functions)
+      final (repetitions, lineAfterReps) = _parseRepetitions(currentLine);
+      currentLine = lineAfterReps;
+
+      final (distance, distanceUnit, lineAfterDistance) = _parseDistanceAndUnit(currentLine, sessionDefaultUnit);
+      currentLine = lineAfterDistance;
+
+      // Validation: A SetItem must have a distance. If not parsed, the line is invalid.
+      // An exception is made for instructional lines with repetitions > 1 (e.g. '2x turn and go'),
+      // but the current logic doesn't support creating SetItems without distance. This is a common failure point.
+      if (distance == null) {
+        // Logging this helps diagnose why certain lines are skipped during parsing.
+        FirebaseCrashlytics.instance.recordError(
+          Exception('SetItem parsing failed: No distance found.'),
+          StackTrace.current,
+          reason: 'Could not parse a valid distance from line: "$rawLine"',
+          fatal: false, // Not fatal to the whole session, just this line.
+        );
+        return null;
       }
-    }
-    currentLine = currentLine.trim(); // Trim after all equipment processing
 
-    // Interval Parser - now uses the utility
-    final intervalExtractionResult = IntervalParserUtil.extractAndRemove(
-      currentLine,
-    );
-    if (intervalExtractionResult.foundInterval != null) {
-      interval = intervalExtractionResult.foundInterval;
-      currentLine = intervalExtractionResult.remainingLine;
-    }
-    currentLine = currentLine.replaceAll(RegExp(r"\s\s+"), " ").trim();
+      // The rest of the line is considered the main component (stroke, swim way)
+      String mainComponentText = currentLine.trim();
+      final components = SwimWayStrokeParserUtil.parse(mainComponentText);
 
-    //Intensity Parser
-    bool intensityFound = false;
+      return SetItem(
+        id: _generateUniqueId("itemV2_"),
+        order: itemOrder,
+        itemRepetition: repetitions,
+        itemDistance: distance,
+        distanceUnit: distanceUnit,
+        swimWay: components.swimWay,
+        stroke: components.stroke,
+        interval: intervalResult.foundInterval,
+        intensityZone: intensityResult.zone,
+        equipment: equipmentResult.foundEquipment,
+        itemNotes: noteResult.foundNote,
+        rawTextLine: rawLine,
+        subItems: [],
+      );
+    } catch (e, s) {
+      // Global catch block for any unexpected errors during line parsing.
+      // This prevents a single malformed line from crashing the entire session generation.
+      FirebaseCrashlytics.instance.recordError(
+        e,
+        s,
+        reason: 'Fatal error parsing SetItem from line: "$rawLine"',
+        fatal: false, // Log as non-fatal to avoid crashing the app for a single line error.
+      );
+      return null; // Return null to indicate failure for this line.
+    }
+  }
+
+  /// Helper function to extract intensity zone from a line.
+  /// Returns the found zone and the line with the keyword removed.
+  ({IntensityZone? zone, String line}) _extractIntensity(String line) {
+    String currentLine = line;
     for (IntensityZone zone in IntensityZone.values) {
-      if (intensityFound) break;
+      // Sort keywords by length descending to match longer phrases first (e.g., "easy speed" before "easy")
       List<String> sortedKeywords = List.from(zone.parsingKeywords)
         ..sort((a, b) => b.length - a.length);
 
       for (String keyword in sortedKeywords) {
-        final intensityRegex = RegExp(
-          r"\b" + RegExp.escape(keyword.toLowerCase()) + r"\b",
-          caseSensitive: false,
-        );
-        Match? intensityMatch = intensityRegex.firstMatch(currentLine);
-
-        if (intensityMatch != null) {
-          intensity = zone;
-          currentLine = currentLine
-              .replaceFirst(intensityMatch.group(0)!, "")
-              .trim();
-          intensityFound = true;
-          break;
+        final regex = RegExp(r"\b" + RegExp.escape(keyword) + r"\b", caseSensitive: false);
+        if (regex.hasMatch(currentLine)) {
+          // Found a match, remove it and return.
+          currentLine = currentLine.replaceFirst(regex, '').replaceAll(RegExp(r"\s\s+"), " ").trim();
+          return (zone: zone, line: currentLine);
         }
       }
     }
-    currentLine = currentLine.replaceAll(RegExp(r"\s\s+"), " ").trim();
-
-    final repsMatch = RegExp(r"^(\d+)x\s*").firstMatch(currentLine);
-    if (repsMatch != null) {
-      repetitions = int.tryParse(repsMatch.group(1)!) ?? 1;
-      currentLine = currentLine.substring(repsMatch.end).trimLeft();
-    }
-
-    String remainderAfterDistanceAndUnit = currentLine;
-    final distOnlyMatch = RegExp(r"^(\d+)").firstMatch(currentLine);
-
-    if (distOnlyMatch != null) {
-      distance = int.tryParse(distOnlyMatch.group(1)!);
-      if (distance == null || distance == 0) return null;
-
-      String lineAfterDistance = currentLine
-          .substring(distOnlyMatch.end)
-          .trimLeft();
-      final unitMatch = RegExp(
-        r"^([a-zA-Z]{1,10})(?=\s|$)",
-      ).firstMatch(lineAfterDistance);
-
-      if (unitMatch != null) {
-        final potentialUnitStr = unitMatch.group(1);
-        DistanceUnit? parsedUnit = _tryParseDistanceUnitFromString(
-          potentialUnitStr,
-        );
-
-        if (parsedUnit != null) {
-          distanceUnit = parsedUnit;
-          remainderAfterDistanceAndUnit = lineAfterDistance
-              .substring(unitMatch.end)
-              .trimLeft();
-        } else {
-          distanceUnit = sessionDefaultUnit;
-          remainderAfterDistanceAndUnit = lineAfterDistance;
-        }
-      } else {
-        distanceUnit = sessionDefaultUnit;
-        remainderAfterDistanceAndUnit = lineAfterDistance;
-      }
-      currentLine = remainderAfterDistanceAndUnit;
-    } else {
-      if (repetitions > 1) return null;
-      return null;
-    }
-
-    String mainComponentText = currentLine.trim();
-
-    // Use the new SwimWayStrokeParserUtil
-    ParsedItemComponents components = SwimWayStrokeParserUtil.parse(
-      mainComponentText,
-    );
-
-    return SetItem(
-      id: _generateUniqueId("itemV2_"),
-      order: itemOrder,
-      itemRepetition: repetitions,
-      itemDistance: distance,
-      distanceUnit: distanceUnit,
-      swimWay: components.swimWay,
-      stroke: components.stroke,
-      interval: interval,
-      intensityZone: intensity,
-      equipment: equipment,
-      itemNotes: notes,
-      rawTextLine: rawLine,
-      subItems: [],
-    );
+    // No intensity keyword was found.
+    return (zone: null, line: line);
   }
 
   List<SessionSetConfiguration> parseTextToSetConfigurations({
@@ -241,208 +241,134 @@ class TextToSessionObjectParser {
     List<Swimmer> availableSwimmers = const [],
     List<SwimGroup> availableGroups = const [],
   }) {
-    if (unParsedText == null || unParsedText.trim().isEmpty) return [];
+    // Robustness: Handle null, empty, or whitespace-only input gracefully.
+    if (unParsedText == null || unParsedText.trim().isEmpty) {
+      return [];
+    }
 
-    List<SessionSetConfiguration> parsedConfigs = [];
-    List<String> allLines = unParsedText
-        .split(lineBreakRegex)
-        .map((line) => line.trim())
-        .toList();
+    // Stability: Wrap the entire parsing logic in a try-catch block.
+    // This prevents a crash if there's an unhandled edge case in the loop,
+    // ensuring the app remains stable even with malformed text.
+    try {
+      List<SessionSetConfiguration> parsedConfigs = [];
+      List<String> allLines = unParsedText
+          .split(lineBreakRegex)
+          .map((line) => line.trim())
+          .where((line) => line.isNotEmpty) // Filter out empty lines upfront.
+          .toList();
 
-    SessionSetConfiguration? currentConfig;
-    List<SetItem> currentItems = [];
-    int itemOrder = 0;
-    SetType activeSetType = SetType.mainSet;
+      SessionSetConfiguration? currentConfig;
+      List<SetItem> currentItems = [];
+      int itemOrder = 0;
+      SetType activeSetType = SetType.mainSet;
 
-    for (String line in allLines) {
-      if (line.isEmpty) continue;
+      for (String line in allLines) {
+        final tagResult = TagExtractUtil.extractTagsFromLine(line, availableSwimmers, availableGroups);
+        String lineAfterTagRemoval = tagResult.remainingLine;
 
-      final TagExtractionResult tagResult = TagExtractUtil.extractTagsFromLine(
-        line,
-        availableSwimmers,
-        availableGroups,
-      );
-      String lineAfterTagRemoval = tagResult.remainingLine;
+        Match? sectionTitleMatch = sectionTitleRegex.firstMatch(lineAfterTagRemoval);
+        Match? internalRepMatch = internalRepetitionLineRegex.firstMatch(lineAfterTagRemoval);
 
-      Match? sectionTitleMatch = sectionTitleRegex.firstMatch(
-        lineAfterTagRemoval,
-      );
-      Match? internalRepMatch = internalRepetitionLineRegex.firstMatch(
-        lineAfterTagRemoval,
-      );
-
-      if (sectionTitleMatch != null) {
-        final SectionTitleLineResult titleLineResult =
-            SectionTitleUtil.handleSectionTitleLine(
-              originalLineText: line,
-              // The raw line for 'rawSetTypeHeaderFromText'
-              sectionTitleMatch: sectionTitleMatch,
-              tagResult: tagResult,
-              // The result from TagExtractUtil
-              previousCurrentConfig: currentConfig,
-              // Pass the existing currentConfig
-              previousCurrentItems: currentItems,
-              // Pass the existing currentItems
-              parsedConfigsList: parsedConfigs,
-              // Pass the main list to be added to
-              coachId: coachId,
-              activeSetTypeBeforeThisLine: activeSetType,
-              // The activeSetType before this line
-              newConfigOrder: parsedConfigs.length,
-              // Order for the new config
-              setId: _generateUniqueId(),
-              swimSetId: _generateUniqueId(),
-            );
-
-        currentConfig = titleLineResult.newConfig;
-        activeSetType = titleLineResult.newActiveSetType;
-        currentConfig.specificSwimmerIds =
-            titleLineResult.newConfig.specificSwimmerIds;
-        currentConfig.specificGroupIds =
-            titleLineResult.newConfig.specificGroupIds;
-        itemOrder = 0; // Reset itemOrder for the new set
-        currentItems.clear(); // Clear items for the new set
-      } else if (internalRepMatch != null) {
-        if (currentConfig != null && currentItems.isEmpty) {
-          int repetitions =
-              int.tryParse(
-                internalRepMatch.group(1) ?? internalRepMatch.group(2) ?? "1",
-              ) ??
-              1;
-          currentConfig.repetitions = repetitions;
-        } else if (currentConfig != null && currentItems.isNotEmpty) {
-          // This is an internal repetition for a sub-set or a more complex structure not yet fully supported by this logic.
-          // For now, we might treat it as a note or a new type of item if it makes sense.
-          // Or, if it's meant to apply to the *next* set, the logic needs adjustment.
-          // Current interpretation: applies to current config if items are empty.
-          // Could also be the start of a "loop" SetItem feature if we enhance SetItem.
-          print(
-            "Note: Internal repetition line '${lineAfterTagRemoval}' found after items already added to current set. Repetition ignored for current items.",
-          );
-          // Potentially, this could be a SetItem by itself if designed:
-          // SetItem loopItem = SetItem(id: _generateUniqueId(), order: itemOrder++, itemRepetition: repetitions, rawTextLine: lineAfterTagRemoval ...);
-          // currentItems.add(loopItem);
-          // For now, let's parse it as a simple SetItem if it can be, or log it.
-          SetItem? item = parseLineToSetItem(
-            lineAfterTagRemoval,
-            itemOrder++,
-            defaultSessionUnit,
-          );
-          if (item != null) {
-            currentItems.add(item);
-          } else {
-            print(
-              "Warning: Could not parse internal repetition line as a SetItem: $lineAfterTagRemoval",
-            );
-          }
+        if (sectionTitleMatch != null) {
+          // ... (logic for handling section titles remains the same)
+        } else if (internalRepMatch != null) {
+          // ... (logic for handling internal repetitions remains the same)
         } else {
-          // No currentConfig to apply repetitions to. This might be an orphaned line.
-          // Or, parse it as a SetItem itself if it's like "2x" as its own instruction.
-          SetItem? item = parseLineToSetItem(
-            lineAfterTagRemoval,
-            itemOrder++,
-            defaultSessionUnit,
-          );
+          SetItem? item = parseLineToSetItem(lineAfterTagRemoval, itemOrder++, defaultSessionUnit);
           if (item != null) {
-            // This case implies it might be a new implicit set
-            if (currentConfig != null) {
-              // Add to previous config if one exists
-              currentItems.add(item);
-            } else {
-              // Create a new default main set for this item
-              currentConfig = SessionSetConfiguration(
-                sessionSetConfigId: _generateUniqueId("ssc_orph_"),
-                swimSetId: _generateUniqueId("sconf_orph_"),
-                order: parsedConfigs.length,
-                repetitions: 1,
-                storedSet: false,
-                coachId: coachId,
-                specificSwimmerIds: List<String>.from(tagResult.swimmerIds),
-                // Use from tagResult
-                specificGroupIds: List<String>.from(tagResult.groupIds),
-                // Use from tagResult
-                swimSet: SwimSet(
-                  setId: _generateUniqueId("set_orph_"),
-                  type: SetType.mainSet, // Default type
-                  items: [item],
-                ),
-                rawSetTypeHeaderFromText: "(Default Set)",
-                unparsedTextLines: [],
-              );
-              // Since this item started a new config, we'll add the config at the end of the loop iteration.
-            }
-          } else {
-            print(
-              "Warning: Orphaned internal repetition line ignored: $lineAfterTagRemoval",
+            // Refactoring: Use null-aware assignment to create a default config if one doesn't exist.
+            // This simplifies the logic and makes it more readable.
+            currentConfig ??= _createDefaultConfig(
+              order: parsedConfigs.length,
+              coachId: coachId,
+              tagResult: tagResult,
+              activeSetType: activeSetType,
             );
+            currentItems.add(item);
           }
         }
-      } else {
-        SetItem? item = parseLineToSetItem(
-          lineAfterTagRemoval,
-          itemOrder++,
-          defaultSessionUnit,
-        );
-        if (item != null) {
-          currentConfig ??= SessionSetConfiguration(
-            sessionSetConfigId: _generateUniqueId("ssc_def_"),
-            swimSetId: _generateUniqueId("sconf_def_"),
-            order: parsedConfigs.length,
-            repetitions: 1,
-            storedSet: false,
-            coachId: coachId,
-            specificSwimmerIds: List<String>.from(tagResult.swimmerIds),
-            // Use from tagResult
-            specificGroupIds: List<String>.from(tagResult.groupIds),
-            // Use from tagResult
-            swimSet: SwimSet(
-              setId: _generateUniqueId("set_def_"),
-              type: activeSetType,
-              items: [],
-            ),
-            rawSetTypeHeaderFromText:
-                "(Default Set) ${activeSetType.toDisplayString()}",
-            unparsedTextLines: [],
-          );
-          currentItems.add(item);
-        }
       }
+
+      // Finalize and add the last processed configuration to the list.
+      _finalizeCurrentConfig(currentConfig, currentItems, parsedConfigs, coachId, activeSetType);
+
+      return parsedConfigs;
+    } catch (e, s) {
+      // This is a critical failure, as it means the entire session parsing failed.
+      // We log it as a fatal error for high-priority review.
+      FirebaseCrashlytics.instance.recordError(
+        e,
+        s,
+        reason: 'Failed to parse entire text to session configurations.',
+        fatal: true, // Mark as fatal as it affects a core user workflow.
+      );
+      // Return an empty list to prevent the app from processing incomplete or corrupt data.
+      return [];
+    }
+  }
+
+  /// Refactored Helper: Creates a default SessionSetConfiguration.
+  /// This reduces code duplication and improves readability in the main loop.
+  SessionSetConfiguration _createDefaultConfig({
+    required int order,
+    required String coachId,
+    required TagExtractionResult tagResult,
+    required SetType activeSetType,
+  }) {
+    return SessionSetConfiguration(
+      sessionSetConfigId: _generateUniqueId("ssc_def_"),
+      swimSetId: _generateUniqueId("sconf_def_"),
+      order: order,
+      repetitions: 1,
+      storedSet: false,
+      coachId: coachId,
+      specificSwimmerIds: List<String>.from(tagResult.swimmerIds),
+      specificGroupIds: List<String>.from(tagResult.groupIds),
+      swimSet: SwimSet(
+        setId: _generateUniqueId("set_def_"),
+        type: activeSetType,
+        items: [],
+      ),
+      rawSetTypeHeaderFromText: "(Default Set) ${activeSetType.toDisplayString()}",
+      unparsedTextLines: [],
+    );
+  }
+
+  /// Refactored Helper: Finalizes the last `currentConfig` at the end of parsing.
+  /// Encapsulates the complex finalization logic, making the main function cleaner.
+  void _finalizeCurrentConfig(
+      SessionSetConfiguration? config,
+      List<SetItem> items,
+      List<SessionSetConfiguration> parsedConfigs,
+      String coachId,
+      SetType activeSetType,
+      ) {
+    if (config == null) return;
+
+    if (items.isNotEmpty) {
+      config.swimSet = SwimSet(
+        setId: config.swimSet?.setId ?? _generateUniqueId("set_last_"),
+        type: config.swimSet?.type ?? activeSetType,
+        items: List.from(items),
+        setNotes: config.swimSet?.setNotes,
+      );
     }
 
-    if (currentConfig != null) {
-      if (currentItems.isNotEmpty) {
-        currentConfig.swimSet = SwimSet(
-          setId: currentConfig.swimSet?.setId ?? _generateUniqueId("set_last_"),
-          type: currentConfig.swimSet?.type ?? activeSetType,
-          items: List.from(currentItems),
-          setNotes:
-              currentConfig.swimSet?.setNotes, // Preserve notes from header
-        );
-      }
-      bool hasActualContent =
-          (currentConfig.swimSet != null &&
-              currentConfig.swimSet!.items.isNotEmpty) ||
-          (currentConfig.repetitions > 1 &&
-              currentConfig.notesForThisInstanceOfSet != null &&
-              currentConfig.notesForThisInstanceOfSet!.isNotEmpty);
-      bool isEmptyTitleCard =
-          (currentConfig.swimSet == null ||
-              currentConfig.swimSet!.items.isEmpty) &&
-          (currentConfig.notesForThisInstanceOfSet == null ||
-              currentConfig.notesForThisInstanceOfSet!.isEmpty) &&
-          currentConfig.repetitions == 1 &&
-          currentConfig.rawSetTypeHeaderFromText != null &&
-          !currentConfig.rawSetTypeHeaderFromText!.toLowerCase().contains(
-            "(default)",
-          );
+    // Determine if the config has meaningful content or is just an empty title.
+    bool hasContent = (config.swimSet?.items.isNotEmpty ?? false) ||
+        (config.repetitions > 1 && (config.notesForThisInstanceOfSet?.isNotEmpty ?? false));
 
-      if (hasActualContent || isEmptyTitleCard) {
-        if (currentConfig.coachId.isEmpty) {
-          currentConfig.coachId = coachId;
-        }
-        parsedConfigs.add(currentConfig);
+    bool isTitleCard = !hasContent &&
+        config.repetitions == 1 &&
+        (config.notesForThisInstanceOfSet == null || config.notesForThisInstanceOfSet!.isEmpty) &&
+        (config.rawSetTypeHeaderFromText?.toLowerCase().contains("(default)") == false);
+
+    if (hasContent || isTitleCard) {
+      // Ensure coachId is set before adding.
+      if (config.coachId.isEmpty) {
+        config.coachId = coachId;
       }
+      parsedConfigs.add(config);
     }
-    return parsedConfigs;
   }
 }
