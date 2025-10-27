@@ -1,6 +1,3 @@
-// lib/swim/text_parser/tag_parser_util.dart
-
-
 import '../../../../objects/planned/swim_groups.dart';
 import '../../../../objects/user/swimmer.dart';
 
@@ -22,7 +19,7 @@ class TagExtractionResult {
   });
 }
 
-/// A private helper class to store information about a found tag's position and content.
+/// Internal helper for tracking tag positions and content.
 class _FoundTag {
   final int startIndex;
   final int endIndex;
@@ -37,164 +34,122 @@ class _FoundTag {
   });
 }
 
-/// A utility class for parsing #swimmer and #group tags from a string.
+/// Utility for extracting #swimmer and #group tags from a workout text line.
 class TagExtractUtil {
-  // A simple, non-greedy regex to find only the START of a potential tag.
+  // Detect tag prefix — supports both "#group" and "#swimmer" with flexible spacing.
   static final RegExp _tagPrefixRegex = RegExp(
-    r"#\s*(swimmer|group)\s*",
+    r"#\s*(swimmer|group)\b",
     caseSensitive: false,
   );
 
-  /// Extracts #swimmer and #group tags from a line of text.
-  ///
-  /// This function uses an imperative parsing strategy that ONLY removes
-  /// tags that can be resolved to a known swimmer or group.
+  /// Extracts #swimmer and #group tags and resolves them to IDs.
   static TagExtractionResult extractTagsFromLine(
-    String line,
-    List<Swimmer> availableSwimmers,
-    List<SwimGroup> availableGroups,
-  ) {
-    // --- Step 1: Pre-process and sort the available names ---
+      String line,
+      List<Swimmer> availableSwimmers,
+      List<SwimGroup> availableGroups,
+      ) {
+    // Sort swimmers and groups by descending name length to prioritize longer matches first.
     final sortedSwimmers = List<Swimmer>.from(availableSwimmers)
       ..sort((a, b) => b.name.length.compareTo(a.name.length));
     final sortedGroups = List<SwimGroup>.from(availableGroups)
       ..sort((a, b) => b.name.length.compareTo(a.name.length));
 
     final foundTags = <_FoundTag>[];
-    int searchOffset = 0;
+    int offset = 0;
 
-    // --- Step 2: Iteratively find and process all potential tags ---
-    while (searchOffset < line.length) {
-      final Match? prefixMatch = _tagPrefixRegex.firstMatch(
-        line.substring(searchOffset),
-      );
+    // Search the line for #swimmer / #group prefixes
+    while (offset < line.length) {
+      final match = _tagPrefixRegex.firstMatch(line.substring(offset));
+      if (match == null) break;
 
-      if (prefixMatch == null) break;
+      final tagType = match.group(1)!.toLowerCase();
+      final tagStart = offset + match.start;
+      int contentStart = offset + match.end;
 
-      final tagType = prefixMatch.group(1)!.toLowerCase();
-      final tagStartIndex = searchOffset + prefixMatch.start;
-      int currentContentOffset = searchOffset + prefixMatch.end;
-      int endOfLastSuccessfulParse = currentContentOffset;
+      // Extract content after the tag prefix
+      String afterTag = line.substring(contentStart).trimLeft();
+      int consumed = line.length - afterTag.length - contentStart;
 
-      final entitiesToSearch = tagType == 'swimmer'
-          ? sortedSwimmers
-          : sortedGroups;
-      final currentTagResolvedIds = <String>[];
-      bool moreNamesInList = true;
-      bool aNameWasFound = false;
+      // Extract until a quote, #, or end of line — this is the name list region
+      final segmentEndIndex = _findEndOfTagRegion(afterTag);
+      final tagContent = afterTag.substring(0, segmentEndIndex).trim();
 
-      // --- Step 3: Process comma-separated lists of KNOWN names ---
-      while (moreNamesInList) {
-        final contentToSearchFrom = line
-            .substring(currentContentOffset)
-            .trimLeft();
-        final trimLength =
-            line.substring(currentContentOffset).length -
-            contentToSearchFrom.length;
-        currentContentOffset += trimLength;
+      final entities = tagType == 'swimmer' ? sortedSwimmers : sortedGroups;
+      final resolvedIds = _resolveCommaSeparatedNames(tagContent, entities);
 
-        if (contentToSearchFrom.isEmpty) break;
-
-        // Handle empty name segments (e.g., ,,) by consuming the comma and continuing.
-        if (contentToSearchFrom.startsWith(',')) {
-          currentContentOffset += 1;
-          endOfLastSuccessfulParse = currentContentOffset;
-          aNameWasFound =
-              true; // Mark that we've processed a valid part of the tag.
-          continue;
-        }
-
-        String? bestMatchId;
-        int consumedNameLength = 0;
-
-        // Find the longest matching KNOWN name at the current position.
-        for (final entity in entitiesToSearch) {
-          final String name = (entity is Swimmer)
-              ? entity.name
-              : (entity as SwimGroup).name;
-
-          if (contentToSearchFrom.toLowerCase().startsWith(
-            name.toLowerCase(),
-          )) {
-            bestMatchId = (entity is Swimmer)
-                ? entity.id
-                : (entity as SwimGroup).id;
-            consumedNameLength = name.length;
-            break; // First match is longest, thanks to sorting.
-          }
-        }
-
-        if (bestMatchId != null) {
-          aNameWasFound = true;
-
-          currentTagResolvedIds.add(bestMatchId);
-          currentContentOffset += consumedNameLength;
-          endOfLastSuccessfulParse = currentContentOffset;
-
-          final remainingAfterName = line
-              .substring(currentContentOffset)
-              .trimLeft();
-          if (remainingAfterName.startsWith(',')) {
-            final commaTrimLength =
-                line.substring(currentContentOffset).length -
-                remainingAfterName.length;
-            currentContentOffset +=
-                commaTrimLength + 1; // Consume whitespace and comma
-            endOfLastSuccessfulParse = currentContentOffset;
-          } else {
-            moreNamesInList = false;
-          }
-        } else {
-          // If no known name is found, the tag block ends here.
-          moreNamesInList = false;
-        }
-      }
-
-      if (aNameWasFound) {
+      if (resolvedIds.isNotEmpty) {
+        final tagEnd = contentStart + segmentEndIndex + consumed;
         foundTags.add(
           _FoundTag(
-            startIndex: tagStartIndex,
-            endIndex: endOfLastSuccessfulParse,
+            startIndex: tagStart,
+            endIndex: tagEnd,
             tagType: tagType,
-            resolvedIds: currentTagResolvedIds,
+            resolvedIds: resolvedIds,
           ),
         );
-        searchOffset = endOfLastSuccessfulParse;
-      } else {
-        // A prefix was found but no known name followed.
-        // Advance the parser past the prefix to continue searching.
-        searchOffset = tagStartIndex + prefixMatch.group(0)!.length;
       }
+
+      // Advance parser after this tag content
+      offset = contentStart + segmentEndIndex + 1;
     }
 
-    // --- Step 4: Reconstruct the remaining line and collect all IDs ---
-    String remainingLine = line;
-    final finalSwimmerIds = <String>[];
-    final finalGroupIds = <String>[];
-
+    // Remove all found tags from text (reverse order to avoid offset drift)
+    String remaining = line;
     for (final tag in foundTags.reversed) {
-      remainingLine =
-          remainingLine.substring(0, tag.startIndex) +
-          remainingLine.substring(tag.endIndex);
+      remaining =
+          remaining.substring(0, tag.startIndex) + remaining.substring(tag.endIndex);
     }
 
+    // Collect IDs without duplicates, preserving order
+    final swimmerIds = <String>{};
+    final groupIds = <String>{};
     for (final tag in foundTags) {
       if (tag.tagType == 'swimmer') {
-        finalSwimmerIds.addAll(tag.resolvedIds);
+        swimmerIds.addAll(tag.resolvedIds);
       } else {
-        finalGroupIds.addAll(tag.resolvedIds);
+        groupIds.addAll(tag.resolvedIds);
       }
     }
 
-    // --- THIS IS THE FIX ---
-    // The regex is now correctly `r'\s+'` to match one or more whitespace characters.
-    // The previous version `r'\\s+'` was incorrect and did not collapse spaces.
-    final finalLine = remainingLine.replaceAll(RegExp(r'\s+'), ' ').trim();
+    // Normalize spacing
+    final cleaned = remaining.replaceAll(RegExp(r'\s+'), ' ').trim();
 
     return TagExtractionResult(
-      remainingLine: finalLine,
-      swimmerIds: finalSwimmerIds,
-      groupIds: finalGroupIds,
+      remainingLine: cleaned,
+      swimmerIds: swimmerIds.toList(),
+      groupIds: groupIds.toList(),
     );
+  }
+
+  /// Find where the current tag region likely ends (before next tag, quote, or EOL)
+  static int _findEndOfTagRegion(String text) {
+    final nextTag = text.indexOf(RegExp(r"(#\s*(swimmer|group))", caseSensitive: false));
+    final nextQuote = text.indexOf("'");
+    if (nextTag == -1 && nextQuote == -1) return text.length;
+    if (nextTag == -1) return nextQuote;
+    if (nextQuote == -1) return nextTag;
+    return nextTag < nextQuote ? nextTag : nextQuote;
+  }
+
+  /// Resolves comma-separated names (case-insensitive, whitespace-tolerant)
+  static List<String> _resolveCommaSeparatedNames(
+      String content,
+      List<dynamic> entities,
+      ) {
+    final ids = <String>[];
+    final parts = content.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty);
+    for (final name in parts) {
+      final match = entities.firstWhere(
+            (e) => (e is Swimmer ? e.name : (e as SwimGroup).name)
+            .toLowerCase()
+            .trim() ==
+            name.toLowerCase().trim(),
+        orElse: () => null,
+      );
+      if (match != null) {
+        ids.add(match! is Swimmer ? match.id : (match as SwimGroup).id);
+      }
+    }
+    return ids;
   }
 }

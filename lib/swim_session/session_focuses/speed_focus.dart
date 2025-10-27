@@ -1,7 +1,6 @@
-
-import 'package:swim_apps_shared/swim_session/session_focuses/training_focus.dart';
-
+import '../../objects/intensity_zones.dart';
 import '../generator/enums/equipment.dart';
+import 'training_focus.dart';
 
 class SpeedFocus extends TrainingFocus {
   @override
@@ -17,6 +16,24 @@ class SpeedFocus extends TrainingFocus {
   int get coolDownRatio => 10;
 
   @override
+  String get description =>
+      'Develop explosive power, neuromuscular activation, and top-end swimming velocity.';
+  @override
+  String get aiPurpose =>
+      'Maximize acceleration and speed endurance through controlled, short-distance efforts with full recovery.';
+  @override
+  String get recommendedSetTypes =>
+      'Short sprints (15–50m), resisted or assisted sprint work, overspeed efforts, and broken swims.';
+  @override
+  List<String> get coachingCues => [
+    'explosive starts',
+    'fast turnover',
+    'maximum effort',
+    'full recovery',
+    'maintain technique under fatigue',
+  ];
+
+  @override
   List<EquipmentType> get recommendedEquipment => [
     EquipmentType.fins,
     EquipmentType.parachute,
@@ -24,27 +41,39 @@ class SpeedFocus extends TrainingFocus {
   ];
 
   @override
-  List<String> get aiPromptTags => ['speed', 'explosive', 'sprint', 'power'];
+  List<IntensityZone> get preferredIntensityZones => [
+    IntensityZone.sp3,
+    IntensityZone.sp2,
+    IntensityZone.sp1,
+    IntensityZone.max,
+  ];
+
+  @override
+  List<String> get aiPromptTags => ['speed', 'sprint', 'power', 'explosive'];
 
   @override
   String generatePrompt() => """
-### Training Focus: Speed
-**Tags:** ${aiPromptTags.join(", ")}
+### Training Focus: $name
+**Description:** $description
+**AI Purpose:** $aiPurpose
+**Recommended Set Types:** $recommendedSetTypes
+**Preferred Intensity Zones:** ${preferredIntensityZones.map((z) => z.name).join(", ")} (used in main set; light activation in warm-up & pre-set)
+**Coaching Cues:** ${coachingCues.join(', ')}
 **Structure Ratios:** Warm-up $warmUpRatio%, Pre-set $preSetRatio%, Main-set $mainSetRatio%, Cool-down $coolDownRatio%
 **Recommended Equipment:** ${recommendedEquipment.map((e) => e.name).join(", ")}
 
-You are generating a **Speed-focused swim session**.
+You are generating a **$name-focused swim session** emphasizing power and velocity.
 
-Key principles:
-- Focus on short, explosive efforts (15–50m) at near-max intensity.
-- Allow full recovery between efforts (1:3–1:6).
-- Maintain excellent technique at high velocity.
-- Optionally integrate resisted or assisted sprinting.
+Guidelines:
+- Use ${preferredIntensityZones.map((z) => z.name).join(", ")} zones primarily in the main set.
+- Warm-up should activate neuromuscular readiness.
+- Pre-set may include fast 25s or power build efforts.
+- Maintain ${coachingCues.take(3).join(', ')}.
+- Allow full recovery between high-intensity efforts.
 
-Session requirements:
-- Respect energy system and recovery balance.
-- Use up to ~800m total sprinting.
-- Return only plain-text workout formatted for textToSessionParser.
+Session Requirements:
+- Keep total sprint distance under 800m.
+- Include clear rest intervals (1:3–1:6 work:rest ratio).
+- Output plain-text formatted for textToSessionParser.
 """;
-
 }

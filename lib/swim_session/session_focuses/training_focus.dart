@@ -1,8 +1,8 @@
 // lib/swim/generator/focus/training_focus.dart
 import 'dart:math';
 
+import '../../objects/intensity_zones.dart';
 import '../generator/enums/equipment.dart';
-
 
 abstract class TrainingFocus {
   abstract final String name;
@@ -14,9 +14,26 @@ abstract class TrainingFocus {
   abstract final int mainSetRatio;
   abstract final int coolDownRatio;
 
-  /// Core metadata
+  /// --- 🧩 AI & Coaching Metadata ---
+  /// Short, human-readable summary.
+  abstract final String description;
+
+  /// What the AI should optimize for (e.g., "endurance and pacing control").
+  abstract final String aiPurpose;
+
+  /// Common set patterns that fit this focus (helps AI choose structure).
+  abstract final String recommendedSetTypes;
+
+  /// Common coaching cues or words to emphasize in AI output.
+  abstract final List<String> coachingCues;
+
+  /// Preferred intensity zones for this focus.
+  List<IntensityZone> get preferredIntensityZones;
+
+  /// Equipment often used for this type of training.
   List<EquipmentType> get recommendedEquipment => [];
 
+  /// Semantic tags that help AI anchor the prompt.
   List<String> get aiPromptTags => [name.toLowerCase()];
 
   String generatePrompt() =>
