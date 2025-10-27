@@ -178,10 +178,10 @@ class TextToSessionObjectParser {
     return (zone: null, line: line);
   }
 
-  // 🔹 NEW — extracts #group names even if not existing in Firestore
+  // 🔹 Extract #group names even if not existing in Firestore
   List<String> _extractGroupNames(String text) {
-    final matches = RegExp(r'#group\s+([\w\s\-]+)', caseSensitive: false)
-        .allMatches(text);
+    final matches =
+    RegExp(r'#group\s+([\w\s\-]+)', caseSensitive: false).allMatches(text);
     return matches.map((m) => m.group(1)!.trim()).toList();
   }
 
@@ -208,13 +208,22 @@ class TextToSessionObjectParser {
       var activeSetType = SetType.mainSet;
 
       for (final line in allLines) {
-        final tagResult =
-        TagExtractUtil.extractTagsFromLine(line, availableSwimmers, availableGroups);
+        final tagResult = TagExtractUtil.extractTagsFromLine(
+          line,
+          availableSwimmers,
+          availableGroups,
+        );
         final lineAfterTagRemoval = tagResult.remainingLine;
 
-        final sectionTitleMatch = sectionTitleRegex.firstMatch(lineAfterTagRemoval);
-        final internalRepMatch = internalRepetitionLineRegex.firstMatch(lineAfterTagRemoval);
+        // ✅ 1. Detect and store Nx repetition markers early
+        if (SectionTitleUtil.detectAndStoreRepetitionMarker(lineAfterTagRemoval)) {
+          // Skip this line — repetition will be applied automatically later
+          continue;
+        }
 
+        // ✅ 2. Detect section titles (Warm up, Main set, etc.)
+        final sectionTitleMatch =
+        sectionTitleRegex.firstMatch(lineAfterTagRemoval);
         if (sectionTitleMatch != null) {
           final result = SectionTitleUtil.handleSectionTitleLine(
             originalLineText: line,
@@ -234,11 +243,25 @@ class TextToSessionObjectParser {
           activeSetType = result.newActiveSetType;
           currentItems.clear();
           continue;
-        } else if (internalRepMatch != null) {
+        }
+
+        // ✅ 3. Handle internal reps like “3 rounds” (legacy)
+        final internalRepMatch =
+        internalRepetitionLineRegex.firstMatch(lineAfterTagRemoval);
+        if (internalRepMatch != null) {
+          final countStr = internalRepMatch.group(1) ?? internalRepMatch.group(2);
+          if (countStr != null) {
+            SectionTitleUtil.detectAndStoreRepetitionMarker("${countStr}x");
+          }
           continue;
         }
 
-        final item = parseLineToSetItem(lineAfterTagRemoval, itemOrder++, defaultSessionUnit);
+        // ✅ 4. Regular set lines
+        final item = parseLineToSetItem(
+          lineAfterTagRemoval,
+          itemOrder++,
+          defaultSessionUnit,
+        );
         if (item != null) {
           currentConfig ??= _createDefaultConfig(
             order: parsedConfigs.length,
@@ -250,10 +273,21 @@ class TextToSessionObjectParser {
         }
       }
 
-      _finalizeCurrentConfig(currentConfig, currentItems, parsedConfigs, coachId, activeSetType);
+      _finalizeCurrentConfig(
+        currentConfig,
+        currentItems,
+        parsedConfigs,
+        coachId,
+        activeSetType,
+      );
       return parsedConfigs;
     } catch (e, s) {
-      _safeRecordCrashlytics(e, s, 'Failed to parse entire text to session configurations.', fatal: true);
+      _safeRecordCrashlytics(
+        e,
+        s,
+        'Failed to parse entire text to session configurations.',
+        fatal: true,
+      );
       return [];
     }
   }
@@ -277,7 +311,7 @@ class TextToSessionObjectParser {
         setId: _generateUniqueId("set_def_"),
         type: activeSetType,
         items: [],
-        assignedGroupNames: tagResult.groupNames, // 🆕 link group names early if found
+        assignedGroupNames: tagResult.groupNames,
       ),
       rawSetTypeHeaderFromText: "(Default Set) ${activeSetType.toDisplayString()}",
       unparsedTextLines: [],
@@ -294,7 +328,6 @@ class TextToSessionObjectParser {
     if (config == null) return;
 
     if (items.isNotEmpty) {
-      // 🔹 Detect any #group mentions within this set's text
       final rawText = config.unparsedTextLines?.join(" ") ?? "";
       final extractedGroupNames = _extractGroupNames(rawText);
 
@@ -304,18 +337,20 @@ class TextToSessionObjectParser {
         items: List.from(items),
         setNotes: config.swimSet?.setNotes,
         assignedGroupNames: (config.swimSet?.assignedGroupNames ?? []) +
-            extractedGroupNames, // merge both parsed and text-found names
+            extractedGroupNames,
       );
     }
 
     final hasContent = (config.swimSet?.items.isNotEmpty ?? false) ||
-        (config.repetitions > 1 && (config.notesForThisInstanceOfSet?.isNotEmpty ?? false));
+        (config.repetitions > 1 &&
+            (config.notesForThisInstanceOfSet?.isNotEmpty ?? false));
 
     final isTitleCard = !hasContent &&
         config.repetitions == 1 &&
         (config.notesForThisInstanceOfSet == null ||
             config.notesForThisInstanceOfSet!.isEmpty) &&
-        (config.rawSetTypeHeaderFromText?.toLowerCase().contains("(default)") == false);
+        (config.rawSetTypeHeaderFromText?.toLowerCase().contains("(default)") ==
+            false);
 
     if (hasContent || isTitleCard) {
       if (config.coachId.isEmpty) config.coachId = coachId;
@@ -324,10 +359,12 @@ class TextToSessionObjectParser {
   }
 
   /// Safe wrapper for Crashlytics (avoids web assertion failures)
-  void _safeRecordCrashlytics(Object e, StackTrace s, String reason, {bool fatal = false}) {
+  void _safeRecordCrashlytics(Object e, StackTrace s, String reason,
+      {bool fatal = false}) {
     try {
       if (!kIsWeb) {
-        FirebaseCrashlytics.instance.recordError(e, s, reason: reason, fatal: fatal);
+        FirebaseCrashlytics.instance.recordError(e, s,
+            reason: reason, fatal: fatal);
       } else {
         debugPrint("⚠️ Crashlytics disabled on web — $reason ($e)");
       }
