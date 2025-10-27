@@ -32,31 +32,28 @@ class TextToSessionObjectParser {
     return "${prefix}_${DateTime.now().millisecondsSinceEpoch}_$_idCounter";
   }
 
-  /// ✅ Updated: More tolerant regex for section titles with tags and comments.
+  /// ✅ Final version — compatible with SectionTitleUtil and supports tags/comments
   static RegExp _buildSectionTitleRegex() {
     final keywords = [
-      "warm up",
-      "warmup",
-      "main set",
-      "main",
-      "cool down",
-      "cooldown",
-      "pre set",
-      "post set",
-      "kick set",
-      "kick",
-      "pull set",
-      "pull",
-      "drill set",
-      "drills",
-      "sprint set",
-      "sprint",
-      "recovery",
-      "technique set"
+      "warm up", "warmup",
+      "main set", "main",
+      "cool down", "cooldown",
+      "pre set", "post set",
+      "kick set", "kick",
+      "pull set", "pull",
+      "drill set", "drills",
+      "sprint set", "sprint",
+      "recovery", "technique set"
     ];
     final patternPart = keywords.map(RegExp.escape).join("|");
-    // Matches any line starting with one of the keywords, allowing tags (#group, #swimmer) or comments after
-    return RegExp(r"^\s*(" + patternPart + r")\b.*$", caseSensitive: false);
+
+    // ✅ Capture group (1) = section title
+    // ✅ Capture group (2) = optional quoted note (e.g., 'activation focus')
+    // ✅ Works even if line contains tags (#group, #swimmer)
+    return RegExp(
+      r"^\s*(" + patternPart + r")\b(?:[^']*'([^']*)')?.*$",
+      caseSensitive: false,
+    );
   }
 
   DistanceUnit? _tryParseDistanceUnitFromString(String? unitStr) {
@@ -230,10 +227,8 @@ class TextToSessionObjectParser {
           activeSetType = result.newActiveSetType;
           currentItems.clear();
 
-          // ✅ SKIP parsing of section title lines
           continue;
         } else if (internalRepMatch != null) {
-          // TODO: Handle internal repetition blocks later
           continue;
         }
 
