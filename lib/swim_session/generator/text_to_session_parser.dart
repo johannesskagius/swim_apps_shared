@@ -25,7 +25,6 @@ class TextToSessionObjectParser {
   );
 
   static int _idCounter = 0;
-
   static void resetIdCounterForTest() => _idCounter = 0;
 
   String _generateUniqueId([String prefix = "id"]) {
@@ -52,7 +51,7 @@ class TextToSessionObjectParser {
       "sprint set",
       "sprint",
     ];
-    String patternPart = keywords.map(RegExp.escape).join("|");
+    final patternPart = keywords.map(RegExp.escape).join("|");
     return RegExp(
       r"^\s*(" + patternPart + r")" + r"(?:\s*'([^']*)')?$",
       caseSensitive: false,
@@ -62,12 +61,9 @@ class TextToSessionObjectParser {
   DistanceUnit? _tryParseDistanceUnitFromString(String? unitStr) {
     if (unitStr == null) return null;
     final lowerUnit = unitStr.trim().toLowerCase();
-    if (['m', 'meter', 'meters'].contains(lowerUnit))
-      return DistanceUnit.meters;
-    if (['y', 'yd', 'yds', 'yard', 'yards'].contains(lowerUnit))
-      return DistanceUnit.yards;
-    if (['k', 'km', 'kilometer', 'kilometers'].contains(lowerUnit))
-      return DistanceUnit.kilometers;
+    if (['m', 'meter', 'meters'].contains(lowerUnit)) return DistanceUnit.meters;
+    if (['y', 'yd', 'yds', 'yard', 'yards'].contains(lowerUnit)) return DistanceUnit.yards;
+    if (['k', 'km', 'kilometer', 'kilometers'].contains(lowerUnit)) return DistanceUnit.kilometers;
     return null;
   }
 
@@ -81,10 +77,7 @@ class TextToSessionObjectParser {
     return (1, line);
   }
 
-  (int?, DistanceUnit?, String) _parseDistanceAndUnit(
-    String line,
-    DistanceUnit defaultUnit,
-  ) {
+  (int?, DistanceUnit?, String) _parseDistanceAndUnit(String line, DistanceUnit defaultUnit) {
     final distMatch = RegExp(r"^(\d+)").firstMatch(line);
     if (distMatch == null) return (null, null, line);
 
@@ -93,35 +86,27 @@ class TextToSessionObjectParser {
       if (distance == 0) return (null, null, line);
 
       String lineAfterDistance = line.substring(distMatch.end).trimLeft();
-      final unitMatch = RegExp(
-        r"^([a-zA-Z]{1,10})(?=\s|$)",
-      ).firstMatch(lineAfterDistance);
+      final unitMatch = RegExp(r"^([a-zA-Z]{1,10})(?=\s|$)").firstMatch(lineAfterDistance);
 
       if (unitMatch != null) {
         final parsedUnit = _tryParseDistanceUnitFromString(unitMatch.group(1));
         if (parsedUnit != null) {
-          final remainder = lineAfterDistance
-              .substring(unitMatch.end)
-              .trimLeft();
+          final remainder = lineAfterDistance.substring(unitMatch.end).trimLeft();
           return (distance, parsedUnit, remainder);
         }
       }
       return (distance, defaultUnit, lineAfterDistance);
     } catch (e, s) {
-      _safeRecordCrashlytics(
-        e,
-        s,
-        'Failed to parse distance from line: "$line"',
-      );
+      _safeRecordCrashlytics(e, s, 'Failed to parse distance from line: "$line"');
       return (null, null, line);
     }
   }
 
   SetItem? parseLineToSetItem(
-    String rawLine,
-    int itemOrder,
-    DistanceUnit sessionDefaultUnit,
-  ) {
+      String rawLine,
+      int itemOrder,
+      DistanceUnit sessionDefaultUnit,
+      ) {
     try {
       String currentLine = rawLine.trim();
       if (currentLine.isEmpty) return null;
@@ -141,10 +126,8 @@ class TextToSessionObjectParser {
       final (repetitions, lineAfterReps) = _parseRepetitions(currentLine);
       currentLine = lineAfterReps;
 
-      final (distance, distanceUnit, lineAfterDistance) = _parseDistanceAndUnit(
-        currentLine,
-        sessionDefaultUnit,
-      );
+      final (distance, distanceUnit, lineAfterDistance) =
+      _parseDistanceAndUnit(currentLine, sessionDefaultUnit);
       currentLine = lineAfterDistance;
 
       if (distance == null) {
@@ -174,11 +157,7 @@ class TextToSessionObjectParser {
         subItems: [],
       );
     } catch (e, s) {
-      _safeRecordCrashlytics(
-        e,
-        s,
-        'Fatal error parsing SetItem from line: "$rawLine"',
-      );
+      _safeRecordCrashlytics(e, s, 'Fatal error parsing SetItem from line: "$rawLine"');
       return null;
     }
   }
@@ -186,13 +165,9 @@ class TextToSessionObjectParser {
   ({IntensityZone? zone, String line}) _extractIntensity(String line) {
     String currentLine = line;
     for (final zone in IntensityZone.values) {
-      final sorted = [...zone.parsingKeywords]
-        ..sort((a, b) => b.length - a.length);
+      final sorted = [...zone.parsingKeywords]..sort((a, b) => b.length - a.length);
       for (final keyword in sorted) {
-        final regex = RegExp(
-          r"\b" + RegExp.escape(keyword) + r"\b",
-          caseSensitive: false,
-        );
+        final regex = RegExp(r"\b" + RegExp.escape(keyword) + r"\b", caseSensitive: false);
         if (regex.hasMatch(currentLine)) {
           currentLine = currentLine
               .replaceFirst(regex, '')
@@ -228,22 +203,14 @@ class TextToSessionObjectParser {
       var activeSetType = SetType.mainSet;
 
       for (final line in allLines) {
-        final tagResult = TagExtractUtil.extractTagsFromLine(
-          line,
-          availableSwimmers,
-          availableGroups,
-        );
+        final tagResult =
+        TagExtractUtil.extractTagsFromLine(line, availableSwimmers, availableGroups);
         final lineAfterTagRemoval = tagResult.remainingLine;
 
-        final sectionTitleMatch = sectionTitleRegex.firstMatch(
-          lineAfterTagRemoval,
-        );
-        final internalRepMatch = internalRepetitionLineRegex.firstMatch(
-          lineAfterTagRemoval,
-        );
+        final sectionTitleMatch = sectionTitleRegex.firstMatch(lineAfterTagRemoval);
+        final internalRepMatch = internalRepetitionLineRegex.firstMatch(lineAfterTagRemoval);
 
         if (sectionTitleMatch != null) {
-          // ✅ Handle section title lines
           final result = SectionTitleUtil.handleSectionTitleLine(
             originalLineText: line,
             sectionTitleMatch: sectionTitleMatch,
@@ -262,18 +229,14 @@ class TextToSessionObjectParser {
           activeSetType = result.newActiveSetType;
           currentItems.clear();
 
-          // ✅ Skip parsing this line as a SetItem
+          // ✅ SKIP parsing of section title lines
           continue;
         } else if (internalRepMatch != null) {
-          // TODO: internal repetition logic if needed
+          // TODO: Handle internal repetition blocks later
           continue;
         }
 
-        final item = parseLineToSetItem(
-          lineAfterTagRemoval,
-          itemOrder++,
-          defaultSessionUnit,
-        );
+        final item = parseLineToSetItem(lineAfterTagRemoval, itemOrder++, defaultSessionUnit);
         if (item != null) {
           currentConfig ??= _createDefaultConfig(
             order: parsedConfigs.length,
@@ -285,21 +248,10 @@ class TextToSessionObjectParser {
         }
       }
 
-      _finalizeCurrentConfig(
-        currentConfig,
-        currentItems,
-        parsedConfigs,
-        coachId,
-        activeSetType,
-      );
+      _finalizeCurrentConfig(currentConfig, currentItems, parsedConfigs, coachId, activeSetType);
       return parsedConfigs;
     } catch (e, s) {
-      _safeRecordCrashlytics(
-        e,
-        s,
-        'Failed to parse entire text to session configurations.',
-        fatal: true,
-      );
+      _safeRecordCrashlytics(e, s, 'Failed to parse entire text to session configurations.', fatal: true);
       return [];
     }
   }
@@ -324,19 +276,18 @@ class TextToSessionObjectParser {
         type: activeSetType,
         items: [],
       ),
-      rawSetTypeHeaderFromText:
-          "(Default Set) ${activeSetType.toDisplayString()}",
+      rawSetTypeHeaderFromText: "(Default Set) ${activeSetType.toDisplayString()}",
       unparsedTextLines: [],
     );
   }
 
   void _finalizeCurrentConfig(
-    SessionSetConfiguration? config,
-    List<SetItem> items,
-    List<SessionSetConfiguration> parsedConfigs,
-    String coachId,
-    SetType activeSetType,
-  ) {
+      SessionSetConfiguration? config,
+      List<SetItem> items,
+      List<SessionSetConfiguration> parsedConfigs,
+      String coachId,
+      SetType activeSetType,
+      ) {
     if (config == null) return;
 
     if (items.isNotEmpty) {
@@ -348,18 +299,14 @@ class TextToSessionObjectParser {
       );
     }
 
-    final hasContent =
-        (config.swimSet?.items.isNotEmpty ?? false) ||
-        (config.repetitions > 1 &&
-            (config.notesForThisInstanceOfSet?.isNotEmpty ?? false));
+    final hasContent = (config.swimSet?.items.isNotEmpty ?? false) ||
+        (config.repetitions > 1 && (config.notesForThisInstanceOfSet?.isNotEmpty ?? false));
 
-    final isTitleCard =
-        !hasContent &&
+    final isTitleCard = !hasContent &&
         config.repetitions == 1 &&
         (config.notesForThisInstanceOfSet == null ||
             config.notesForThisInstanceOfSet!.isEmpty) &&
-        (config.rawSetTypeHeaderFromText?.toLowerCase().contains("(default)") ==
-            false);
+        (config.rawSetTypeHeaderFromText?.toLowerCase().contains("(default)") == false);
 
     if (hasContent || isTitleCard) {
       if (config.coachId.isEmpty) config.coachId = coachId;
@@ -368,27 +315,15 @@ class TextToSessionObjectParser {
   }
 
   /// Safe wrapper for Crashlytics (avoids web assertion failures)
-  void _safeRecordCrashlytics(
-    Object e,
-    StackTrace s,
-    String reason, {
-    bool fatal = false,
-  }) {
+  void _safeRecordCrashlytics(Object e, StackTrace s, String reason, {bool fatal = false}) {
     try {
       if (!kIsWeb) {
-        FirebaseCrashlytics.instance.recordError(
-          e,
-          s,
-          reason: reason,
-          fatal: fatal,
-        );
+        FirebaseCrashlytics.instance.recordError(e, s, reason: reason, fatal: fatal);
       } else {
         debugPrint("⚠️ Crashlytics disabled on web — $reason ($e)");
       }
     } catch (_) {
-      debugPrint(
-        "⚠️ Crashlytics unavailable — skipping error report ($reason)",
-      );
+      debugPrint("⚠️ Crashlytics unavailable — skipping error report ($reason)");
     }
   }
 }
