@@ -2,15 +2,14 @@ import '../stroke.dart';
 import 'event_specialization.dart';
 
 class SwimmerFocusProfile {
-  String id; // Unique document ID (Firestore or local)
+  String id;
   String swimmerId;
   String clubId;
   String coachId;
   String swimmerName;
   EventSpecialization eventSpecialization;
   List<Stroke> focusStrokes;
-  int targetDistance; // in meters
-  Duration? targetDuration; // optional, for timed sessions
+  String? longTermGoal; // Optional field to describe general goal
 
   SwimmerFocusProfile({
     required this.id,
@@ -20,8 +19,7 @@ class SwimmerFocusProfile {
     required this.clubId,
     required this.eventSpecialization,
     required this.focusStrokes,
-    required this.targetDistance,
-    this.targetDuration,
+    this.longTermGoal,
   });
 
   Map<String, dynamic> toJson() => {
@@ -32,9 +30,7 @@ class SwimmerFocusProfile {
     'clubId': clubId,
     'eventSpecializationName': eventSpecialization.name,
     'focusStrokes': focusStrokes.map((s) => s.name).toList(),
-    'targetDistance': targetDistance,
-    if (targetDuration != null)
-      'targetDuration': targetDuration!.inSeconds,
+    if (longTermGoal != null) 'longTermGoal': longTermGoal,
   };
 
   factory SwimmerFocusProfile.fromJson(Map<String, dynamic> json) {
@@ -44,15 +40,13 @@ class SwimmerFocusProfile {
       swimmerName: json['swimmerName'] ?? '',
       coachId: json['coachId'] ?? '',
       clubId: json['clubId'] ?? '',
-      eventSpecialization: EventSpecialization.fromString(json['eventSpecializationName']),
+      eventSpecialization:
+      EventSpecialization.fromString(json['eventSpecializationName']),
       focusStrokes: (json['focusStrokes'] as List<dynamic>? ?? [])
           .map((name) => Stroke.fromString(name))
-          .whereType<Stroke>() // filters out nulls automatically
+          .whereType<Stroke>()
           .toList(),
-      targetDistance: json['targetDistance'] ?? 0,
-      targetDuration: json['targetDuration'] != null
-          ? Duration(seconds: json['targetDuration'])
-          : null,
+      longTermGoal: json['longTermGoal'],
     );
   }
 }
