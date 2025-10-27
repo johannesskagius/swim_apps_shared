@@ -32,6 +32,7 @@ class TextToSessionObjectParser {
     return "${prefix}_${DateTime.now().millisecondsSinceEpoch}_$_idCounter";
   }
 
+  /// ✅ Updated: More tolerant regex for section titles with tags and comments.
   static RegExp _buildSectionTitleRegex() {
     final keywords = [
       "warm up",
@@ -50,12 +51,12 @@ class TextToSessionObjectParser {
       "drills",
       "sprint set",
       "sprint",
+      "recovery",
+      "technique set"
     ];
     final patternPart = keywords.map(RegExp.escape).join("|");
-    return RegExp(
-      r"^\s*(" + patternPart + r")" + r"(?:\s*'([^']*)')?$",
-      caseSensitive: false,
-    );
+    // Matches any line starting with one of the keywords, allowing tags (#group, #swimmer) or comments after
+    return RegExp(r"^\s*(" + patternPart + r")\b.*$", caseSensitive: false);
   }
 
   DistanceUnit? _tryParseDistanceUnitFromString(String? unitStr) {
