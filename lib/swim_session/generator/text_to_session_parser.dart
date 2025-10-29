@@ -232,7 +232,7 @@ class TextToSessionObjectParser {
 
         // ✅ Keep all raw text for #group fallback extraction
         currentConfig?.unparsedTextLines =
-        (currentConfig?.unparsedTextLines ?? [])..add(line);
+        (currentConfig.unparsedTextLines ?? [])..add(line);
 
         // ✅ 1. Detect Nx repetition markers
         if (SectionTitleUtil.detectAndStoreRepetitionMarker(lineAfterTagRemoval)) {
