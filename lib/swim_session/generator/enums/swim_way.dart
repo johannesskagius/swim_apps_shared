@@ -1,4 +1,4 @@
-enum SwimWay { pull, kick, drill, swim, uw }
+enum SwimWay { pull, kick, drill, swim, uw, rest}
 
 extension SwimWayParsingInfoHelper on SwimWay {
   List<String> get parsingKeywords {
@@ -13,6 +13,8 @@ extension SwimWayParsingInfoHelper on SwimWay {
         return ['swim', 'sw']; // 'swim' might be implicit
       case SwimWay.uw:
         return ['UW', 'uw']; //
+      case SwimWay.rest:
+        return ['rest', 'Rest']; //
     }
   }
 }

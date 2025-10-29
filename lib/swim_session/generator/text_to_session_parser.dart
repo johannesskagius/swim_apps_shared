@@ -22,19 +22,15 @@ class TextToSessionObjectParser {
 
   // --- SECTION HEADERS ---
   static final RegExp _sectionHeader = RegExp(
-    r"^\s*(warm\s*up|main\s*set|cool\s*down|pre\s*set|post\s*set|kick\s*set|pull\s*set|drill\s*set|sprint\s*set|recovery|technique\s*set|main|warmup|cooldown)\b",
+    r"^\s*(warm\s*up|main\s*set|pre\s*set|post\s*set|cool\s*down|kick\s*set|pull\s*set|drill\s*set|sprint\s*set|recovery|technique\s*set|main|warmup|cooldown)\b",
     caseSensitive: false,
   );
 
   // --- TAGS ---
-  static final RegExp _groupTag = RegExp(
-    r"#group[:\-\s]*([A-Za-z0-9_ ]+?)(?=\s*[\d\'#]|$)",
-    caseSensitive: false,
-  );
-  static final RegExp _swimmerTag = RegExp(
-    r"#swimmers?\s+([^#\n\r]+)",
-    caseSensitive: false,
-  );
+  static final RegExp _groupTag =
+  RegExp(r"#group[:\-\s]*([A-Za-z0-9_ ]+?)(?=\s*[\d\'#]|$)", caseSensitive: false);
+  static final RegExp _swimmerTag =
+  RegExp(r"#swimmers?\s+([^#\n\r]+)", caseSensitive: false);
 
   // --- REPETITIONS ---
   static final RegExp _standaloneReps =
@@ -82,16 +78,7 @@ class TextToSessionObjectParser {
   List<SessionSetConfiguration> parse(String? unparsedText) {
     if (unparsedText == null || unparsedText.trim().isEmpty) return [];
 
-    // 🧩 FIX: Insert line breaks before section headers if missing (e.g., "Warmup ... Pre set ...")
-    final normalizedText = unparsedText.replaceAllMapped(
-      RegExp(
-        r"(?<!^)(?=(?:\s|^)(warm\s*up|main\s*set|cool\s*down|pre\s*set|post\s*set|kick\s*set|pull\s*set|drill\s*set|sprint\s*set|recovery|technique\s*set|main|warmup|cooldown)\b)",
-        caseSensitive: false,
-      ),
-          (m) => '\n',
-    );
-
-    final lines = normalizedText
+    final lines = unparsedText
         .split(_lineBreak)
         .map((l) => l.trim())
         .where((l) => l.isNotEmpty)
@@ -109,16 +96,10 @@ class TextToSessionObjectParser {
 
     void flushSection() {
       if (currentConfig == null) return;
-
       if (currentItems.isEmpty) {
         if ((currentConfig!.rawSetTypeHeaderFromText ?? '').isNotEmpty) {
           configs.add(currentConfig!);
         }
-        currentConfig = null;
-        sectionReps = 1;
-        sectionGroups.clear();
-        sectionSwimmers.clear();
-        unparsedBuffer.clear();
         return;
       }
 
@@ -126,13 +107,13 @@ class TextToSessionObjectParser {
           SwimSet(setId: _id('set'), type: currentType, items: const []))
           .copyWith(
         items: List.from(currentItems),
-        assignedGroupNames: sectionGroups.toList(),
+        assignedGroupNames: sectionGroups.map((e) => e.toLowerCase().trim()).toList(),
       );
 
       configs.add(currentConfig!.copyWith(
         repetitions: sectionReps,
         swimSet: swimSet,
-        specificGroupIds: sectionGroups.toList(),
+        specificGroupIds: sectionGroups.map((e) => e.toLowerCase().trim()).toList(),
         specificSwimmerIds: sectionSwimmers.toList(),
         unparsedTextLines: List.from(unparsedBuffer),
       ));
@@ -187,7 +168,7 @@ class TextToSessionObjectParser {
         continue;
       }
 
-      // 🧩 STANDALONE REPETITION (e.g., "2x" or "2 rounds")
+      // 🧩 STANDALONE REPETITION (e.g., "2x")
       final rep = _standaloneReps.firstMatch(raw);
       if (rep != null) {
         sectionReps *= int.tryParse(rep.group(1) ?? '1') ?? 1;
@@ -230,28 +211,46 @@ class TextToSessionObjectParser {
       final groups =
       configs.expand((c) => c.swimSet?.assignedGroupNames ?? []).toSet();
       debugPrint("✅ Parsed ${configs.length} sections, groups: $groups");
-      for (final c in configs) {
-        debugPrint(
-            "🧩 Parsed config: ${c.swimSet?.type?.name ?? 'No type'}, groups=${c.swimSet?.assignedGroupNames}, items=${c.swimSet?.items.length}");
-      }
     }
 
     return configs;
   }
 
   // ---------------------------------------------------------------------------
-  // 🧩 ITEM PARSER (handles 4x200m etc.)
+  // 🧩 ITEM PARSER
   // ---------------------------------------------------------------------------
   SetItem? _parseItem(String raw, int order) {
     String line = raw.trim();
     if (line.isEmpty) return null;
+
+    // --- REST DETECTION ---
+    final restMatch = RegExp(r"(\d{1,2}):(\d{2})\s*rest", caseSensitive: false).firstMatch(line);
+    if (restMatch != null) {
+      final mm = int.tryParse(restMatch.group(1) ?? '0') ?? 0;
+      final ss = int.tryParse(restMatch.group(2) ?? '0') ?? 0;
+      return SetItem(
+        id: _id('rest'),
+        order: order,
+        itemRepetition: 1,
+        itemDistance: 0,
+        distanceUnit: DistanceUnit.meters,
+        swimWay: SwimWay.rest,
+        stroke: null,
+        interval: Duration(minutes: mm, seconds: ss),
+        intensityZone: null,
+        equipment: const [],
+        itemNotes: 'Rest ${mm}:${ss.toString().padLeft(2, '0')}',
+        rawTextLine: raw,
+        subItems: const [],
+      );
+    }
 
     // reps
     int reps = 1;
     final rm = _inlineReps.firstMatch(line);
     if (rm != null) {
       reps = int.tryParse(rm.group(1) ?? '1') ?? 1;
-      line = line.replaceFirst(rm.group(0)!, '').trimLeft();
+      line = line.substring(rm.end).trimLeft();
     }
 
     // distance
@@ -303,9 +302,9 @@ class TextToSessionObjectParser {
     if (_drillWord.hasMatch(line)) way = SwimWay.drill;
     way ??= SwimWay.swim;
 
-    // notes
+    // notes (allow commas, keep content inside quotes)
     String? notes;
-    final q = RegExp(r"'([^']*)'").firstMatch(raw);
+    final q = RegExp(r"'([^']+)'").firstMatch(raw);
     if (q != null) notes = q.group(1);
 
     return SetItem(
@@ -329,44 +328,23 @@ class TextToSessionObjectParser {
   // 🔹 LIGHTWEIGHT SUMMARY
   // ---------------------------------------------------------------------------
   ParsedSummary parseWithSummary(String? unparsedText) {
-    if (unparsedText == null || unparsedText.trim().isEmpty) {
-      return ParsedSummary(
-        metersByGroup: {},
-        totalMeters: 0,
-        totalItems: 0,
-        totalSections: 0,
-      );
-    }
-
     final configs = parse(unparsedText);
     final Map<String, double> metersByGroup = {};
     double totalMeters = 0;
     int totalItems = 0;
 
     for (final config in configs) {
-      final groupNames = config.swimSet?.assignedGroupNames ?? ["All"];
+      final groupNames = config.swimSet?.assignedGroupNames ?? ["all"];
       for (final item in config.swimSet?.items ?? []) {
-        final double dist = (item.itemDistance.toDouble() *
-            (item.itemRepetition ?? 1) *
-            (config.repetitions));
+        final double dist =
+        (item.itemDistance.toDouble() * (item.itemRepetition ?? 1) * (config.repetitions));
 
-        totalMeters += dist;
         totalItems++;
+        if (item.itemDistance > 0) totalMeters += dist;
 
         for (final g in groupNames) {
           final key = g.trim().toLowerCase();
           metersByGroup[key] = (metersByGroup[key] ?? 0) + dist;
-        }
-
-        for (final sub in item.subItems) {
-          final subDist = (sub.subItemDistance.toDouble() *
-              (config.repetitions) *
-              (item.itemRepetition ?? 1));
-          totalMeters += subDist;
-          for (final g in groupNames) {
-            final key = g.trim().toLowerCase();
-            metersByGroup[key] = (metersByGroup[key] ?? 0) + subDist;
-          }
         }
       }
     }
@@ -452,10 +430,7 @@ class TextToSessionObjectParser {
 
   List<String> _extractGroups(String text) {
     final matches = _groupTag.allMatches(text);
-    return matches
-        .map((m) => (m.group(1) ?? '').trim())
-        .where((x) => x.isNotEmpty)
-        .toList();
+    return matches.map((m) => (m.group(1) ?? '').trim()).where((x) => x.isNotEmpty).toList();
   }
 
   List<String> _extractSwimmers(String text) {
