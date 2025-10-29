@@ -7,115 +7,69 @@ import '../../../objects/planned/swim_set_config.dart';
 import '../../../objects/stroke.dart';
 import '../enums/swim_way.dart';
 
+/// 🧩 Converts structured [SessionSetConfiguration]s back into coach-readable text
+/// matching TextToSessionObjectParser v3.7 syntax:
+/// - Single quotes for comments
+/// - Equipment in [brackets]
+/// - Sub-items inline in parentheses "(...)"
+/// - Group tags via `#group Sprint, Distance`
+/// - Notes and intervals inline
 class SessionSetConfigToTextParser {
   static final _lapsHeaderRegex = RegExp(r"^\d+\s*x|^\d+\s*rounds?");
 
   String sessionConfigsToFormattedText({
     required List<SessionSetConfiguration> sessionConfigs,
     DistanceUnit defaultSessionUnit = DistanceUnit.meters,
-    Map<String, dynamic>?
-    swimmersMap, // Map<swimmerId, dynamic object with a 'name' property>
-    Map<String, dynamic>?
-    groupsMap, // Map<groupId, dynamic object with a 'name' property>
+    Map<String, dynamic>? swimmersMap, // Map<swimmerId, {name: ...}>
+    Map<String, dynamic>? groupsMap, // Map<groupId, {name: ...}>
   }) {
     if (sessionConfigs.isEmpty) return "";
 
-    StringBuffer mainSb = StringBuffer();
+    final StringBuffer mainSb = StringBuffer();
 
     for (int i = 0; i < sessionConfigs.length; i++) {
-      SessionSetConfiguration config = sessionConfigs[i];
+      final SessionSetConfiguration config = sessionConfigs[i];
 
-      // 1. Section Title
+      // ---- SECTION HEADER ----
       if (config.rawSetTypeHeaderFromText != null &&
           config.rawSetTypeHeaderFromText!.isNotEmpty) {
-        mainSb.writeln(config.rawSetTypeHeaderFromText);
+        mainSb.writeln(config.rawSetTypeHeaderFromText!.trim());
       } else {
-        String title = config.swimSet?.type?.name ?? SetType.mainSet.name;
-        // Instance notes are now part of the title line if they exist,
-        // which matches the UI more closely.
-        // If config.notesForThisInstanceOfSet are to be on a separate line,
-        // this part needs adjustment. For now, assuming they are part of the title.
-        // if (config.notesForThisInstanceOfSet != null &&
-        //     config.notesForThisInstanceOfSet!.isNotEmpty) {
-        //   title += " #${config.notesForThisInstanceOfSet}";
-        // }
-        mainSb.writeln(title);
+        final typeDisplay =
+        setTypeToDisplayString(config.swimSet?.type ?? SetType.mainSet);
+
+        final groupNames = _resolveGroups(config, groupsMap);
+        final hasGroups = groupNames.isNotEmpty;
+        final note = (config.notesForThisInstanceOfSet ?? "").trim();
+
+        final parts = <String>[];
+        parts.add(typeDisplay);
+        if (hasGroups) parts.add("#group ${groupNames.join(", ")}");
+        if (note.isNotEmpty) parts.add("'$note'");
+
+        mainSb.writeln(parts.join(" "));
       }
 
-      // --- START: Add Specific Assignments Information ---
-      List<String> assignedNames = [];
-      if (swimmersMap != null && config.specificSwimmerIds.isNotEmpty) {
-        for (String id in config.specificSwimmerIds) {
-          assignedNames.add(
-            swimmersMap[id]?.showSuccessMessage ?? "Swimmer ID: $id",
-          );
-        }
-      }
-      if (groupsMap != null && config.specificGroupIds.isNotEmpty) {
-        for (String id in config.specificGroupIds) {
-          assignedNames.add(
-            groupsMap[id]?.showSuccessMessage ?? "Group ID: $id",
-          );
-        }
+      // ---- REPS (2x blocks etc.) ----
+      final hasInlineReps =
+          config.rawSetTypeHeaderFromText?.startsWith(_lapsHeaderRegex) ?? false;
+      if (config.repetitions > 1 && !hasInlineReps) {
+        mainSb.writeln("${config.repetitions}x");
       }
 
-      if (assignedNames.isNotEmpty) {
-        mainSb.writeln("  For: ${assignedNames.join(", ")}");
-      }
-      // --- END: Add Specific Assignments Information ---
-
-      // Display Instance Notes if they exist and are not part of the raw header
-      // (Moved after specific assignments for better flow)
-      if (config.notesForThisInstanceOfSet != null &&
-          config.notesForThisInstanceOfSet!.isNotEmpty &&
-          (config.rawSetTypeHeaderFromText == null ||
-              !config.rawSetTypeHeaderFromText!.contains(
-                config.notesForThisInstanceOfSet!,
-              ))) {
-        // Indent instance notes slightly if they are separate
-        mainSb.writeln("  #${config.notesForThisInstanceOfSet}");
-      }
-
-      // 2. Configuration Laps (e.g., "2x" for the whole block)
-      bool lapsAlreadyInHeader =
-          config.rawSetTypeHeaderFromText?.startsWith(_lapsHeaderRegex) ??
-          false;
-      if (config.repetitions > 1 && !lapsAlreadyInHeader) {
-        if ((config.swimSet != null && config.swimSet!.items.isNotEmpty)) {
-          mainSb.writeln("${config.repetitions}x");
-        } else if (config.swimSet == null) {
-          // Only add "Nx" for notes if it's a note-only block with repetitions
-          if (config.notesForThisInstanceOfSet != null &&
-              config.notesForThisInstanceOfSet!.isNotEmpty) {
-            mainSb.writeln("${config.repetitions}x");
-          }
-        }
-      }
-
-      // 4. Set Items
+      // ---- ITEMS ----
       if (config.swimSet != null && config.swimSet!.items.isNotEmpty) {
-        for (SetItem item in config.swimSet!.items) {
+        for (final SetItem item in config.swimSet!.items) {
           mainSb.writeln(_setItemToText(item, defaultSessionUnit));
         }
       }
 
-      // 5. SwimSet Definition Notes (not instance notes)
+      // ---- SET NOTES (definition-level notes) ----
       if (config.swimSet?.setNotes != null &&
-          config.swimSet!.setNotes!.isNotEmpty &&
-          (config.notesForThisInstanceOfSet ==
-                  null || // Ensure it's not the same as instance notes
-              !config.notesForThisInstanceOfSet!.contains(
-                config.swimSet!.setNotes!,
-              )) &&
-          (config.rawSetTypeHeaderFromText ==
-                  null || // Ensure it's not part of raw header
-              !config.rawSetTypeHeaderFromText!.contains(
-                config.swimSet!.setNotes!,
-              ))) {
+          config.swimSet!.setNotes!.trim().isNotEmpty) {
         for (final noteLine in config.swimSet!.setNotes!.split('\n')) {
           if (noteLine.trim().isNotEmpty) {
-            // Indent set definition notes to distinguish from instance notes or item notes
-            mainSb.writeln("  ${noteLine.trim()}");
+            mainSb.writeln("  '${noteLine.trim()}'");
           }
         }
       }
@@ -124,11 +78,15 @@ class SessionSetConfigToTextParser {
         mainSb.writeln();
       }
     }
+
     return mainSb.toString().trim();
   }
 
+  // ---------------------------------------------------------------------------
+  // 🧱 SET ITEM
+  // ---------------------------------------------------------------------------
   String _setItemToText(SetItem item, DistanceUnit defaultSessionUnit) {
-    StringBuffer sb = StringBuffer();
+    final sb = StringBuffer();
 
     if (item.itemRepetition != null && item.itemRepetition! > 1) {
       sb.write("${item.itemRepetition}x ");
@@ -138,135 +96,143 @@ class SessionSetConfigToTextParser {
       sb.write(item.itemDistance);
       if (item.distanceUnit != null &&
           item.distanceUnit != defaultSessionUnit) {
-        sb.write(item.distanceUnit!.name); // Or .short etc.
+        sb.write(item.distanceUnit!.name);
       }
       sb.write(" ");
     }
 
-    bool wayIsDefaultSwim = item.swimWay == SwimWay.swim;
-    bool strokeIsDefaultChoice =
-        item.stroke == null || item.stroke == Stroke.choice;
+    // SWIM WAY + STROKE
+    final wayIsSwim = item.swimWay == SwimWay.swim;
+    final strokeIsChoice = item.stroke == null || item.stroke == Stroke.choice;
 
-    if (!wayIsDefaultSwim) {
-      sb.write("${item.swimWay.name} "); // Or .toDisplayString()
-    }
-    if (!strokeIsDefaultChoice ||
-        (wayIsDefaultSwim &&
-            strokeIsDefaultChoice &&
-            (item.subItems == null || item.subItems!.isEmpty))) {
-      if (item.stroke != null) {
-        sb.write("${item.stroke!.short} "); // Or .toDisplayString()
-      }
-    }
+    if (!wayIsSwim) sb.write("${item.swimWay.name} ");
+    if (!strokeIsChoice) sb.write("${item.stroke!.short} ");
 
+    // INTENSITY
     if (item.intensityZone != null) {
-      sb.write("${item.intensityZone!.name} "); // Or .toDisplayString()
+      sb.write("${item.intensityZone!.name} ");
     }
 
-    if (item.subItems != null && item.subItems!.isNotEmpty) {
+    // SUBITEMS
+    if ((item.subItems ?? const <SubItem>[]).isNotEmpty) {
+      final subItems = item.subItems!;
       sb.write("(");
       sb.write(
-        item.subItems!
-            .map(
-              (si) =>
-                  _subItemToText(si, item.distanceUnit ?? defaultSessionUnit),
-            )
+        subItems
+            .map((si) =>
+            _subItemToText(si, item.distanceUnit ?? defaultSessionUnit))
             .join(", "),
       );
       sb.write(") ");
     }
 
+    // INTERVAL
     if (item.interval != null && item.interval != Duration.zero) {
       sb.write("@${_formatDurationForInterval(item.interval!)} ");
     }
 
-    if (item.equipment != null && item.equipment!.isNotEmpty) {
-      sb.write("[");
-      sb.write(
-        item.equipment!.map((e) => e.toString()).join(" "),
-      ); // Or e.toDisplayString()
-      sb.write("] ");
+    // EQUIPMENT (nullable-safe)
+    final equipmentList = item.equipment ?? const [];
+    if (equipmentList.isNotEmpty) {
+      sb.write("[${equipmentList.map((e) => e.name).join(", ")}] ");
     }
 
+    // NOTES
     if (item.itemNotes != null && item.itemNotes!.isNotEmpty) {
-      // Item notes are typically part of the item line
-      sb.write("#${item.itemNotes!.trim()} ");
+      sb.write("'${item.itemNotes!.trim()}' ");
     }
 
     return sb.toString().trim();
   }
 
-  String _subItemToText(SubItem subItem, DistanceUnit parentDefaultUnit) {
-    StringBuffer sb = StringBuffer();
+  // ---------------------------------------------------------------------------
+  // 🧩 SUB ITEM
+  // ---------------------------------------------------------------------------
+  String _subItemToText(SubItem subItem, DistanceUnit parentUnit) {
+    final sb = StringBuffer();
 
-    if (subItem.subItemDistance > 0) {
+    if (subItem.subItemDistance != null && subItem.subItemDistance! > 0) {
       sb.write(subItem.subItemDistance);
-      if (subItem.distanceUnit != parentDefaultUnit) {
-        sb.write(subItem.distanceUnit.name); // Or .short etc.
+      if (subItem.distanceUnit != parentUnit) {
+        sb.write(subItem.distanceUnit.name);
       }
       sb.write(" ");
     }
 
-    bool wayIsDefaultSwim = subItem.swimWay == SwimWay.swim;
-    bool strokeIsDefaultChoice =
+    final wayIsSwim = subItem.swimWay == SwimWay.swim;
+    final strokeIsChoice =
         subItem.stroke == null || subItem.stroke == Stroke.choice;
 
-    if (!wayIsDefaultSwim) {
-      sb.write("${subItem.swimWay.name} "); // Or .toDisplayString()
-    }
-    if (!strokeIsDefaultChoice || (wayIsDefaultSwim && strokeIsDefaultChoice)) {
-      if (subItem.stroke != null) {
-        sb.write("${subItem.stroke!.short} "); // Or .toDisplayString()
-      }
-    }
+    if (!wayIsSwim) sb.write("${subItem.swimWay.name} ");
+    if (!strokeIsChoice) sb.write("${subItem.stroke!.short} ");
 
     if (subItem.intensityZone != null) {
-      sb.write("${subItem.intensityZone!.name} "); // Or .toDisplayString()
+      sb.write("${subItem.intensityZone!.name} ");
     }
 
     if (subItem.equipment.isNotEmpty) {
-      sb.write("[");
-      sb.write(
-        subItem.equipment.map((e) => e?.toString()).join(" "),
-      ); // Or e.toDisplayString()
-      sb.write("] ");
+      sb.write("[${subItem.equipment.map((e) => e.name).join(", ")}] ");
     }
 
     if (subItem.itemNotes != null && subItem.itemNotes!.isNotEmpty) {
-      sb.write("#${subItem.itemNotes!.trim()} ");
+      sb.write("'${subItem.itemNotes!.trim()}' ");
     }
 
     return sb.toString().trim();
   }
-}
 
-// Helper Extensions (ensure they are defined or use .name / .short directly)
-extension _SetTypeDisplay on SetType {
-  String toDisplayString() {
-    // ... (your existing implementation)
-    switch (this) {
-      case SetType.warmUp:
-        return 'Warm Up';
-      case SetType.mainSet:
-        return 'Main Set';
-      case SetType.coolDown:
-        return 'Cool Down';
-      case SetType.custom:
-        return 'Custom'; // Ensure custom has a name if possible
-      default:
-        return name; // Or a more descriptive default
-    }
+  // ---------------------------------------------------------------------------
+  // 🔹 HELPERS
+  // ---------------------------------------------------------------------------
+  List<String> _resolveGroups(
+      SessionSetConfiguration config, Map<String, dynamic>? groupsMap) {
+    if (groupsMap == null || config.specificGroupIds.isEmpty) return [];
+    return config.specificGroupIds
+        .map((id) {
+      final g = groupsMap[id];
+      if (g == null) return id;
+      // Try common shapes: {name: ...} or object with .name
+      if (g is Map && g['name'] is String) return g['name'] as String;
+      try {
+        // ignore: avoid_dynamic_calls
+        final dynName = g.name;
+        if (dynName is String) return dynName;
+      } catch (_) {}
+      return id;
+    })
+        .whereType<String>()
+        .toList();
   }
 }
 
-// String _formatDurationForInterval needs to be defined if not already global
-// e.g.,
+/// Top-level helper to avoid extension name collisions in your codebase.
+String setTypeToDisplayString(SetType type) {
+  switch (type) {
+    case SetType.warmUp:
+      return 'Warm Up';
+    case SetType.mainSet:
+      return 'Main Set';
+    case SetType.coolDown:
+      return 'Cool Down';
+    case SetType.kickSet:
+      return 'Kick Set';
+    case SetType.pullSet:
+      return 'Pull Set';
+    case SetType.drillSet:
+      return 'Drill Set';
+    case SetType.preSet:
+      return 'Pre Set';
+    case SetType.postSet:
+      return 'Post Set';
+    case SetType.recovery:
+      return 'Recovery';
+    default:
+      return type.name;
+  }
+}
+
 String _formatDurationForInterval(Duration duration) {
   final minutes = duration.inMinutes;
   final seconds = duration.inSeconds % 60;
-  if (minutes > 0) {
-    return "$minutes:${seconds.toString().padLeft(2, '0')}";
-  } else {
-    return seconds.toString();
-  }
+  return "$minutes:${seconds.toString().padLeft(2, '0')}";
 }

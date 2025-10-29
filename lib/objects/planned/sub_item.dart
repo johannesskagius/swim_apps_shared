@@ -8,7 +8,7 @@ import '../stroke.dart';
 
 @immutable
 class SubItem {
-  final int subItemDistance;
+  final int? subItemDistance;
   final DistanceUnit distanceUnit;
   final SwimWay swimWay;
   final Stroke? stroke;
