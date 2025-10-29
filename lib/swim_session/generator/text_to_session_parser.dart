@@ -1,11 +1,12 @@
 // TextToSessionObjectParser.dart
-// Fully instrumented with Firebase Crashlytics, including section/item breadcrumbs,
-// safe parsing of equipment + sub-items, and a summary helper.
+// Fully instrumented with safe Firebase Crashlytics logging (no early init crash).
+// Keeps same parsing logic as your previous version.
 
 import 'dart:async' show unawaited;
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:swim_apps_shared/swim_session/generator/parsed_summary.dart';
 
 import '../../objects/intensity_zones.dart';
@@ -19,9 +20,30 @@ import 'enums/equipment.dart';
 import 'enums/set_types.dart';
 import 'enums/swim_way.dart';
 
+/// ✅ Safe Crashlytics helpers
+void _safeLog(String message) {
+  try {
+    if (Firebase.apps.isNotEmpty) {
+      FirebaseCrashlytics.instance.log(message);
+    }
+  } catch (_) {
+    debugPrint('[Crashlytics skipped log] $message');
+  }
+}
+
+void _safeError(Object e, StackTrace st, {String? reason, bool fatal = false}) {
+  try {
+    if (Firebase.apps.isNotEmpty) {
+      FirebaseCrashlytics.instance.recordError(e, st, reason: reason, fatal: fatal);
+    }
+  } catch (_) {
+    debugPrint('[Crashlytics skipped error] $reason');
+  }
+}
+
 /// 🧠 Context-unaware parser for AI-generated swim text.
-/// - Parses sections, items, sub-items, intervals, intensities, equipment.
-/// - Adds deep Crashlytics breadcrumbs and error capture (non-fatal on line issues).
+/// Parses sections, items, sub-items, intensities, intervals, and equipment.
+/// Adds safe Crashlytics breadcrumbs and error capture.
 class TextToSessionObjectParser {
   final RegExp _lineBreak = RegExp(r'\r\n?|\n');
   static int _idCounter = 0;
@@ -61,10 +83,8 @@ class TextToSessionObjectParser {
 
   static final RegExp _equipment = RegExp(r'\[(.*?)\]', caseSensitive: false);
 
-  // Lines starting with 2+ spaces or bullet symbols (-, •, >) become sub-items.
   static final RegExp _subItemLine = RegExp(r'^(?:\s{2,}|[-•>]\s+)(.+)$');
 
-  // --- STROKE MAPPING ---
   static const Map<String, Stroke> _strokeMap = {
     'fr': Stroke.freestyle,
     'free': Stroke.freestyle,
@@ -85,26 +105,28 @@ class TextToSessionObjectParser {
   static final RegExp _drillWord = RegExp(r'\bdrill(s)?\b', caseSensitive: false);
 
   // ---------------------------------------------------------------------------
-  // 🔹 MAIN ENTRY POINT (Crashlytics integrated, sync API)
+  // 🔹 MAIN ENTRY POINT
   // ---------------------------------------------------------------------------
   List<SessionSetConfiguration> parse(String? unparsedText, {String? sessionId}) {
     final user = FirebaseAuth.instance.currentUser;
     final userId = user?.uid ?? 'anonymous';
 
-    // Safe, non-blocking Crashlytics setup
-    unawaited(FirebaseCrashlytics.instance.setUserIdentifier(userId));
-    FirebaseCrashlytics.instance.log(
-        '🧩 parse() start | user=$userId | session=${sessionId ?? 'none'}');
+    // Safe Crashlytics identifier setup
+    try {
+      unawaited(FirebaseCrashlytics.instance.setUserIdentifier(userId));
+    } catch (_) {}
+
+    _safeLog('parse() start | user=$userId | session=${sessionId ?? 'none'}');
 
     try {
       if (unparsedText == null || unparsedText.trim().isEmpty) {
-        FirebaseCrashlytics.instance.log('ℹ️ Empty input text — returning [].');
+        _safeLog('Empty input text — returning [].');
         return [];
       }
 
       final lines = unparsedText
           .split(_lineBreak)
-          .map((l) => l.trimRight()) // keep right-side whitespace for bullet detection
+          .map((l) => l.trimRight())
           .where((l) => l.isNotEmpty)
           .toList();
 
@@ -122,16 +144,13 @@ class TextToSessionObjectParser {
         try {
           if (currentConfig == null) return;
 
-          // Always keep what we saw for observability
           final snapshot = currentConfig!.copyWith(
             unparsedTextLines: List.from(unparsedBuffer),
           );
 
           if (currentItems.isEmpty) {
-            FirebaseCrashlytics.instance.log(
-                "🗂️ Flushing empty section '${snapshot.rawSetTypeHeaderFromText}' (kept header only)");
+            _safeLog("Flushing empty section '${snapshot.rawSetTypeHeaderFromText}'");
             configs.add(snapshot);
-            // Reset collectors
             currentConfig = null;
             sectionReps = 1;
             sectionGroups.clear();
@@ -156,12 +175,10 @@ class TextToSessionObjectParser {
             specificSwimmerIds: sectionSwimmers.toList(),
           );
 
-          FirebaseCrashlytics.instance.log(
-              "🗂️ Flushed section '${snapshot.rawSetTypeHeaderFromText}' with ${currentItems.length} items, reps=$sectionReps, groups=${sectionGroups.join(',')}");
+          _safeLog(
+              "Flushed section '${snapshot.rawSetTypeHeaderFromText}' with ${currentItems.length} items, reps=$sectionReps, groups=${sectionGroups.join(',')}");
 
           configs.add(done);
-
-          // Reset collectors
           currentConfig = null;
           currentItems.clear();
           sectionReps = 1;
@@ -169,12 +186,7 @@ class TextToSessionObjectParser {
           sectionSwimmers.clear();
           unparsedBuffer.clear();
         } catch (e, st) {
-          FirebaseCrashlytics.instance.recordError(
-            e,
-            st,
-            reason: 'flushSection() failed | user=$userId | session=$sessionId',
-            fatal: false,
-          );
+          _safeError(e, st, reason: 'flushSection() failed', fatal: false);
         }
       }
 
@@ -184,11 +196,10 @@ class TextToSessionObjectParser {
       for (final raw in lines) {
         unparsedBuffer.add(raw);
         try {
-          // SECTION
           final hdr = _sectionHeader.firstMatch(raw);
           if (hdr != null) {
-            FirebaseCrashlytics.instance.log("📘 Section header: '${hdr.group(0)}'");
-            flushSection(); // finish previous
+            _safeLog("Section header: '${hdr.group(0)}'");
+            flushSection();
             currentType = _mapSectionType(hdr.group(1)!);
             sectionReps = 1;
             sectionGroups.clear();
@@ -221,30 +232,26 @@ class TextToSessionObjectParser {
             continue;
           }
 
-          // STANDALONE REPETITION (e.g., "2x")
           final rep = _standaloneReps.firstMatch(raw);
           if (rep != null) {
             final val = int.tryParse(rep.group(1) ?? '1') ?? 1;
             sectionReps *= val;
-            FirebaseCrashlytics.instance.log('🔁 Section reps now $sectionReps');
+            _safeLog('Section reps now $sectionReps');
             continue;
           }
 
-          // INLINE TAGS (rare but allowed)
           final addedGroups = _extractGroups(raw);
           if (addedGroups.isNotEmpty) {
             sectionGroups.addAll(addedGroups);
-            FirebaseCrashlytics.instance.log(
-                '🏷️ Inline #group found on content line: ${addedGroups.join(", ")}');
+            _safeLog('Inline #group found: ${addedGroups.join(", ")}');
           }
+
           final addedSwimmers = _extractSwimmers(raw);
           if (addedSwimmers.isNotEmpty) {
             sectionSwimmers.addAll(addedSwimmers);
-            FirebaseCrashlytics.instance.log(
-                '🏷️ Inline #swimmers found on content line: ${addedSwimmers.join(", ")}');
+            _safeLog('Inline #swimmers found: ${addedSwimmers.join(", ")}');
           }
 
-          // SUB-ITEM
           final subMatch = _subItemLine.firstMatch(raw);
           if (subMatch != null && currentItems.isNotEmpty) {
             final lastParent = currentItems.last;
@@ -254,13 +261,11 @@ class TextToSessionObjectParser {
               final updatedSubItems = List<SubItem>.from(existingSubItems)..add(sub);
               currentItems[currentItems.length - 1] =
                   lastParent.copyWith(subItems: updatedSubItems);
-              FirebaseCrashlytics.instance.log(
-                  "↳ Added subitem '${subMatch.group(1)}' under parent '${lastParent.rawTextLine ?? lastParent.itemNotes ?? '(unnamed)'}'");
+              _safeLog("Added subitem '${subMatch.group(1)}'");
             }
             continue;
           }
 
-          // MAIN ITEM
           final item = _parseItem(raw, itemOrder);
           if (item != null) {
             currentConfig ??= SessionSetConfiguration(
@@ -282,51 +287,37 @@ class TextToSessionObjectParser {
               unparsedTextLines: const [],
             );
             currentItems.add(item);
-            FirebaseCrashlytics.instance.log("🧱 Parsed item: '$raw'");
+            _safeLog("Parsed item: '$raw'");
             itemOrder++;
           }
         } catch (e, st) {
-          FirebaseCrashlytics.instance.recordError(
-            e,
-            st,
-            reason: 'Parser line error: "$raw" | user=$userId | session=$sessionId',
-            fatal: false,
-          );
+          _safeError(e, st, reason: 'Parser line error: "$raw"', fatal: false);
         }
       }
 
-      // Flush final section
       flushSection();
 
       if (kDebugMode) {
         final groups = configs.expand((c) => c.swimSet?.assignedGroupNames ?? []).toSet();
-        debugPrint("✅ Parsed ${configs.length} sections, groups: $groups");
+        debugPrint("Parsed ${configs.length} sections, groups: $groups");
       }
-      FirebaseCrashlytics.instance.log(
-          "✅ Completed parsing ${configs.length} sections | user=$userId | session=${sessionId ?? 'none'}");
 
+      _safeLog("Completed parsing ${configs.length} sections");
       return configs;
     } catch (e, st) {
-      FirebaseCrashlytics.instance.recordError(
-        e,
-        st,
-        reason:
-        'Critical failure in TextToSessionObjectParser.parse | user=$userId | session=$sessionId',
-        fatal: true,
-      );
+      _safeError(e, st, reason: 'Critical failure in parse()', fatal: true);
       return [];
     }
   }
 
   // ---------------------------------------------------------------------------
-  // 🧩 ITEM PARSER
+  // ITEM PARSER
   // ---------------------------------------------------------------------------
   SetItem? _parseItem(String raw, int order) {
     try {
       String line = raw.trim();
       if (line.isEmpty) return null;
 
-      // REST
       final restMatch =
       RegExp(r'(\d{1,2}):(\d{2})\s*rest', caseSensitive: false).firstMatch(line);
       if (restMatch != null) {
@@ -349,7 +340,6 @@ class TextToSessionObjectParser {
         );
       }
 
-      // REPETITIONS (inline, e.g., "4x100m ...")
       int reps = 1;
       final rm = _inlineReps.firstMatch(line);
       if (rm != null) {
@@ -357,14 +347,12 @@ class TextToSessionObjectParser {
         line = line.substring(rm.end).trimLeft();
       }
 
-      // DISTANCE
       final dm = _distance.firstMatch(line);
       if (dm == null) return null;
       final dist = int.tryParse(dm.group(1) ?? '0') ?? 0;
       DistanceUnit unit = _parseUnit(dm.group(2));
       line = line.substring(dm.end).trimLeft();
 
-      // INTERVAL
       Duration? interval;
       final im = _interval.firstMatch(line);
       if (im != null) {
@@ -374,7 +362,6 @@ class TextToSessionObjectParser {
         line = line.replaceFirst(im.group(0)!, '').trim();
       }
 
-      // INTENSITY
       IntensityZone? zone;
       final iz = _intensityIndex.firstMatch(line);
       if (iz != null) {
@@ -389,7 +376,6 @@ class TextToSessionObjectParser {
         }
       }
 
-      // STROKE
       Stroke? stroke;
       for (final token in line.split(RegExp(r'\s+'))) {
         final st = _strokeMap[token.toLowerCase()];
@@ -399,13 +385,11 @@ class TextToSessionObjectParser {
         }
       }
 
-      // SWIM WAY
       SwimWay way = SwimWay.swim;
       if (_kickWord.hasMatch(line)) way = SwimWay.kick;
       if (_pullWord.hasMatch(line)) way = SwimWay.pull;
       if (_drillWord.hasMatch(line)) way = SwimWay.drill;
 
-      // EQUIPMENT
       List<EquipmentType> detectedEquipment = [];
       final eq = _equipment.firstMatch(raw);
       if (eq != null) {
@@ -419,7 +403,6 @@ class TextToSessionObjectParser {
         line = line.replaceFirst(eq.group(0)!, '').trim();
       }
 
-      // NOTES (quoted)
       String? notes;
       final q = RegExp(r"'([^']+)'").firstMatch(raw);
       if (q != null) notes = q.group(1);
@@ -440,30 +423,23 @@ class TextToSessionObjectParser {
         subItems: const <SubItem>[],
       );
     } catch (e, st) {
-      FirebaseCrashlytics.instance.recordError(
-        e,
-        st,
-        reason: 'Error in _parseItem(): "$raw"',
-        fatal: false,
-      );
+      _safeError(e, st, reason: 'Error in _parseItem(): "$raw"', fatal: false);
       return null;
     }
   }
 
   // ---------------------------------------------------------------------------
-  // 🧩 SUB-ITEM PARSER
+  // SUB-ITEM PARSER
   // ---------------------------------------------------------------------------
   SubItem? _parseSubItem(String raw, int order) {
     try {
       String line = raw.trim();
       if (line.isEmpty) return null;
 
-      // DISTANCE
       final dm = _distance.firstMatch(line);
       int? dist = dm != null ? int.tryParse(dm.group(1) ?? '0') : null;
       DistanceUnit unit = _parseUnit(dm?.group(2));
 
-      // STROKE
       Stroke? stroke;
       for (final token in line.split(RegExp(r'\s+'))) {
         final st = _strokeMap[token.toLowerCase()];
@@ -473,13 +449,11 @@ class TextToSessionObjectParser {
         }
       }
 
-      // SWIM WAY
       SwimWay way = SwimWay.swim;
       if (_kickWord.hasMatch(line)) way = SwimWay.kick;
       if (_pullWord.hasMatch(line)) way = SwimWay.pull;
       if (_drillWord.hasMatch(line)) way = SwimWay.drill;
 
-      // INTENSITY (optional)
       IntensityZone? zone;
       final iz = _intensityIndex.firstMatch(line);
       if (iz != null) {
@@ -490,7 +464,6 @@ class TextToSessionObjectParser {
         if (iw != null) zone = _mapIntensityWord(iw.group(1)!);
       }
 
-      // EQUIPMENT (optional)
       List<EquipmentType> detectedEquipment = [];
       final eq = _equipment.firstMatch(line);
       if (eq != null) {
@@ -503,7 +476,6 @@ class TextToSessionObjectParser {
         detectedEquipment = equipmentStrings.map(_mapEquipment).toList();
       }
 
-      // NOTES (quoted)
       final q = RegExp(r"'([^']+)'").firstMatch(raw);
       final notes = q?.group(1);
 
@@ -517,18 +489,13 @@ class TextToSessionObjectParser {
         itemNotes: notes,
       );
     } catch (e, st) {
-      FirebaseCrashlytics.instance.recordError(
-        e,
-        st,
-        reason: 'Error in _parseSubItem(): "$raw"',
-        fatal: false,
-      );
+      _safeError(e, st, reason: 'Error in _parseSubItem(): "$raw"', fatal: false);
       return null;
     }
   }
 
   // ---------------------------------------------------------------------------
-  // 🔹 LIGHTWEIGHT SUMMARY
+  // SUMMARY + HELPERS
   // ---------------------------------------------------------------------------
   ParsedSummary parseWithSummary(String? unparsedText, {String? sessionId}) {
     try {
@@ -560,12 +527,7 @@ class TextToSessionObjectParser {
         totalSections: configs.length,
       );
     } catch (e, st) {
-      FirebaseCrashlytics.instance.recordError(
-        e,
-        st,
-        reason: 'Error in parseWithSummary()',
-        fatal: false,
-      );
+      _safeError(e, st, reason: 'Error in parseWithSummary()', fatal: false);
       return ParsedSummary(
         metersByGroup: {},
         totalMeters: 0,
@@ -576,7 +538,7 @@ class TextToSessionObjectParser {
   }
 
   // ---------------------------------------------------------------------------
-  // 🔹 HELPERS
+  // MAPPERS
   // ---------------------------------------------------------------------------
   DistanceUnit _parseUnit(String? u) {
     final s = (u ?? '').toLowerCase();
@@ -668,14 +630,12 @@ class TextToSessionObjectParser {
   EquipmentType _mapEquipment(String name) {
     final n = name.toLowerCase().trim();
 
-    // exact match
     for (final type in EquipmentType.values) {
       for (final kw in type.parsingKeywords) {
         if (n == kw.toLowerCase()) return type;
       }
     }
 
-    // contains match for flexibility
     for (final type in EquipmentType.values) {
       for (final kw in type.parsingKeywords) {
         if (kw.isNotEmpty && n.contains(kw.toLowerCase())) return type;
