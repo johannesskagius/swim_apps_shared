@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../swim_session/generator/enums/distance_units.dart';
 import '../../swim_session/generator/enums/equipment.dart';
+import '../planned/swim_set_config.dart';
 import '../stroke.dart';
 
 @immutable
@@ -13,8 +14,7 @@ class CompletedSetConfiguration {
 
   // Optional snapshot of original (useful if planned set changes later)
   final String? originalSetTitle;
-  final int?
-  originalPlannedDistance; // meters/yards depending on distanceUnitUsed
+  final int? originalPlannedDistance; // meters/yards depending on distanceUnitUsed
   final DistanceUnit? originalDistanceUnit;
   final Stroke? originalStroke;
   final EquipmentType? originalEquipment;
@@ -26,7 +26,9 @@ class CompletedSetConfiguration {
   final EquipmentType? adjustedEquipment;
   final String? adjustmentNote;
 
-  // … any existing fields you already had (splits, reps, etc.)
+  // Extra optional tracking fields
+  final int? actualRepetitions;
+  final Duration? actualDuration;
 
   const CompletedSetConfiguration({
     required this.sessionSetConfigId,
@@ -40,8 +42,13 @@ class CompletedSetConfiguration {
     this.adjustedStroke,
     this.adjustedEquipment,
     this.adjustmentNote,
-    // … add your existing required/optional fields here
+    this.actualRepetitions,
+    this.actualDuration,
   });
+
+  // --------------------------------------------------------------------------
+  // 🔁 Copy helpers
+  // --------------------------------------------------------------------------
 
   CompletedSetConfiguration copyWith({
     String? sessionSetConfigId,
@@ -55,12 +62,14 @@ class CompletedSetConfiguration {
     Stroke? adjustedStroke,
     EquipmentType? adjustedEquipment,
     String? adjustmentNote,
+    int? actualRepetitions,
+    Duration? actualDuration,
   }) {
     return CompletedSetConfiguration(
       sessionSetConfigId: sessionSetConfigId ?? this.sessionSetConfigId,
       originalSetTitle: originalSetTitle ?? this.originalSetTitle,
       originalPlannedDistance:
-          originalPlannedDistance ?? this.originalPlannedDistance,
+      originalPlannedDistance ?? this.originalPlannedDistance,
       originalDistanceUnit: originalDistanceUnit ?? this.originalDistanceUnit,
       originalStroke: originalStroke ?? this.originalStroke,
       originalEquipment: originalEquipment ?? this.originalEquipment,
@@ -69,6 +78,8 @@ class CompletedSetConfiguration {
       adjustedStroke: adjustedStroke ?? this.adjustedStroke,
       adjustedEquipment: adjustedEquipment ?? this.adjustedEquipment,
       adjustmentNote: adjustmentNote ?? this.adjustmentNote,
+      actualRepetitions: actualRepetitions ?? this.actualRepetitions,
+      actualDuration: actualDuration ?? this.actualDuration,
     );
   }
 
@@ -79,8 +90,7 @@ class CompletedSetConfiguration {
     EquipmentType? adjustedEquipment,
     String? adjustmentNote,
   }) {
-    final hasAny =
-        adjustedDistance != null ||
+    final hasAny = adjustedDistance != null ||
         adjustedStroke != null ||
         adjustedEquipment != null ||
         (adjustmentNote != null && adjustmentNote.isNotEmpty);
@@ -95,6 +105,41 @@ class CompletedSetConfiguration {
     );
   }
 
+  // --------------------------------------------------------------------------
+  // 🔁 Factory: convert planned → completed
+  // --------------------------------------------------------------------------
+  factory CompletedSetConfiguration.fromSessionSetConfiguration(
+      SessionSetConfiguration sessionConfig) {
+    final swimSet = sessionConfig.swimSet;
+
+    // Extract planned attributes
+    final int? plannedDistance = swimSet?.totalSetDistance?.toInt();
+    final EquipmentType? mainEquipment = null; // placeholder if SwimSet lacks equipment
+
+    return CompletedSetConfiguration(
+      sessionSetConfigId: sessionConfig.sessionSetConfigId,
+      // 🧭 Original (planned) metadata
+      originalSetTitle: swimSet?.type?.name ??
+          sessionConfig.rawSetTypeHeaderFromText ??
+          'Unnamed Set',
+      originalPlannedDistance: plannedDistance,
+      originalEquipment: mainEquipment,
+      // 🔢 Details from session config
+      actualRepetitions: sessionConfig.repetitions,
+      // 🧠 Adjustments are empty at first
+      wasModified: false,
+      adjustedDistance: null,
+      adjustedStroke: null,
+      adjustedEquipment: null,
+      adjustmentNote: sessionConfig.notesForThisInstanceOfSet,
+      actualDuration: null,
+    );
+  }
+
+  // --------------------------------------------------------------------------
+  // 🗺️ Serialization
+  // --------------------------------------------------------------------------
+
   Map<String, dynamic> toMap() {
     return {
       'sessionSetConfigId': sessionSetConfigId,
@@ -108,7 +153,8 @@ class CompletedSetConfiguration {
       'adjustedStroke': adjustedStroke?.name,
       'adjustedEquipment': adjustedEquipment?.name,
       'adjustmentNote': adjustmentNote,
-      // … include your existing fields too
+      'actualRepetitions': actualRepetitions,
+      'actualDurationSeconds': actualDuration?.inSeconds,
     };
   }
 
@@ -125,7 +171,7 @@ class CompletedSetConfiguration {
     DistanceUnit? _unitFrom(dynamic v) {
       if (v is String) {
         return DistanceUnit.values.firstWhere(
-          (e) => e.name == v,
+              (e) => e.name == v,
           orElse: () => DistanceUnit.meters,
         );
       }
@@ -135,8 +181,8 @@ class CompletedSetConfiguration {
     return CompletedSetConfiguration(
       sessionSetConfigId: (map['sessionSetConfigId'] ?? '') as String,
       originalSetTitle: map['originalSetTitle'] as String?,
-      originalPlannedDistance: (map['originalPlannedDistance'] as num?)
-          ?.toInt(),
+      originalPlannedDistance:
+      (map['originalPlannedDistance'] as num?)?.toInt(),
       originalDistanceUnit: _unitFrom(map['originalDistanceUnit']),
       originalStroke: _strokeFrom(map['originalStroke']),
       originalEquipment: _equipFrom(map['originalEquipment']),
@@ -145,6 +191,38 @@ class CompletedSetConfiguration {
       adjustedStroke: _strokeFrom(map['adjustedStroke']),
       adjustedEquipment: _equipFrom(map['adjustedEquipment']),
       adjustmentNote: map['adjustmentNote'] as String?,
+      actualRepetitions: (map['actualRepetitions'] as num?)?.toInt(),
+      actualDuration: map['actualDurationSeconds'] != null
+          ? Duration(seconds: map['actualDurationSeconds'] as int)
+          : null,
     );
   }
+
+  // --------------------------------------------------------------------------
+  // ⚖️ Helpers
+  // --------------------------------------------------------------------------
+
+  bool get hasAdjustments => wasModified;
+
+  String get summaryText {
+    if (!wasModified) return "";
+    final parts = <String>[];
+    if (adjustedDistance != null) {
+      parts.add("${adjustedDistance!.toInt()}${originalDistanceUnit?.short ?? 'm'}");
+    }
+    if (adjustedStroke != null) {
+      parts.add(adjustedStroke!.name);
+    }
+    if (adjustedEquipment != null) {
+      parts.add(adjustedEquipment!.name);
+    }
+    if (adjustmentNote != null && adjustmentNote!.isNotEmpty) {
+      parts.add("\"$adjustmentNote\"");
+    }
+    return parts.join(" • ");
+  }
+
+  @override
+  String toString() =>
+      'CompletedSetConfiguration(id: $sessionSetConfigId, wasModified: $wasModified, adjustedDistance: $adjustedDistance, adjustedStroke: ${adjustedStroke?.name}, adjustedEquipment: ${adjustedEquipment?.name})';
 }
