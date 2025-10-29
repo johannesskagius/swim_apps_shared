@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+// Removed: Firebase Crashlytics import is no longer needed.
+// import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 
 import '../objects/swim_club.dart';
@@ -7,12 +8,12 @@ import '../objects/swim_club.dart';
 class ClubRepository {
   final FirebaseFirestore _firestore;
   final CollectionReference _clubsCollection;
-  final FirebaseCrashlytics _crashlytics;
 
-  // Dependency injection is used for Firestore and Crashlytics to improve testability.
-  ClubRepository(this._firestore, [FirebaseCrashlytics? crashlytics])
-      : _clubsCollection = _firestore.collection('swimClubs'),
-        _crashlytics = crashlytics ?? FirebaseCrashlytics.instance;
+  // --- Refactoring for Simplicity ---
+  // The constructor no longer accepts or initializes FirebaseCrashlytics.
+  // This makes the repository more focused and easier to instantiate, especially in tests.
+  ClubRepository(this._firestore)
+      : _clubsCollection = _firestore.collection('swimClubs');
 
   /// Adds a new club to Firestore.
   ///
@@ -25,13 +26,12 @@ class ClubRepository {
       final data = club.toJson()..remove('id');
       final DocumentReference docRef = await _clubsCollection.add(data);
       return docRef.id;
-    } on FirebaseException catch (e, s) {
-      // Catching a specific FirebaseException is better than a generic 'catch (e)'.
-      // This allows the calling code to handle specific Firestore-related errors.
-      debugPrint('Error adding club to Firestore: ${e.message}');
-      // Log the specific error to Crashlytics for monitoring.
-      await _crashlytics.recordError(e, s, reason: 'Failed to add club');
-      // Re-throwing the original exception to let the UI layer handle it.
+    } on FirebaseException catch (e) {
+      // --- Error Handling Improvement ---
+      // The error is still caught specifically, and a descriptive message is printed
+      // to the debug console for development purposes. The Crashlytics logging is removed.
+      debugPrint('🔥 Firestore Error adding club: ${e.message}');
+      // Re-throwing the original exception remains crucial to let the UI layer handle it.
       rethrow;
     }
   }
@@ -44,10 +44,9 @@ class ClubRepository {
   /// during data parsing, allowing the caller to differentiate between a "not found"
   /// state and a system error.
   Future<SwimClub?> getClub(String clubId) async {
-    // Precondition check: An empty ID is an invalid argument, not a system error.
-    // Returning null here is appropriate as it's a predictable outcome.
+    // Precondition check: An empty ID is an invalid argument.
     if (clubId.isEmpty) {
-      debugPrint("Error: clubId cannot be empty.");
+      debugPrint("⚠️ Error: clubId cannot be empty.");
       return null;
     }
 
@@ -55,30 +54,27 @@ class ClubRepository {
       final DocumentSnapshot doc = await _clubsCollection.doc(clubId).get();
 
       if (!doc.exists) {
-        // This is not an error, but an expected outcome if the club doesn't exist.
-        // Logging it can help debug issues where an ID was expected to exist.
+        // This is not an error but an expected outcome if the club doesn't exist.
         debugPrint("No club document found for ID: $clubId");
         return null;
       }
 
-      // Safely parse the data. If doc.data() is null or not a Map, it will throw,
-      // which is caught below. This prevents crashes from malformed data in Firestore.
+      // Safely parse the data. If doc.data() is null or not a Map, it will throw an
+      // exception, which is caught below. This prevents crashes from malformed data.
       return SwimClub.fromJson(doc.data() as Map<String, dynamic>, doc.id);
 
-    } on FirebaseException catch (e, s) {
-      // This block handles specific errors from Firestore (e.g., network issues, permission denied).
-      debugPrint("Error getting club $clubId: ${e.message}");
-      // Log this non-fatal error to Crashlytics to monitor API health and reliability.
-      await _crashlytics.recordError(e, s, reason: 'Failed to get club document');
-      // Propagate the error so the UI can display an appropriate error message
-      // instead of just showing nothing.
+    } on FirebaseException catch (e) {
+      // --- Error Handling Improvement ---
+      // This block handles specific errors from Firestore (e.g., network issues).
+      // The error is logged to the console, and the exception is re-thrown.
+      debugPrint("🔥 Firestore Error getting club $clubId: ${e.message}");
       rethrow;
     } catch (e, s) {
-      // This is a fallback for any other unexpected errors, such as a data parsing
-      // failure in SwimClub.fromJson. This is critical for catching data consistency issues.
-      debugPrint("An unexpected error occurred while processing club $clubId: $e");
-      await _crashlytics.recordError(e, s, reason: 'Failed to parse club data');
-      // Re-throwing ensures the caller knows the operation failed unexpectedly.
+      // --- Error Handling Improvement ---
+      // This is a critical fallback for any other unexpected errors, such as a data parsing
+      // failure in SwimClub.fromJson. This is important for catching data consistency issues.
+      // The error is logged to the console with its stack trace for easier debugging.
+      debugPrint("An unexpected error occurred while processing club $clubId: $e\n$s");
       rethrow;
     }
   }

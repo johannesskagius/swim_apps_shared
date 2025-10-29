@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/cupertino.dart';
+
+// Removed: Firebase Crashlytics import is no longer needed.
+// import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 
 import '../auth_service.dart';
 import '../objects/user/swimmer.dart';
@@ -11,57 +13,57 @@ import 'base_repository.dart';
 class UserRepository extends BaseRepository {
   final FirebaseFirestore _db;
   final AuthService _authService;
-  final FirebaseCrashlytics _crashlytics;
 
+  // --- Refactoring for Simplicity ---
+  // The constructor is simplified to only require essential dependencies (_db and _authService).
+  // The optional FirebaseCrashlytics parameter and the private _crashlytics field are removed.
   UserRepository(
-    this._db, {
-    required AuthService authService,
-    FirebaseCrashlytics? crashlytics,
-  }) : _authService = authService,
-       _crashlytics = crashlytics ?? FirebaseCrashlytics.instance;
+      this._db, {
+        required AuthService authService,
+      }) : _authService = authService;
 
   CollectionReference get usersCollection => _db.collection('users');
 
   CollectionReference get _coachesCollection => _db.collection('coaches');
 
   /// Helper function to map a QuerySnapshot to a list of AppUser objects.
-  /// This reduces code duplication in stream-based methods.
+  /// This reduces code duplication in stream-based methods and isolates parsing logic.
   List<AppUser> _mapSnapshotToUsers(QuerySnapshot snapshot) {
     final users = <AppUser>[];
     for (final doc in snapshot.docs) {
       try {
-        // Refactored to use a helper for safer parsing
+        // Use a safe parsing helper to handle potential data corruption.
         final user = _parseUserDoc(doc);
         if (user != null) {
           users.add(user);
         }
       } catch (e, s) {
-        // Log non-fatal parsing errors to Crashlytics to monitor data integrity issues.
+        // --- Error Handling Improvement ---
+        // Instead of logging to Crashlytics, a detailed error is printed to the
+        // debug console. This helps identify data integrity issues during development.
         final errorMessage = "Error parsing user ${doc.id} in a stream: $e";
         debugPrint(errorMessage);
         debugPrintStack(stackTrace: s);
-        _crashlytics.recordError(e, s, reason: errorMessage);
       }
     }
     return users;
   }
 
   /// Safely parses a DocumentSnapshot into an AppUser.
-  /// Returns null if data is invalid, and logs the issue.
+  /// Returns null if the data is invalid, and prints a warning.
   AppUser? _parseUserDoc(DocumentSnapshot doc) {
     final raw = doc.data();
     if (raw is! Map<String, dynamic>) {
-      // This indicates a data integrity issue, worth logging to Crashlytics.
+      // --- Error Handling Improvement ---
+      // Invalid data type is a data integrity issue. We log it to the console
+      // and return null to prevent a crash.
       final errorMessage =
           "⚠️ Skipped user ${doc.id} — data type ${raw.runtimeType} is not a Map.";
       debugPrint(errorMessage);
-      _crashlytics.recordError(
-        Exception(errorMessage),
-        null,
-        reason: 'Invalid data type in Firestore',
-      );
       return null;
     }
+    // The fromJson method could still throw if fields are missing/wrong type.
+    // This is caught by the calling function's try-catch block.
     return AppUser.fromJson(doc.id, raw);
   }
 
@@ -83,15 +85,11 @@ class UserRepository extends BaseRepository {
         .snapshots()
         .map(_mapSnapshotToUsers)
         .handleError((error, stackTrace) {
-          // Catch and log errors from the stream itself (e.g., permission denied).
-          debugPrint("Error in getUsersByClub stream: $error");
-          _crashlytics.recordError(
-            error,
-            stackTrace,
-            reason: 'Stream failure in getUsersByClub',
-          );
-          return <AppUser>[];
-        });
+      // Catch and log errors from the stream itself (e.g., permission denied).
+      debugPrint("🔥 Error in getUsersByClub stream: $error");
+      // Return an empty list to keep the stream alive and the UI stable.
+      return <AppUser>[];
+    });
   }
 
   // --- STREAM: Users created by me ---
@@ -104,15 +102,10 @@ class UserRepository extends BaseRepository {
         .snapshots()
         .map(_mapSnapshotToUsers)
         .handleError((error, stackTrace) {
-          // Catch and log errors from the stream itself.
-          debugPrint("Error in getUsersCreatedByMe stream: $error");
-          _crashlytics.recordError(
-            error,
-            stackTrace,
-            reason: 'Stream failure in getUsersCreatedByMe',
-          );
-          return <AppUser>[];
-        });
+      // Catch and log errors from the stream itself.
+      debugPrint("🔥 Error in getUsersCreatedByMe stream: $error");
+      return <AppUser>[];
+    });
   }
 
   // --- CREATE: Swimmer ---
@@ -134,26 +127,22 @@ class UserRepository extends BaseRepository {
       lastName: lastName,
     )..userType = UserType.swimmer;
 
-    // A try-catch block is added to handle potential Firestore write errors.
     try {
       await newDocRef.set(newSwimmer.toJson());
       return newSwimmer;
-    } catch (e, s) {
-      debugPrint("Error creating swimmer document: $e");
-      // This is a critical failure, so we rethrow to let the caller handle it.
-      _crashlytics.recordError(e, s, reason: 'Failed to create swimmer');
+    } catch (e) {
+      debugPrint("🔥 Error creating swimmer document: $e");
+      // This is a critical failure, so we rethrow to let the caller handle it (e.g., show a dialog).
       throw Exception("Failed to create swimmer: $e");
     }
   }
 
   // --- UPDATE: Profile ---
   Future<void> updateMyProfile({required AppUser appUser}) async {
-    // Added try-catch for robust error handling during updates.
     try {
       await usersCollection.doc(appUser.id).update(appUser.toJson());
-    } catch (e, s) {
-      debugPrint("Error updating user profile ${appUser.id}: $e");
-      _crashlytics.recordError(e, s, reason: 'Failed to update user profile');
+    } catch (e) {
+      debugPrint("🔥 Error updating user profile ${appUser.id}: $e");
       // Rethrow to allow the UI to show an error message.
       throw Exception("Failed to update profile: $e");
     }
@@ -162,24 +151,21 @@ class UserRepository extends BaseRepository {
   // --- GET: Single User ---
   Future<AppUser?> getUserDocument(String uid) async {
     if (uid.isEmpty) {
-      debugPrint("Error: UID cannot be empty when fetching user document.");
+      debugPrint("⚠️ Error: UID cannot be empty when fetching user document.");
       return null;
     }
 
     try {
       final DocumentSnapshot userDoc = await usersCollection.doc(uid).get();
 
-      // Added a check to ensure the document exists before processing.
       if (!userDoc.exists) {
         debugPrint("No user document found for UID: $uid");
         return null;
       }
-
-      // Re-using the safe parsing helper function.
       return _parseUserDoc(userDoc);
-    } catch (e, s) {
-      debugPrint("Error fetching user document for UID $uid: $e");
-      _crashlytics.recordError(e, s, reason: 'Failed to fetch user document');
+    } catch (e) {
+      debugPrint("🔥 Error fetching user document for UID $uid: $e");
+      // Return null to indicate failure without crashing.
       return null;
     }
   }
@@ -190,8 +176,7 @@ class UserRepository extends BaseRepository {
 
     try {
       final users = <AppUser>[];
-      // Firestore 'whereIn' queries are limited to 30 elements per query now.
-      // This logic correctly handles batching for larger lists.
+      // Firestore 'whereIn' queries are limited to 30 elements. Batching handles larger lists.
       for (var i = 0; i < userIds.length; i += 30) {
         final chunk = userIds.sublist(
           i,
@@ -203,7 +188,6 @@ class UserRepository extends BaseRepository {
 
         for (final doc in snapshot.docs) {
           try {
-            // Using the safe parser for each document in the batch.
             final user = _parseUserDoc(doc);
             if (user != null) {
               users.add(user);
@@ -211,14 +195,13 @@ class UserRepository extends BaseRepository {
           } catch (e, s) {
             final errorMessage = "Error parsing user ${doc.id} in batch: $e";
             debugPrint(errorMessage);
-            _crashlytics.recordError(e, s, reason: errorMessage);
+            debugPrintStack(stackTrace: s);
           }
         }
       }
       return users;
-    } catch (e, s) {
-      debugPrint("Error fetching users by IDs: $e");
-      _crashlytics.recordError(e, s, reason: 'Failed to fetch users by IDs');
+    } catch (e) {
+      debugPrint("🔥 Error fetching users by IDs: $e");
       return [];
     }
   }
@@ -238,33 +221,20 @@ class UserRepository extends BaseRepository {
       for (final doc in snapshot.docs) {
         final raw = doc.data();
         if (raw is! Map<String, dynamic>) {
-          final msg =
-              "⚠️ Skipped swimmer ${doc.id} — data type ${raw.runtimeType}.";
-          debugPrint(msg);
-          _crashlytics.recordError(
-            Exception(msg),
-            null,
-            reason: 'Invalid data type for swimmer',
-          );
+          debugPrint("⚠️ Skipped swimmer ${doc.id} — data type ${raw.runtimeType}.");
           continue;
         }
         try {
-          // It's crucial to wrap individual JSON parsing in its own try-catch.
           swimmers.add(Swimmer.fromJson(doc.id, raw));
         } catch (e, s) {
           final errorMessage = "Error parsing swimmer ${doc.id}: $e";
           debugPrint(errorMessage);
-          _crashlytics.recordError(e, s, reason: errorMessage);
+          debugPrintStack(stackTrace: s);
         }
       }
       return swimmers;
-    } catch (e, s) {
-      debugPrint("Error fetching swimmers from coach: $e");
-      _crashlytics.recordError(
-        e,
-        s,
-        reason: 'Failed to fetch swimmers from coach',
-      );
+    } catch (e) {
+      debugPrint("🔥 Error fetching swimmers from coach: $e");
       return [];
     }
   }
@@ -273,9 +243,8 @@ class UserRepository extends BaseRepository {
   Future<void> createAppUser({required AppUser newUser}) async {
     try {
       await usersCollection.doc(newUser.id).set(newUser.toJson());
-    } catch (e, s) {
-      debugPrint("Error creating app user ${newUser.id}: $e");
-      _crashlytics.recordError(e, s, reason: 'Failed to create app user');
+    } catch (e) {
+      debugPrint("🔥 Error creating app user ${newUser.id}: $e");
       throw Exception("Failed to create user: $e");
     }
   }
@@ -283,9 +252,8 @@ class UserRepository extends BaseRepository {
   Future<void> updateUser(AppUser updatedUser) async {
     try {
       await usersCollection.doc(updatedUser.id).set(updatedUser.toJson());
-    } catch (e, s) {
-      debugPrint("Error updating user ${updatedUser.id}: $e");
-      _crashlytics.recordError(e, s, reason: 'Failed to update user');
+    } catch (e) {
+      debugPrint("🔥 Error updating user ${updatedUser.id}: $e");
       throw Exception("Failed to update user: $e");
     }
   }
@@ -295,8 +263,6 @@ class UserRepository extends BaseRepository {
     try {
       final doc = await _coachesCollection.doc(coachId).get();
 
-      // Added an explicit check for document existence. This prevents crashes
-      // if the coach document is not found, which is a possible scenario.
       if (!doc.exists) {
         debugPrint("Legacy coach document not found for ID: $coachId");
         return null;
@@ -304,23 +270,12 @@ class UserRepository extends BaseRepository {
 
       final raw = doc.data();
       if (raw is! Map<String, dynamic>) {
-        final msg =
-            "⚠️ Skipped coach ${doc.id} — invalid type ${raw.runtimeType}.";
-        debugPrint(msg);
-        _crashlytics.recordError(
-          Exception(msg),
-          null,
-          reason: 'Invalid data type for legacy coach',
-        );
+        debugPrint("⚠️ Skipped coach ${doc.id} — invalid type ${raw.runtimeType}.");
         return null;
       }
-
-      // The fromJson method itself could throw an error if the data is malformed.
-      // This is now caught by the outer try-catch block.
       return AppUser.fromJson(doc.id, raw);
-    } catch (e, s) {
-      debugPrint("Error getting coach $coachId: $e");
-      _crashlytics.recordError(e, s, reason: 'Failed to get legacy coach');
+    } catch (e) {
+      debugPrint("🔥 Error getting coach $coachId: $e");
       return null;
     }
   }
@@ -329,7 +284,6 @@ class UserRepository extends BaseRepository {
   Future<AppUser?> getMyProfile() async {
     final myUid = _authService.currentUserId;
     if (myUid != null) {
-      // This method already has robust error handling, so we can call it safely.
       return await getUserDocument(myUid);
     }
     return null;

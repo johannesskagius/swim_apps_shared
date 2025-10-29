@@ -1,14 +1,9 @@
 // TextToSessionObjectParser.dart
-// Fully instrumented with safe Firebase Crashlytics logging (no early init crash).
-// Keeps same parsing logic as your previous version.
+// Clean, platform-safe version (no Firebase Crashlytics).
 
 import 'dart:async' show unawaited;
-import 'dart:io';
-
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:swim_apps_shared/swim_session/generator/parsed_summary.dart';
 
 import '../../objects/intensity_zones.dart';
@@ -22,39 +17,8 @@ import 'enums/equipment.dart';
 import 'enums/set_types.dart';
 import 'enums/swim_way.dart';
 
-/// ✅ Safe Crashlytics helpers
-void _safeLog(String message) {
-  if (Platform.isIOS || Platform.isAndroid) {
-    try {
-      if (Firebase.apps.isNotEmpty) {
-        FirebaseCrashlytics.instance.log(message);
-      }
-    } catch (_) {
-      debugPrint('[Crashlytics skipped log] $message');
-    }
-  }
-}
-
-void _safeError(Object e, StackTrace st, {String? reason, bool fatal = false}) {
-  if (Platform.isIOS || Platform.isAndroid) {
-    try {
-      if (Firebase.apps.isNotEmpty) {
-        FirebaseCrashlytics.instance.recordError(
-          e,
-          st,
-          reason: reason,
-          fatal: fatal,
-        );
-      }
-    } catch (_) {
-      debugPrint('[Crashlytics skipped error] $reason');
-    }
-  }
-}
-
-/// 🧠 Context-unaware parser for AI-generated swim text.
-/// Parses sections, items, sub-items, intensities, intervals, and equipment.
-/// Adds safe Crashlytics breadcrumbs and error capture.
+/// 🧠 Parser for AI-generated swim text.
+/// No Crashlytics — just safe local logging for debug visibility.
 class TextToSessionObjectParser {
   final RegExp _lineBreak = RegExp(r'\r\n?|\n');
   static int _idCounter = 0;
@@ -62,40 +26,34 @@ class TextToSessionObjectParser {
   String _id([String prefix = 'id']) =>
       '${prefix}_${++_idCounter}_${DateTime.now().millisecondsSinceEpoch}';
 
+  void _log(String msg) {
+    if (kDebugMode) debugPrint('[Parser] $msg');
+  }
+
   // --- REGEX DEFINITIONS ---
   static final RegExp _sectionHeader = RegExp(
     r'^\s*(warm\s*up|main\s*set|pre\s*set|post\s*set|cool\s*down|kick\s*set|pull\s*set|drill\s*set|sprint\s*set|recovery|technique\s*set|main|warmup|cooldown)\b',
     caseSensitive: false,
   );
 
-  static final RegExp _groupTag = RegExp(
-    r"#group[:\-\s]*([A-Za-z0-9_ ]+?)(?=\s*[\d\'#]|$)",
-    caseSensitive: false,
-  );
+  static final RegExp _groupTag =
+  RegExp(r"#group[:\-\s]*([A-Za-z0-9_ ]+?)(?=\s*[\d\'#]|$)", caseSensitive: false);
 
-  static final RegExp _swimmerTag = RegExp(
-    r"#swimmers?\s+([^#\n\r]+)",
-    caseSensitive: false,
-  );
+  static final RegExp _swimmerTag =
+  RegExp(r"#swimmers?\s+([^#\n\r]+)", caseSensitive: false);
 
-  static final RegExp _standaloneReps = RegExp(
-    r'^\s*(\d+)\s*(?:x|rounds?)\s*$',
-    caseSensitive: false,
-  );
+  static final RegExp _standaloneReps =
+  RegExp(r'^\s*(\d+)\s*(?:x|rounds?)\s*$', caseSensitive: false);
 
-  static final RegExp _inlineReps = RegExp(
-    r'^\s*(\d+)\s*x\s*',
-    caseSensitive: false,
-  );
+  static final RegExp _inlineReps =
+  RegExp(r'^\s*(\d+)\s*x\s*', caseSensitive: false);
 
   static final RegExp _distance = RegExp(r'^\s*(\d+)\s*([A-Za-z]{0,10})');
 
   static final RegExp _interval = RegExp(r'@?\s*(\d{1,2}):(\d{2})');
 
-  static final RegExp _intensityIndex = RegExp(
-    r'\bi\s*([1-5])\b',
-    caseSensitive: false,
-  );
+  static final RegExp _intensityIndex =
+  RegExp(r'\bi\s*([1-5])\b', caseSensitive: false);
 
   static final RegExp _intensityWord = RegExp(
     r'\b(max|easy|moderate|hard|threshold|sp1|sp2|sp3|drill|race|racepace|rp)\b',
@@ -121,39 +79,22 @@ class TextToSessionObjectParser {
     'im': Stroke.medley,
   };
 
-  static final RegExp _kickWord = RegExp(
-    r'\bkick(ing)?\b',
-    caseSensitive: false,
-  );
-  static final RegExp _pullWord = RegExp(
-    r'\bpull(ing)?\b',
-    caseSensitive: false,
-  );
-  static final RegExp _drillWord = RegExp(
-    r'\bdrill(s)?\b',
-    caseSensitive: false,
-  );
+  static final RegExp _kickWord = RegExp(r'\bkick(ing)?\b', caseSensitive: false);
+  static final RegExp _pullWord = RegExp(r'\bpull(ing)?\b', caseSensitive: false);
+  static final RegExp _drillWord = RegExp(r'\bdrill(s)?\b', caseSensitive: false);
 
   // ---------------------------------------------------------------------------
   // 🔹 MAIN ENTRY POINT
   // ---------------------------------------------------------------------------
-  List<SessionSetConfiguration> parse(
-    String? unparsedText, {
-    String? sessionId,
-  }) {
+  List<SessionSetConfiguration> parse(String? unparsedText, {String? sessionId}) {
     final user = FirebaseAuth.instance.currentUser;
     final userId = user?.uid ?? 'anonymous';
 
-    // Safe Crashlytics identifier setup
-    try {
-      unawaited(FirebaseCrashlytics.instance.setUserIdentifier(userId));
-    } catch (_) {}
-
-    _safeLog('parse() start | user=$userId | session=${sessionId ?? 'none'}');
+    _log('parse() start | user=$userId | session=${sessionId ?? 'none'}');
 
     try {
       if (unparsedText == null || unparsedText.trim().isEmpty) {
-        _safeLog('Empty input text — returning [].');
+        _log('Empty input text — returning [].');
         return [];
       }
 
@@ -174,63 +115,50 @@ class TextToSessionObjectParser {
       final unparsedBuffer = <String>[];
 
       void flushSection() {
-        try {
-          if (currentConfig == null) return;
+        if (currentConfig == null) return;
 
-          final snapshot = currentConfig!.copyWith(
-            unparsedTextLines: List.from(unparsedBuffer),
-          );
+        final snapshot = currentConfig!.copyWith(
+          unparsedTextLines: List.from(unparsedBuffer),
+        );
 
-          if (currentItems.isEmpty) {
-            _safeLog(
-              "Flushing empty section '${snapshot.rawSetTypeHeaderFromText}'",
-            );
-            configs.add(snapshot);
-            currentConfig = null;
-            sectionReps = 1;
-            sectionGroups.clear();
-            sectionSwimmers.clear();
-            unparsedBuffer.clear();
-            return;
-          }
-
-          final swimSet =
-              (snapshot.swimSet ??
-                      SwimSet(
-                        setId: _id('set'),
-                        type: currentType,
-                        items: const [],
-                      ))
-                  .copyWith(
-                    items: List.from(currentItems),
-                    assignedGroupNames: sectionGroups
-                        .map((e) => e.toLowerCase().trim())
-                        .toList(),
-                  );
-
-          final done = snapshot.copyWith(
-            repetitions: sectionReps,
-            swimSet: swimSet,
-            specificGroupIds: sectionGroups
-                .map((e) => e.toLowerCase().trim())
-                .toList(),
-            specificSwimmerIds: sectionSwimmers.toList(),
-          );
-
-          _safeLog(
-            "Flushed section '${snapshot.rawSetTypeHeaderFromText}' with ${currentItems.length} items, reps=$sectionReps, groups=${sectionGroups.join(',')}",
-          );
-
-          configs.add(done);
+        if (currentItems.isEmpty) {
+          _log("Flushing empty section '${snapshot.rawSetTypeHeaderFromText}'");
+          configs.add(snapshot);
           currentConfig = null;
-          currentItems.clear();
           sectionReps = 1;
           sectionGroups.clear();
           sectionSwimmers.clear();
           unparsedBuffer.clear();
-        } catch (e, st) {
-          _safeError(e, st, reason: 'flushSection() failed', fatal: false);
+          return;
         }
+
+        final swimSet = (snapshot.swimSet ??
+            SwimSet(setId: _id('set'), type: currentType, items: const []))
+            .copyWith(
+          items: List.from(currentItems),
+          assignedGroupNames:
+          sectionGroups.map((e) => e.toLowerCase().trim()).toList(),
+        );
+
+        final done = snapshot.copyWith(
+          repetitions: sectionReps,
+          swimSet: swimSet,
+          specificGroupIds:
+          sectionGroups.map((e) => e.toLowerCase().trim()).toList(),
+          specificSwimmerIds: sectionSwimmers.toList(),
+        );
+
+        _log("Flushed section '${snapshot.rawSetTypeHeaderFromText}' "
+            "with ${currentItems.length} items, reps=$sectionReps, "
+            "groups=${sectionGroups.join(',')}");
+
+        configs.add(done);
+        currentConfig = null;
+        currentItems.clear();
+        sectionReps = 1;
+        sectionGroups.clear();
+        sectionSwimmers.clear();
+        unparsedBuffer.clear();
       }
 
       int sectionCount = 0;
@@ -241,7 +169,7 @@ class TextToSessionObjectParser {
         try {
           final hdr = _sectionHeader.firstMatch(raw);
           if (hdr != null) {
-            _safeLog("Section header: '${hdr.group(0)}'");
+            _log("Section header: '${hdr.group(0)}'");
             flushSection();
             currentType = _mapSectionType(hdr.group(1)!);
             sectionReps = 1;
@@ -279,37 +207,32 @@ class TextToSessionObjectParser {
           if (rep != null) {
             final val = int.tryParse(rep.group(1) ?? '1') ?? 1;
             sectionReps *= val;
-            _safeLog('Section reps now $sectionReps');
+            _log('Section reps now $sectionReps');
             continue;
           }
 
           final addedGroups = _extractGroups(raw);
           if (addedGroups.isNotEmpty) {
             sectionGroups.addAll(addedGroups);
-            _safeLog('Inline #group found: ${addedGroups.join(", ")}');
+            _log('Inline #group found: ${addedGroups.join(", ")}');
           }
 
           final addedSwimmers = _extractSwimmers(raw);
           if (addedSwimmers.isNotEmpty) {
             sectionSwimmers.addAll(addedSwimmers);
-            _safeLog('Inline #swimmers found: ${addedSwimmers.join(", ")}');
+            _log('Inline #swimmers found: ${addedSwimmers.join(", ")}');
           }
 
           final subMatch = _subItemLine.firstMatch(raw);
           if (subMatch != null && currentItems.isNotEmpty) {
             final lastParent = currentItems.last;
             final existingSubItems = lastParent.subItems ?? const <SubItem>[];
-            final sub = _parseSubItem(
-              subMatch.group(1)!,
-              existingSubItems.length,
-            );
+            final sub = _parseSubItem(subMatch.group(1)!, existingSubItems.length);
             if (sub != null) {
-              final updatedSubItems = List<SubItem>.from(existingSubItems)
-                ..add(sub);
-              currentItems[currentItems.length - 1] = lastParent.copyWith(
-                subItems: updatedSubItems,
-              );
-              _safeLog("Added subitem '${subMatch.group(1)}'");
+              final updatedSubItems = List<SubItem>.from(existingSubItems)..add(sub);
+              currentItems[currentItems.length - 1] =
+                  lastParent.copyWith(subItems: updatedSubItems);
+              _log("Added subitem '${subMatch.group(1)}'");
             }
             continue;
           }
@@ -335,27 +258,20 @@ class TextToSessionObjectParser {
               unparsedTextLines: const [],
             );
             currentItems.add(item);
-            _safeLog("Parsed item: '$raw'");
+            _log("Parsed item: '$raw'");
             itemOrder++;
           }
         } catch (e, st) {
-          _safeError(e, st, reason: 'Parser line error: "$raw"', fatal: false);
+          _log('Parser line error: "$raw" — $e\n$st');
         }
       }
 
       flushSection();
 
-      if (kDebugMode) {
-        final groups = configs
-            .expand((c) => c.swimSet?.assignedGroupNames ?? [])
-            .toSet();
-        debugPrint("Parsed ${configs.length} sections, groups: $groups");
-      }
-
-      _safeLog("Completed parsing ${configs.length} sections");
+      _log("Completed parsing ${configs.length} sections");
       return configs;
     } catch (e, st) {
-      _safeError(e, st, reason: 'Critical failure in parse()', fatal: true);
+      _log('Critical failure in parse(): $e\n$st');
       return [];
     }
   }
@@ -368,10 +284,7 @@ class TextToSessionObjectParser {
       String line = raw.trim();
       if (line.isEmpty) return null;
 
-      final restMatch = RegExp(
-        r'(\d{1,2}):(\d{2})\s*rest',
-        caseSensitive: false,
-      ).firstMatch(line);
+      final restMatch = RegExp(r'(\d{1,2}):(\d{2})\s*rest', caseSensitive: false).firstMatch(line);
       if (restMatch != null) {
         final mm = int.tryParse(restMatch.group(1) ?? '0') ?? 0;
         final ss = int.tryParse(restMatch.group(2) ?? '0') ?? 0;
@@ -475,7 +388,7 @@ class TextToSessionObjectParser {
         subItems: const <SubItem>[],
       );
     } catch (e, st) {
-      _safeError(e, st, reason: 'Error in _parseItem(): "$raw"', fatal: false);
+      _log('Error in _parseItem(): "$raw" — $e\n$st');
       return null;
     }
   }
@@ -541,12 +454,7 @@ class TextToSessionObjectParser {
         itemNotes: notes,
       );
     } catch (e, st) {
-      _safeError(
-        e,
-        st,
-        reason: 'Error in _parseSubItem(): "$raw"',
-        fatal: false,
-      );
+      _log('Error in _parseSubItem(): "$raw" — $e\n$st');
       return null;
     }
   }
@@ -564,8 +472,7 @@ class TextToSessionObjectParser {
       for (final config in configs) {
         final groupNames = config.swimSet?.assignedGroupNames ?? ['all'];
         for (final item in config.swimSet?.items ?? []) {
-          final double dist =
-              (item.itemDistance.toDouble() *
+          final double dist = (item.itemDistance.toDouble() *
               (item.itemRepetition ?? 1) *
               (config.repetitions));
           totalItems++;
@@ -585,7 +492,7 @@ class TextToSessionObjectParser {
         totalSections: configs.length,
       );
     } catch (e, st) {
-      _safeError(e, st, reason: 'Error in parseWithSummary()', fatal: false);
+      _log('Error in parseWithSummary(): $e\n$st');
       return ParsedSummary(
         metersByGroup: {},
         totalMeters: 0,
@@ -687,19 +594,16 @@ class TextToSessionObjectParser {
 
   EquipmentType _mapEquipment(String name) {
     final n = name.toLowerCase().trim();
-
     for (final type in EquipmentType.values) {
       for (final kw in type.parsingKeywords) {
         if (n == kw.toLowerCase()) return type;
       }
     }
-
     for (final type in EquipmentType.values) {
       for (final kw in type.parsingKeywords) {
         if (kw.isNotEmpty && n.contains(kw.toLowerCase())) return type;
       }
     }
-
     return EquipmentType.other;
   }
 }

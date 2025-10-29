@@ -30,15 +30,8 @@ export 'swim_session/generator/utils/distance_util.dart';
 export 'swim_session/generator/utils/durationRounding.dart';
 export 'swim_session/generator/utils/duration_util.dart';
 export 'swim_session/generator/utils/num_extensions.dart';
-export 'swim_session/generator/utils/parsing/equipment_parser_util.dart';
-export 'swim_session/generator/utils/parsing/interval_parser_util.dart';
-export 'swim_session/generator/utils/parsing/item_note_parser_util.dart';
 export 'swim_session/generator/utils/parsing/matched_section.dart';
 export 'swim_session/generator/utils/parsing/parsed_component.dart';
-export 'swim_session/generator/utils/parsing/section_header_parser_util.dart';
-export 'swim_session/generator/utils/parsing/section_title_parser_util.dart';
-export 'swim_session/generator/utils/parsing/swim_way_stroke_parser_util.dart';
-export 'swim_session/generator/utils/parsing/tag_parser_util.dart';
 export 'swim_session/session_focuses/endurance_focus.dart';
 export 'swim_session/session_focuses/im_focus.dart';
 export 'swim_session/session_focuses/max_velocity.dart';
@@ -49,6 +42,3 @@ export 'swim_session/session_focuses/speed_focus.dart';
 export 'swim_session/session_focuses/technique_focus.dart';
 export 'swim_session/session_focuses/training_focus.dart';
 export 'swim_session/training_focus_factory.dart';
-
-//Crashlytics
-export 'safe_crashlytics.dart';

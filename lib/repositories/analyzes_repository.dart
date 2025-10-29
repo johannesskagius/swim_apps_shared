@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 
 import '../objects/off_the_block_model.dart';
@@ -8,10 +7,8 @@ import 'base_repository.dart';
 
 class AnalyzesRepository extends BaseRepository {
   final FirebaseFirestore _db;
-  final FirebaseCrashlytics _crashlytics;
 
-  AnalyzesRepository(this._db, {FirebaseCrashlytics? crashlytics})
-    : _crashlytics = crashlytics ?? FirebaseCrashlytics.instance;
+  AnalyzesRepository(this._db);
 
   // --- Collection References with Robust Converters ---
 
@@ -22,32 +19,35 @@ class AnalyzesRepository extends BaseRepository {
     required T Function(DocumentSnapshot<Map<String, dynamic>>) fromFirestore,
     required Map<String, Object?> Function(T, SetOptions?) toFirestore,
   }) {
-    return _db
-        .collection(path)
-        .withConverter<T>(
-          fromFirestore: (snapshot, _) {
-            // This try-catch block handles potential errors during data parsing.
-            try {
-              if (!snapshot.exists || snapshot.data() == null) {
-                // This is a valid case, but good to be aware of if an ID was expected to exist.
-                throw Exception(
-                  "Document ${snapshot.id} in '$path' does not exist or has null data.",
-                );
-              }
-              return fromFirestore(snapshot);
-            } catch (e, s) {
-              final errorMsg =
-                  "Failed to parse document ${snapshot.id} in '$path'. Error: $e";
-              debugPrint("🔥 $errorMsg");
-              // Report the parsing error to Crashlytics as a non-fatal issue.
-              _crashlytics.recordError(e, s, reason: errorMsg, fatal: false);
-              // FIX: Rethrow the error to be caught by the calling method,
-              // which will then skip this individual document.
-              rethrow;
-            }
-          },
-          toFirestore: toFirestore,
-        );
+    return _db.collection(path).withConverter<T>(
+      fromFirestore: (snapshot, _) {
+        // This try-catch block handles potential errors during data parsing.
+        try {
+          if (!snapshot.exists || snapshot.data() == null) {
+            // This is a valid case where a document might not exist.
+            // We throw an exception to signal that parsing cannot proceed.
+            throw Exception(
+              "Document ${snapshot.id} in '$path' does not exist or has null data.",
+            );
+          }
+          // Attempt to parse the document using the provided fromFirestore function.
+          return fromFirestore(snapshot);
+        } catch (e, s) {
+          // --- Error Handling Improvement ---
+          // Instead of logging to an external service, we print a detailed
+          // error message to the debug console, which is useful during development.
+          final errorMsg =
+              "Failed to parse document ${snapshot.id} in '$path'. Error: $e";
+          debugPrint("🔥 [Firestore Parser Error] $errorMsg\n$s");
+
+          // Re-throw the error. This is crucial as it allows the calling code
+          // (like `_fetchFromQuery` or a Stream `.map`) to catch this specific
+          // failure and skip the corrupted document without crashing.
+          rethrow;
+        }
+      },
+      toFirestore: toFirestore,
+    );
   }
 
   // --- Race Analyses ---
@@ -67,102 +67,86 @@ class AnalyzesRepository extends BaseRepository {
         toFirestore: (analysis, _) => analysis.toMap(),
       );
 
-  // --- CRUD Methods for Off The Block Analyses ---
+  // --- Generic Data Fetching Logic ---
 
   /// Generic helper to execute a Firestore query and handle potential errors.
+  /// It safely parses each document and skips any that fail conversion.
   Future<List<T>> _fetchFromQuery<T>(
-    Query<T> query,
-    String operationDescription,
-  ) async {
+      Query<T> query,
+      String operationDescription,
+      ) async {
     try {
       final snapshot = await query.get();
-      // FIX: Safely parse each document, skipping any that fail.
-      final List<T> results = [];
-      for (final doc in snapshot.docs) {
-        try {
-          results.add(doc.data());
-        } catch (e) {
-          // The error has already been logged by the converter.
-          debugPrint(
-            "Skipping document ${doc.id} in '$operationDescription' due to parsing error.",
-          );
-        }
-      }
-      return results;
+      // Safely parse each document, skipping any that fail.
+      return _parseDocsSafely(snapshot.docs, operationDescription);
     } catch (e, s) {
-      debugPrint("🔥 Error during '$operationDescription': $e");
-      _crashlytics.recordError(
-        e,
-        s,
-        reason: operationDescription,
-        fatal: false,
-      );
-      return [];
+      // --- Error Handling Improvement ---
+      // This catches errors from the Firestore query itself (e.g., network issues, permission denied).
+      debugPrint("🔥 Firestore Query Error in '$operationDescription': $e\n$s");
+      return []; // Return an empty list to ensure the app remains stable.
     }
   }
 
+  /// Helper to safely parse a list of documents, skipping any that fail.
+  List<T> _parseDocsSafely<T>(List<QueryDocumentSnapshot<T>> docs, String context) {
+    final List<T> results = [];
+    for (final doc in docs) {
+      try {
+        results.add(doc.data());
+      } catch (e) {
+        // The error is already logged by the `fromFirestore` converter.
+        // This just provides context for which document was skipped.
+        debugPrint(
+          "Skipping document ${doc.id} in '$context' due to a parsing error.",
+        );
+      }
+    }
+    return results;
+  }
+
+  // --- CRUD Methods for Off The Block Analyses ---
+
   Future<DocumentReference<OffTheBlockAnalysisData>> saveOffTheBlock(
-    OffTheBlockAnalysisData analysisData,
-  ) {
+      OffTheBlockAnalysisData analysisData,
+      ) {
+    // This is a write operation, which is typically safe unless there are
+    // security rule violations, which will be caught by the calling UI layer.
     return _offTheBlockRef.add(analysisData);
   }
 
   Future<List<OffTheBlockAnalysisData>> getOffTheBlockAnalysesForUser(
-    String userId,
-  ) {
+      String userId,
+      ) {
     final query = _offTheBlockRef
         .where('swimmerId', isEqualTo: userId)
         .orderBy('date', descending: true);
     return _fetchFromQuery(
       query,
-      'getOffTheBlockAnalysesForUser for user $userId',
+      'getOffTheBlockAnalysesForUser(userId: $userId)',
     );
   }
 
   Stream<List<OffTheBlockAnalysisData>> getStreamOfOffTheBlockAnalysesForUser(
-    String userId,
-  ) {
+      String userId,
+      ) {
     return _offTheBlockRef
         .where('swimmerId', isEqualTo: userId)
         .orderBy('date', descending: true)
         .snapshots()
-        // FIX: Safely map documents in the stream.
-        .map((snapshot) {
-          final List<OffTheBlockAnalysisData> results = [];
-          for (final doc in snapshot.docs) {
-            try {
-              results.add(doc.data());
-            } catch (e) {
-              debugPrint(
-                "Skipping document ${doc.id} in stream due to parsing error.",
-              );
-            }
-          }
-          return results;
-        });
+    // --- Refactoring for Simplicity ---
+    // The redundant try-catch is removed. The parsing logic is now handled
+    // by the `_parseDocsSafely` helper, which leverages the converter's error handling.
+        .map((snapshot) => _parseDocsSafely(snapshot.docs, 'stream for user $userId'));
   }
 
   Stream<List<OffTheBlockAnalysisData>> getStreamOfOffTheBlockAnalysesForClub(
-    String clubId,
-  ) {
+      String clubId,
+      ) {
     return _offTheBlockRef
         .where('clubId', isEqualTo: clubId)
         .orderBy('date', descending: true)
         .snapshots()
-        // FIX: Safely map documents in the stream.
-        .map((snapshot) {
-          final List<OffTheBlockAnalysisData> results = [];
-          for (final doc in snapshot.docs) {
-            try {
-              results.add(doc.data());
-            } catch (e) {
-              debugPrint(
-                "Skipping document ${doc.id} in stream due to parsing error.",
-              );
-            }
-          }
-          return results;
-        });
+        .map((snapshot) => _parseDocsSafely(snapshot.docs, 'stream for club $clubId'));
   }
 
   Future<List<OffTheBlockAnalysisData>> getOffTheBlockAnalysesByIds({
@@ -180,31 +164,23 @@ class AnalyzesRepository extends BaseRepository {
           whereIn: chunk,
         );
         final snapshot = await query.get();
-        // FIX: Safely parse each document.
-        for (final doc in snapshot.docs) {
-          try {
-            allAnalyses.add(doc.data());
-          } catch (e) {
-            debugPrint(
-              "Skipping document ${doc.id} in batch fetch due to parsing error.",
-            );
-          }
-        }
+        // Use the safe parsing helper.
+        allAnalyses.addAll(_parseDocsSafely(snapshot.docs, 'getOffTheBlockAnalysesByIds'));
       }
 
+      // Reorder the results to match the input ID list.
       final analysisMap = {for (var a in allAnalyses) a.id: a};
       return analysisIds
           .map((id) => analysisMap[id])
           .whereType<OffTheBlockAnalysisData>()
           .toList();
     } catch (e, s) {
-      final reason = 'getOffTheBlockAnalysesByIds failed';
-      debugPrint("🔥 Error: $reason. $e");
-      _crashlytics.recordError(e, s, reason: reason, fatal: false);
+      debugPrint("🔥 Error in getOffTheBlockAnalysesByIds: $e\n$s");
       return [];
     }
   }
 
+  /// Splits a list into smaller chunks, useful for Firestore 'whereIn' queries.
   List<List<T>> _splitList<T>(List<T> list, int chunkSize) {
     List<List<T>> chunks = [];
     for (var i = 0; i < list.length; i += chunkSize) {
@@ -219,15 +195,14 @@ class AnalyzesRepository extends BaseRepository {
   }
 
   Future<OffTheBlockAnalysisData?> getOffTheBlockAnalysis(
-    String analysisId,
-  ) async {
+      String analysisId,
+      ) async {
     try {
       final doc = await _offTheBlockRef.doc(analysisId).get();
+      // The `data()` call will trigger the safe `fromFirestore` converter.
       return doc.data();
     } catch (e, s) {
-      final reason = 'getOffTheBlockAnalysis for ID $analysisId failed';
-      debugPrint("🔥 Error: $reason. $e");
-      _crashlytics.recordError(e, s, reason: reason, fatal: false);
+      debugPrint("🔥 Error in getOffTheBlockAnalysis(id: $analysisId): $e\n$s");
       return null;
     }
   }
@@ -244,7 +219,7 @@ class AnalyzesRepository extends BaseRepository {
     final query = _racesRef
         .where('swimmerId', isEqualTo: userId)
         .orderBy('raceDate', descending: true);
-    return _fetchFromQuery(query, 'getRacesForUser for user $userId');
+    return _fetchFromQuery(query, 'getRacesForUser(userId: $userId)');
   }
 
   Stream<List<RaceAnalysis>> getStreamOfRacesForUser(String userId) {
@@ -252,20 +227,7 @@ class AnalyzesRepository extends BaseRepository {
         .where('swimmerId', isEqualTo: userId)
         .orderBy('raceDate', descending: true)
         .snapshots()
-        // FIX: Safely map documents in the stream.
-        .map((snapshot) {
-          final List<RaceAnalysis> results = [];
-          for (final doc in snapshot.docs) {
-            try {
-              results.add(doc.data());
-            } catch (e) {
-              debugPrint(
-                "Skipping race document ${doc.id} in stream due to parsing error.",
-              );
-            }
-          }
-          return results;
-        });
+        .map((snapshot) => _parseDocsSafely(snapshot.docs, 'race stream for user $userId'));
   }
 
   Future<RaceAnalysis?> getRace(String raceId) async {
@@ -273,9 +235,7 @@ class AnalyzesRepository extends BaseRepository {
       final doc = await _racesRef.doc(raceId).get();
       return doc.data();
     } catch (e, s) {
-      final reason = 'getRace for ID $raceId failed';
-      debugPrint("🔥 Error: $reason. $e");
-      _crashlytics.recordError(e, s, reason: reason, fatal: false);
+      debugPrint("🔥 Error in getRace(id: $raceId): $e\n$s");
       return null;
     }
   }

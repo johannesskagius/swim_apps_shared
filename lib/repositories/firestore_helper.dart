@@ -1,7 +1,8 @@
 // File: swim_apps_shared/lib/repositories/firestore_helper.dart
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+// Removed: The import for Firebase Crashlytics is no longer needed.
+// import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:swim_apps_shared/repositories/user_repository.dart';
 
 import '../auth_service.dart';
@@ -12,8 +13,7 @@ class FirestoreHelper {
   final FirebaseFirestore _db;
   final AuthService _authService;
 
-  // A private map to hold all registered repositories, including shared ones.
-  // This simplifies repository management by using a single mechanism.
+  // A private map to hold all registered repositories.
   final Map<Type, BaseRepository> _repositories = {};
 
   // --- Shared Repositories (accessed via public getters) ---
@@ -22,7 +22,7 @@ class FirestoreHelper {
   /// Throws an exception if the UserRepository has not been registered.
   UserRepository get userRepository => get<UserRepository>();
 
-  /// Provides access to the race analysis data repository.
+  /// Provides access to the analysis data repository.
   /// Throws an exception if the AnalyzesRepository has not been registered.
   AnalyzesRepository get raceRepository => get<AnalyzesRepository>();
 
@@ -31,9 +31,7 @@ class FirestoreHelper {
     required AuthService authService,
   })  : _db = firestore,
         _authService = authService {
-    // Instead of hard-coding instantiation, we now call the same registration
-    // method used for app-specific repositories. This creates a single,
-    // consistent pattern for repository management.
+    // This pattern provides a consistent way to set up all repositories.
     _registerSharedRepositories();
   }
 
@@ -44,42 +42,35 @@ class FirestoreHelper {
     registerRepository(AnalyzesRepository(_db));
   }
 
-  /// Call this from main.dart to register an app-specific repository.
+  /// Registers an app-specific repository. This should be called during app
+  /// initialization (e.g., in main.dart) for any repositories not included
+  /// in the shared package.
   void registerRepository<T extends BaseRepository>(T repository) {
     _repositories[T] = repository;
   }
 
-  /// Use this within your app to get an instance of an injected repository.
+  /// Retrieves a registered repository instance by its type.
   ///
-  /// It now includes robust error handling that logs to Crashlytics
-  /// for easier debugging of configuration issues in production.
+  /// This method includes robust error handling to detect configuration issues
+  /// during development.
   T get<T extends BaseRepository>() {
     final repo = _repositories[T];
     if (repo == null) {
-      // Create a detailed error message for developers.
+      // --- Error Handling Improvement ---
+      // A detailed ArgumentError is thrown if a repository is not found.
+      // This provides clear, actionable feedback to the developer.
+      // All calls to FirebaseCrashlytics have been removed.
       final error = ArgumentError(
         'Repository of type $T was not registered. '
-            'Ensure registerRepository() is called during app initialization (e.g., in main.dart).',
+            'Ensure registerRepository() is called during app initialization.',
       );
 
-      // For non-fatal configuration errors like this, logging to Crashlytics
-      // helps track issues that occur in production without crashing the app,
-      // though in this case, the subsequent throw will be fatal.
-      // This is useful for debugging setup problems.
-      FirebaseCrashlytics.instance.recordError(
-        error,
-        StackTrace.current,
-        reason: 'Failed to retrieve a registered repository.',
-        fatal: true, // Marking as fatal as this is a critical developer error.
-      );
-
-      // Throwing an ArgumentError is more specific than a generic Exception
-      // and clearly indicates a problem with the arguments/setup.
+      // Throwing a specific error type makes it easier for developers to
+      // debug setup and dependency injection problems.
       throw error;
     }
 
-    // The cast is still necessary, but the logic is now safer due to the
-    // improved registration and retrieval process.
+    // The cast is safe due to the check above and the generic constraint.
     return repo as T;
   }
 }
