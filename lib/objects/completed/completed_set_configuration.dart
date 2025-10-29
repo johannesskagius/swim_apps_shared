@@ -1,103 +1,150 @@
+// completed_set_configuration.dart
+import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 
-import '../planned/swim_set_config.dart';
-import 'completed_swim_set.dart';
+import '../../swim_session/generator/enums/distance_units.dart';
+import '../../swim_session/generator/enums/equipment.dart';
+import '../stroke.dart';
 
 @immutable
 class CompletedSetConfiguration {
-  final String? id; // Optional
-  final int actualRepetitions; // Actual performed repetitions
-  final ActualSwimSet actualSwimSet; // The actual performed set
-  final String? swimmerNotesForConfiguration;
-  final String? plannedSetConfigurationIdRef; // Link to planned config
-  final int? setConfigOrder; // To keep the correct order in the swim_session
+  // Link back to the planned set
+  final String sessionSetConfigId;
+
+  // Optional snapshot of original (useful if planned set changes later)
+  final String? originalSetTitle;
+  final int?
+  originalPlannedDistance; // meters/yards depending on distanceUnitUsed
+  final DistanceUnit? originalDistanceUnit;
+  final Stroke? originalStroke;
+  final EquipmentType? originalEquipment;
+
+  // ✅ Adjustments done by swimmer before completing
+  final bool wasModified;
+  final double? adjustedDistance; // meters/yards
+  final Stroke? adjustedStroke;
+  final EquipmentType? adjustedEquipment;
+  final String? adjustmentNote;
+
+  // … any existing fields you already had (splits, reps, etc.)
 
   const CompletedSetConfiguration({
-    this.id,
-    required this.actualRepetitions,
-    required this.actualSwimSet,
-    this.swimmerNotesForConfiguration,
-    this.plannedSetConfigurationIdRef,
-    this.setConfigOrder,
+    required this.sessionSetConfigId,
+    this.originalSetTitle,
+    this.originalPlannedDistance,
+    this.originalDistanceUnit,
+    this.originalStroke,
+    this.originalEquipment,
+    this.wasModified = false,
+    this.adjustedDistance,
+    this.adjustedStroke,
+    this.adjustedEquipment,
+    this.adjustmentNote,
+    // … add your existing required/optional fields here
   });
 
-  // --------------------------------------------------------------------------
-  // ✅ Factory: build from planned configuration
-  // --------------------------------------------------------------------------
-  factory CompletedSetConfiguration.fromSessionSetConfiguration(
-    SessionSetConfiguration plannedConfig, {
-    int? order,
-  }) {
-    final swimSet = plannedConfig.swimSet;
-
-    final actualSwimSet = (swimSet != null)
-        ? ActualSwimSet.fromSwimSet(swimSet)
-        : ActualSwimSet(items: []); // fallback to empty if null
-
-    return CompletedSetConfiguration(
-      id: null,
-      // Firestore can assign its own ID
-      plannedSetConfigurationIdRef: plannedConfig.sessionSetConfigId,
-      actualRepetitions: plannedConfig.repetitions,
-      actualSwimSet: actualSwimSet,
-      swimmerNotesForConfiguration: null,
-      setConfigOrder: order ?? plannedConfig.order,
-    );
-  }
-
-  // --------------------------------------------------------------------------
-  // ✅ Copy method
-  // --------------------------------------------------------------------------
   CompletedSetConfiguration copyWith({
-    String? id,
-    int? actualRepetitions,
-    ActualSwimSet? actualSwimSet,
-    String? swimmerNotesForConfiguration,
-    String? plannedSetConfigurationIdRef,
-    int? setConfigOrder,
+    String? sessionSetConfigId,
+    String? originalSetTitle,
+    int? originalPlannedDistance,
+    DistanceUnit? originalDistanceUnit,
+    Stroke? originalStroke,
+    EquipmentType? originalEquipment,
+    bool? wasModified,
+    double? adjustedDistance,
+    Stroke? adjustedStroke,
+    EquipmentType? adjustedEquipment,
+    String? adjustmentNote,
   }) {
     return CompletedSetConfiguration(
-      id: id ?? this.id,
-      actualRepetitions: actualRepetitions ?? this.actualRepetitions,
-      actualSwimSet: actualSwimSet ?? this.actualSwimSet,
-      swimmerNotesForConfiguration:
-          swimmerNotesForConfiguration ?? this.swimmerNotesForConfiguration,
-      plannedSetConfigurationIdRef:
-          plannedSetConfigurationIdRef ?? this.plannedSetConfigurationIdRef,
-      setConfigOrder: setConfigOrder ?? this.setConfigOrder,
+      sessionSetConfigId: sessionSetConfigId ?? this.sessionSetConfigId,
+      originalSetTitle: originalSetTitle ?? this.originalSetTitle,
+      originalPlannedDistance:
+          originalPlannedDistance ?? this.originalPlannedDistance,
+      originalDistanceUnit: originalDistanceUnit ?? this.originalDistanceUnit,
+      originalStroke: originalStroke ?? this.originalStroke,
+      originalEquipment: originalEquipment ?? this.originalEquipment,
+      wasModified: wasModified ?? this.wasModified,
+      adjustedDistance: adjustedDistance ?? this.adjustedDistance,
+      adjustedStroke: adjustedStroke ?? this.adjustedStroke,
+      adjustedEquipment: adjustedEquipment ?? this.adjustedEquipment,
+      adjustmentNote: adjustmentNote ?? this.adjustmentNote,
     );
   }
 
-  // --------------------------------------------------------------------------
-  // ✅ Serialization
-  // --------------------------------------------------------------------------
+  /// Convenience when committing adjustments right before save
+  CompletedSetConfiguration copyWithAdjustments({
+    double? adjustedDistance,
+    Stroke? adjustedStroke,
+    EquipmentType? adjustedEquipment,
+    String? adjustmentNote,
+  }) {
+    final hasAny =
+        adjustedDistance != null ||
+        adjustedStroke != null ||
+        adjustedEquipment != null ||
+        (adjustmentNote != null && adjustmentNote.isNotEmpty);
+    return copyWith(
+      wasModified: hasAny || wasModified,
+      adjustedDistance: adjustedDistance ?? this.adjustedDistance,
+      adjustedStroke: adjustedStroke ?? this.adjustedStroke,
+      adjustedEquipment: adjustedEquipment ?? this.adjustedEquipment,
+      adjustmentNote: (adjustmentNote ?? '').isEmpty
+          ? (this.adjustmentNote ?? '')
+          : adjustmentNote,
+    );
+  }
+
   Map<String, dynamic> toMap() {
     return {
-      'actualRepetitions': actualRepetitions,
-      'actualSwimSet': actualSwimSet.toMap(),
-      if (swimmerNotesForConfiguration != null)
-        'swimmerNotesForConfiguration': swimmerNotesForConfiguration,
-      if (plannedSetConfigurationIdRef != null)
-        'plannedSetConfigurationIdRef': plannedSetConfigurationIdRef,
-      if (setConfigOrder != null) 'setConfigOrder': setConfigOrder,
+      'sessionSetConfigId': sessionSetConfigId,
+      'originalSetTitle': originalSetTitle,
+      'originalPlannedDistance': originalPlannedDistance,
+      'originalDistanceUnit': originalDistanceUnit?.name,
+      'originalStroke': originalStroke?.name,
+      'originalEquipment': originalEquipment?.name,
+      'wasModified': wasModified,
+      'adjustedDistance': adjustedDistance,
+      'adjustedStroke': adjustedStroke?.name,
+      'adjustedEquipment': adjustedEquipment?.name,
+      'adjustmentNote': adjustmentNote,
+      // … include your existing fields too
     };
   }
 
-  factory CompletedSetConfiguration.fromMap(Map<String, dynamic> map) {
-    final actualSetData = map['actualSwimSet'];
-    final safeActualSwimSet = (actualSetData is Map<String, dynamic>)
-        ? ActualSwimSet.fromMap(actualSetData)
-        : ActualSwimSet(items: []);
+  static CompletedSetConfiguration fromMap(Map<String, dynamic> map) {
+    String? _nameToStroke(dynamic v) => v is String ? v : (v?.toString());
+    String? _nameToEquipment(dynamic v) => v is String ? v : (v?.toString());
+
+    Stroke? _strokeFrom(dynamic v) =>
+        _nameToStroke(v) == null ? null : Stroke.fromString(_nameToStroke(v)!);
+    EquipmentType? _equipFrom(dynamic v) => _nameToEquipment(v) == null
+        ? null
+        : EquipmentType.values.firstWhereOrNull((e) => e.name == v);
+
+    DistanceUnit? _unitFrom(dynamic v) {
+      if (v is String) {
+        return DistanceUnit.values.firstWhere(
+          (e) => e.name == v,
+          orElse: () => DistanceUnit.meters,
+        );
+      }
+      return null;
+    }
 
     return CompletedSetConfiguration(
-      id: map['id'] as String?,
-      actualRepetitions: map['actualRepetitions'] as int? ?? 1,
-      actualSwimSet: safeActualSwimSet,
-      swimmerNotesForConfiguration:
-          map['swimmerNotesForConfiguration'] as String?,
-      plannedSetConfigurationIdRef:
-          map['plannedSetConfigurationIdRef'] as String?,
-      setConfigOrder: map['setConfigOrder'] as int?,
+      sessionSetConfigId: (map['sessionSetConfigId'] ?? '') as String,
+      originalSetTitle: map['originalSetTitle'] as String?,
+      originalPlannedDistance: (map['originalPlannedDistance'] as num?)
+          ?.toInt(),
+      originalDistanceUnit: _unitFrom(map['originalDistanceUnit']),
+      originalStroke: _strokeFrom(map['originalStroke']),
+      originalEquipment: _equipFrom(map['originalEquipment']),
+      wasModified: (map['wasModified'] as bool?) ?? false,
+      adjustedDistance: (map['adjustedDistance'] as num?)?.toDouble(),
+      adjustedStroke: _strokeFrom(map['adjustedStroke']),
+      adjustedEquipment: _equipFrom(map['adjustedEquipment']),
+      adjustmentNote: map['adjustmentNote'] as String?,
     );
   }
 }
