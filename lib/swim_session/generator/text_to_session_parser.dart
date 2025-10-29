@@ -185,11 +185,13 @@ class TextToSessionObjectParser {
   // ---------------------------------------------------------------------------
   List<String> _extractGroupNames(String text) {
     final matches = RegExp(
-      r'#group[:\-\s]*([A-Za-z0-9_ ]+)',
-      caseSensitive: false,
+        r"'#group[:\-\s]*([A-Za-z0-9_ ]+?)(?=[\'#\d]|$)'",
+    caseSensitive: false,
     ).allMatches(text);
     return matches.map((m) => m.group(1)!.trim()).toList();
   }
+
+
 
   // ---------------------------------------------------------------------------
   // 🔹 Main Parser
