@@ -16,7 +16,7 @@ class SwimSet {
   String? coachId;
 
   // 🆕 Added support for AI-generated / temporary subgroup names
-  final List<String>? assignedGroupNames; // e.g. ['Middle', 'General']
+  List<String>? assignedGroupNames; // e.g. ['Middle', 'General']
 
   // --------------------------------------------------------------------------
   // ✅ Default constructor

@@ -16,6 +16,8 @@ import '../../objects/user/swimmer.dart';
 import 'enums/distance_units.dart';
 import 'enums/set_types.dart';
 
+/// 🧠 Final AI-compatible parser that supports #group tags
+/// in both section headers and individual set lines.
 class TextToSessionObjectParser {
   final RegExp lineBreakRegex = RegExp(r'\r\n?|\n');
   static final RegExp sectionTitleRegex = _buildSectionTitleRegex();
@@ -55,9 +57,6 @@ class TextToSessionObjectParser {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // 🔹 Parsing Helpers
-  // ---------------------------------------------------------------------------
   DistanceUnit? _tryParseDistanceUnitFromString(String? unitStr) {
     if (unitStr == null) return null;
     final lowerUnit = unitStr.trim().toLowerCase();
@@ -184,17 +183,15 @@ class TextToSessionObjectParser {
   // 🔹 Tag & Group Extraction
   // ---------------------------------------------------------------------------
   List<String> _extractGroupNames(String text) {
-    // This version is tolerant to multi-word names like "Middle Distance"
-    // and stops before a quote ('), another tag (#), or a digit (e.g., 200m).
     final matches = RegExp(
-        r"#group[:\-\s]*([A-Za-z0-9_ ]+?)(?=\s*[\d\'#]|$)",
-    caseSensitive: false,
+      r"#group[:\-\s]*([A-Za-z0-9_ ]+?)(?=\s*[\d\'#]|$)",
+      caseSensitive: false,
     ).allMatches(text);
 
     final groups = matches.map((m) => m.group(1)!.trim()).toList();
 
     if (kDebugMode) {
-    debugPrint("🧩 ExtractGroupNames found: $groups from text: $text");
+      debugPrint("🧩 ExtractGroupNames found: $groups from text: $text");
     }
 
     return groups;
@@ -233,18 +230,16 @@ class TextToSessionObjectParser {
         );
         final lineAfterTagRemoval = tagResult.remainingLine;
 
-        // ✅ Keep all unparsed lines for group extraction later
-        if (currentConfig != null) {
-          currentConfig!.unparsedTextLines =
-          (currentConfig!.unparsedTextLines ?? [])..add(line);
-        }
+        // ✅ Keep all raw text for #group fallback extraction
+        currentConfig?.unparsedTextLines =
+        (currentConfig?.unparsedTextLines ?? [])..add(line);
 
-        // ✅ Detect Nx repetition markers early
+        // ✅ 1. Detect Nx repetition markers
         if (SectionTitleUtil.detectAndStoreRepetitionMarker(lineAfterTagRemoval)) {
           continue;
         }
 
-        // ✅ Detect section titles (Warm up, Main set, etc.)
+        // ✅ 2. Detect section titles (Warm up, Main set, etc.)
         final sectionTitleMatch = sectionTitleRegex.firstMatch(lineAfterTagRemoval);
         if (sectionTitleMatch != null) {
           final result = SectionTitleUtil.handleSectionTitleLine(
@@ -264,15 +259,20 @@ class TextToSessionObjectParser {
           currentConfig = result.newConfig;
           activeSetType = result.newActiveSetType;
 
-          // ✅ Preserve header line for #group extraction
-          currentConfig!.unparsedTextLines =
-          (currentConfig!.unparsedTextLines ?? [])..add(line);
+          // 🧠 NEW FIX: Capture #group in section title lines
+          final extractedGroups = _extractGroupNames(line);
+          if (extractedGroups.isNotEmpty) {
+            currentConfig.swimSet?.assignedGroupNames = extractedGroups;
+            if (kDebugMode) {
+              debugPrint("🏷️ Found group(s) in section title: $extractedGroups");
+            }
+          }
 
           currentItems.clear();
           continue;
         }
 
-        // ✅ Handle legacy internal reps like “3 rounds”
+        // ✅ 3. Handle internal reps like “3 rounds”
         final internalRepMatch =
         internalRepetitionLineRegex.firstMatch(lineAfterTagRemoval);
         if (internalRepMatch != null) {
@@ -283,7 +283,7 @@ class TextToSessionObjectParser {
           continue;
         }
 
-        // ✅ Regular set lines
+        // ✅ 4. Regular set lines
         final item = parseLineToSetItem(
           lineAfterTagRemoval,
           itemOrder++,
@@ -308,23 +308,18 @@ class TextToSessionObjectParser {
         activeSetType,
       );
 
-      // 🧠 Debug: show parsed groups
+      // 🧠 Debug: show all AI groups parsed
       if (kDebugMode) {
         for (final c in parsedConfigs) {
           debugPrint(
-            "Parsed config: ${c.swimSet?.type?.name ?? 'Unknown'}, groups=${c.swimSet?.assignedGroupNames}",
-          );
+              "Parsed config: ${c.swimSet?.type?.name ?? 'noType'}, groups=${c.swimSet?.assignedGroupNames}");
         }
       }
 
       return parsedConfigs;
     } catch (e, s) {
-      _safeRecordCrashlytics(
-        e,
-        s,
-        'Failed to parse entire text to session configurations.',
-        fatal: true,
-      );
+      _safeRecordCrashlytics(e, s,
+          'Failed to parse entire text to session configurations.', fatal: true);
       return [];
     }
   }
@@ -367,43 +362,33 @@ class TextToSessionObjectParser {
       ) {
     if (config == null) return;
 
-    final rawText = (config.unparsedTextLines?.join(" ") ?? "").trim();
-
-    if (rawText.isEmpty && config.swimSet?.setNotes != null) {
-      config.unparsedTextLines = [config.swimSet!.setNotes!];
-    }
-
-    final extractedGroupNames = _extractGroupNames(rawText);
-
-    if (kDebugMode) {
-      debugPrint("🧩 Extracted AI groups: $extractedGroupNames from text: $rawText");
-    }
-
     if (items.isNotEmpty) {
+      String rawText = (config.unparsedTextLines ?? []).join(" ").trim();
+
+      final extractedGroupNames = _extractGroupNames(rawText);
+      if (extractedGroupNames.isNotEmpty) {
+        config.swimSet?.assignedGroupNames = {
+          ...?config.swimSet?.assignedGroupNames,
+          ...extractedGroupNames,
+        }.toList();
+      }
+
+      if (kDebugMode) {
+        debugPrint("🧩 Extracted AI groups: $extractedGroupNames from text: $rawText");
+      }
+
       config.swimSet = SwimSet(
         setId: config.swimSet?.setId ?? _generateUniqueId("set_last_"),
         type: config.swimSet?.type ?? activeSetType,
         items: List.from(items),
         setNotes: config.swimSet?.setNotes,
-        assignedGroupNames: {
-          ...?config.swimSet?.assignedGroupNames,
-          ...extractedGroupNames,
-        }.toList(),
+        assignedGroupNames: config.swimSet?.assignedGroupNames ?? [],
       );
     }
 
-    final hasContent = (config.swimSet?.items.isNotEmpty ?? false) ||
-        (config.repetitions > 1 &&
-            (config.notesForThisInstanceOfSet?.isNotEmpty ?? false));
+    final hasContent = (config.swimSet?.items.isNotEmpty ?? false);
 
-    final isTitleCard = !hasContent &&
-        config.repetitions == 1 &&
-        (config.notesForThisInstanceOfSet == null ||
-            config.notesForThisInstanceOfSet!.isEmpty) &&
-        (config.rawSetTypeHeaderFromText?.toLowerCase().contains("(default)") ==
-            false);
-
-    if (hasContent || isTitleCard) {
+    if (hasContent) {
       if (config.coachId.isEmpty) config.coachId = coachId;
       parsedConfigs.add(config);
     }
@@ -412,10 +397,12 @@ class TextToSessionObjectParser {
   // ---------------------------------------------------------------------------
   // 🔹 Safe Crashlytics wrapper
   // ---------------------------------------------------------------------------
-  void _safeRecordCrashlytics(Object e, StackTrace s, String reason, {bool fatal = false}) {
+  void _safeRecordCrashlytics(Object e, StackTrace s, String reason,
+      {bool fatal = false}) {
     try {
       if (!kIsWeb) {
-        FirebaseCrashlytics.instance.recordError(e, s, reason: reason, fatal: fatal);
+        FirebaseCrashlytics.instance
+            .recordError(e, s, reason: reason, fatal: fatal);
       } else {
         debugPrint("⚠️ Crashlytics disabled on web — $reason ($e)");
       }
