@@ -181,10 +181,13 @@ class TextToSessionObjectParser {
   // 🔹 Tag & Group Extraction
   // ---------------------------------------------------------------------------
   List<String> _extractGroupNames(String text) {
-    final matches =
-    RegExp(r'#group\s+([\w\s\-]+)', caseSensitive: false).allMatches(text);
+    final matches = RegExp(
+      r'#group[:\-\s]*([A-Za-z0-9_ ]+)',
+      caseSensitive: false,
+    ).allMatches(text);
     return matches.map((m) => m.group(1)!.trim()).toList();
   }
+
 
   // ---------------------------------------------------------------------------
   // 🔹 Main Parser
@@ -221,7 +224,7 @@ class TextToSessionObjectParser {
 
         // ✅ Keep unparsed lines for later #group extraction
         currentConfig?.unparsedTextLines =
-        (currentConfig?.unparsedTextLines ?? [])..add(line);
+        (currentConfig.unparsedTextLines)..add(line);
 
         // ✅ 1. Detect Nx repetition markers early
         if (SectionTitleUtil.detectAndStoreRepetitionMarker(lineAfterTagRemoval)) {
@@ -346,8 +349,9 @@ class TextToSessionObjectParser {
       ) {
     if (config == null) return;
 
+
     if (items.isNotEmpty) {
-      String rawText = (config.unparsedTextLines?.join(" ") ?? "").trim();
+      String rawText = (config.unparsedTextLines.join(" ")).trim();
 
       // ✅ Fallback to notes text if unparsed lines are empty
       if (rawText.isEmpty && config.swimSet?.setNotes != null) {
@@ -355,6 +359,9 @@ class TextToSessionObjectParser {
       }
 
       final extractedGroupNames = _extractGroupNames(rawText);
+      if (kDebugMode) {
+        debugPrint("🧩 Extracted AI groups: $extractedGroupNames from text: $rawText");
+      }
 
       config.swimSet = SwimSet(
         setId: config.swimSet?.setId ?? _generateUniqueId("set_last_"),
@@ -383,6 +390,8 @@ class TextToSessionObjectParser {
       if (config.coachId.isEmpty) config.coachId = coachId;
       parsedConfigs.add(config);
     }
+
+
   }
 
   // ---------------------------------------------------------------------------
