@@ -32,7 +32,9 @@ class TextToSessionObjectParser {
     return "${prefix}_${DateTime.now().millisecondsSinceEpoch}_$_idCounter";
   }
 
-  /// ✅ Final version — compatible with SectionTitleUtil and supports tags/comments
+  // ---------------------------------------------------------------------------
+  // 🔹 Section Title Regex Builder
+  // ---------------------------------------------------------------------------
   static RegExp _buildSectionTitleRegex() {
     final keywords = [
       "warm up", "warmup",
@@ -47,9 +49,6 @@ class TextToSessionObjectParser {
     ];
     final patternPart = keywords.map(RegExp.escape).join("|");
 
-    // ✅ Capture group (1) = section title
-    // ✅ Capture group (2) = optional quoted note (e.g., 'activation focus')
-    // ✅ Works even if line contains tags (#group, #swimmer)
     return RegExp(
       r"^\s*(" + patternPart + r")\b(?:[^']*'([^']*)')?.*$",
       caseSensitive: false,
@@ -178,13 +177,18 @@ class TextToSessionObjectParser {
     return (zone: null, line: line);
   }
 
-  // 🔹 Extract #group names even if not existing in Firestore
+  // ---------------------------------------------------------------------------
+  // 🔹 Tag & Group Extraction
+  // ---------------------------------------------------------------------------
   List<String> _extractGroupNames(String text) {
     final matches =
     RegExp(r'#group\s+([\w\s\-]+)', caseSensitive: false).allMatches(text);
     return matches.map((m) => m.group(1)!.trim()).toList();
   }
 
+  // ---------------------------------------------------------------------------
+  // 🔹 Main Parser
+  // ---------------------------------------------------------------------------
   List<SessionSetConfiguration> parseTextToSetConfigurations({
     required String? unParsedText,
     required String coachId,
@@ -215,9 +219,12 @@ class TextToSessionObjectParser {
         );
         final lineAfterTagRemoval = tagResult.remainingLine;
 
-        // ✅ 1. Detect and store Nx repetition markers early
+        // ✅ Keep unparsed lines for later #group extraction
+        currentConfig?.unparsedTextLines =
+        (currentConfig?.unparsedTextLines ?? [])..add(line);
+
+        // ✅ 1. Detect Nx repetition markers early
         if (SectionTitleUtil.detectAndStoreRepetitionMarker(lineAfterTagRemoval)) {
-          // Skip this line — repetition will be applied automatically later
           continue;
         }
 
@@ -280,6 +287,15 @@ class TextToSessionObjectParser {
         coachId,
         activeSetType,
       );
+
+      // 🧠 Debug: show AI groups parsed
+      if (kDebugMode) {
+        for (final c in parsedConfigs) {
+          debugPrint(
+              "Parsed config: ${c.swimSet?.type?.name ?? 'Swimset type: no name'}, groups=${c.swimSet?.assignedGroupNames}");
+        }
+      }
+
       return parsedConfigs;
     } catch (e, s) {
       _safeRecordCrashlytics(
@@ -292,6 +308,9 @@ class TextToSessionObjectParser {
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // 🔹 Default Config + Finalization
+  // ---------------------------------------------------------------------------
   SessionSetConfiguration _createDefaultConfig({
     required int order,
     required String coachId,
@@ -328,7 +347,13 @@ class TextToSessionObjectParser {
     if (config == null) return;
 
     if (items.isNotEmpty) {
-      final rawText = config.unparsedTextLines?.join(" ") ?? "";
+      String rawText = (config.unparsedTextLines?.join(" ") ?? "").trim();
+
+      // ✅ Fallback to notes text if unparsed lines are empty
+      if (rawText.isEmpty && config.swimSet?.setNotes != null) {
+        rawText = config.swimSet!.setNotes!;
+      }
+
       final extractedGroupNames = _extractGroupNames(rawText);
 
       config.swimSet = SwimSet(
@@ -336,8 +361,10 @@ class TextToSessionObjectParser {
         type: config.swimSet?.type ?? activeSetType,
         items: List.from(items),
         setNotes: config.swimSet?.setNotes,
-        assignedGroupNames: (config.swimSet?.assignedGroupNames ?? []) +
-            extractedGroupNames,
+        assignedGroupNames: {
+          ...?config.swimSet?.assignedGroupNames,
+          ...extractedGroupNames,
+        }.toList(),
       );
     }
 
@@ -358,7 +385,9 @@ class TextToSessionObjectParser {
     }
   }
 
-  /// Safe wrapper for Crashlytics (avoids web assertion failures)
+  // ---------------------------------------------------------------------------
+  // 🔹 Safe Crashlytics wrapper
+  // ---------------------------------------------------------------------------
   void _safeRecordCrashlytics(Object e, StackTrace s, String reason,
       {bool fatal = false}) {
     try {
