@@ -184,14 +184,21 @@ class TextToSessionObjectParser {
   // 🔹 Tag & Group Extraction
   // ---------------------------------------------------------------------------
   List<String> _extractGroupNames(String text) {
+    // This version is tolerant to multi-word names like "Middle Distance"
+    // and stops before a quote ('), another tag (#), or a digit (e.g., 200m).
     final matches = RegExp(
-        r"'#group[:\-\s]*([A-Za-z0-9_ ]+?)(?=[\'#\d]|$)'",
+        r"#group[:\-\s]*([A-Za-z0-9_ ]+?)(?=\s*[\d\'#]|$)",
     caseSensitive: false,
     ).allMatches(text);
-    return matches.map((m) => m.group(1)!.trim()).toList();
+
+    final groups = matches.map((m) => m.group(1)!.trim()).toList();
+
+    if (kDebugMode) {
+    debugPrint("🧩 ExtractGroupNames found: $groups from text: $text");
+    }
+
+    return groups;
   }
-
-
 
   // ---------------------------------------------------------------------------
   // 🔹 Main Parser
