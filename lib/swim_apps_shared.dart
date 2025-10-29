@@ -18,13 +18,14 @@ export 'swim_session/generator/enums/distance_units.dart';
 export 'race_analyzes/race_comparison_page.dart';
 
 // ---- Swim session ----
+export 'swim_session/generator/text_to_session_parser.dart';
+export 'swim_session/generator/parsed_summary.dart';
 export 'swim_session/generator/config/advanced_generator_config.dart';
 export 'swim_session/generator/config/setconfig_to_text_parser.dart';
 export 'swim_session/generator/enums/equipment.dart';
 export 'swim_session/generator/enums/session_slot.dart';
 export 'swim_session/generator/enums/set_types.dart';
 export 'swim_session/generator/enums/swim_way.dart';
-export 'swim_session/generator/text_to_session_parser.dart';
 export 'swim_session/generator/utils/distance_util.dart';
 export 'swim_session/generator/utils/durationRounding.dart';
 export 'swim_session/generator/utils/duration_util.dart';
