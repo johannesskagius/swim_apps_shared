@@ -49,3 +49,6 @@ export 'swim_session/session_focuses/speed_focus.dart';
 export 'swim_session/session_focuses/technique_focus.dart';
 export 'swim_session/session_focuses/training_focus.dart';
 export 'swim_session/training_focus_factory.dart';
+
+//Crashlytics
+export 'safe_crashlytics.dart';
