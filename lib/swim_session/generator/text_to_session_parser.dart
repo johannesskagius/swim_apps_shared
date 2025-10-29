@@ -82,7 +82,16 @@ class TextToSessionObjectParser {
   List<SessionSetConfiguration> parse(String? unparsedText) {
     if (unparsedText == null || unparsedText.trim().isEmpty) return [];
 
-    final lines = unparsedText
+    // 🧩 FIX: Insert line breaks before section headers if missing (e.g., "Warmup ... Pre set ...")
+    final normalizedText = unparsedText.replaceAllMapped(
+      RegExp(
+        r"(?<!^)(?=(?:\s|^)(warm\s*up|main\s*set|cool\s*down|pre\s*set|post\s*set|kick\s*set|pull\s*set|drill\s*set|sprint\s*set|recovery|technique\s*set|main|warmup|cooldown)\b)",
+        caseSensitive: false,
+      ),
+          (m) => '\n',
+    );
+
+    final lines = normalizedText
         .split(_lineBreak)
         .map((l) => l.trim())
         .where((l) => l.isNotEmpty)
@@ -100,10 +109,16 @@ class TextToSessionObjectParser {
 
     void flushSection() {
       if (currentConfig == null) return;
+
       if (currentItems.isEmpty) {
         if ((currentConfig!.rawSetTypeHeaderFromText ?? '').isNotEmpty) {
           configs.add(currentConfig!);
         }
+        currentConfig = null;
+        sectionReps = 1;
+        sectionGroups.clear();
+        sectionSwimmers.clear();
+        unparsedBuffer.clear();
         return;
       }
 
@@ -172,7 +187,7 @@ class TextToSessionObjectParser {
         continue;
       }
 
-      // 🧩 STANDALONE REPETITION (e.g., "2x")
+      // 🧩 STANDALONE REPETITION (e.g., "2x" or "2 rounds")
       final rep = _standaloneReps.firstMatch(raw);
       if (rep != null) {
         sectionReps *= int.tryParse(rep.group(1) ?? '1') ?? 1;
@@ -225,7 +240,7 @@ class TextToSessionObjectParser {
   }
 
   // ---------------------------------------------------------------------------
-  // 🧩 ITEM PARSER (fixed 4x200m bug)
+  // 🧩 ITEM PARSER (handles 4x200m etc.)
   // ---------------------------------------------------------------------------
   SetItem? _parseItem(String raw, int order) {
     String line = raw.trim();
@@ -430,6 +445,8 @@ class TextToSessionObjectParser {
     if (h.contains('pull')) return SetType.pullSet;
     if (h.contains('drill')) return SetType.drillSet;
     if (h.contains('recovery')) return SetType.recovery;
+    if (h.contains('pre')) return SetType.preSet;
+    if (h.contains('post')) return SetType.postSet;
     return SetType.mainSet;
   }
 
