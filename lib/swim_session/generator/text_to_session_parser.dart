@@ -36,9 +36,9 @@ class TextToSessionObjectParser {
   static final RegExp _standaloneReps =
   RegExp(r"^\s*(\d+)\s*(?:x|rounds?)\s*$", caseSensitive: false);
   static final RegExp _inlineReps =
-  RegExp(r"^\s*(\d+)\s*x\b", caseSensitive: false);
+  RegExp(r"^\s*(\d+)\s*x\s*", caseSensitive: false);
 
-  // --- DISTANCE ---
+  //Distance
   static final RegExp _distance = RegExp(r"^\s*(\d+)\s*([A-Za-z]{0,10})");
 
   // --- INTERVAL ---
