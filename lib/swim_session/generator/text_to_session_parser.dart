@@ -12,7 +12,7 @@ import 'enums/swim_way.dart';
 
 /// 🧠 Context-unaware parser for AI-generated swim text.
 /// It makes no assumptions about coach, swimmers, or Firestore state.
-/// Input:  raw text (String)
+/// Input: raw text (String)
 /// Output: list of SessionSetConfigurations with SwimSets & SetItems
 class TextToSessionObjectParser {
   final RegExp _lineBreak = RegExp(r'\r\n?|\n');
@@ -214,8 +214,7 @@ class TextToSessionObjectParser {
     if (kDebugMode) {
       final groups =
       configs.expand((c) => c.swimSet?.assignedGroupNames ?? []).toSet();
-      debugPrint(
-          "✅ Parsed ${configs.length} sections, groups: $groups");
+      debugPrint("✅ Parsed ${configs.length} sections, groups: $groups");
       for (final c in configs) {
         debugPrint(
             "🧩 Parsed config: ${c.swimSet?.type?.name ?? 'No type'}, groups=${c.swimSet?.assignedGroupNames}, items=${c.swimSet?.items.length}");
@@ -226,7 +225,7 @@ class TextToSessionObjectParser {
   }
 
   // ---------------------------------------------------------------------------
-  // 🧩 ITEM PARSER
+  // 🧩 ITEM PARSER (fixed 4x200m bug)
   // ---------------------------------------------------------------------------
   SetItem? _parseItem(String raw, int order) {
     String line = raw.trim();
@@ -237,7 +236,7 @@ class TextToSessionObjectParser {
     final rm = _inlineReps.firstMatch(line);
     if (rm != null) {
       reps = int.tryParse(rm.group(1) ?? '1') ?? 1;
-      line = line.substring(rm.end).trimLeft();
+      line = line.replaceFirst(rm.group(0)!, '').trimLeft();
     }
 
     // distance
@@ -339,7 +338,6 @@ class TextToSessionObjectParser {
         totalMeters += dist;
         totalItems++;
 
-        // ✅ normalized group key
         for (final g in groupNames) {
           final key = g.trim().toLowerCase();
           metersByGroup[key] = (metersByGroup[key] ?? 0) + dist;
