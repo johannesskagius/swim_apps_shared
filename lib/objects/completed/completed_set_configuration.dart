@@ -1,6 +1,6 @@
-// completed_set_configuration.dart
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
+import 'package:swim_apps_shared/objects/completed/completed_set_item.dart';
 
 import '../../swim_session/generator/enums/distance_units.dart';
 import '../../swim_session/generator/enums/equipment.dart';
@@ -9,24 +9,27 @@ import '../stroke.dart';
 
 @immutable
 class CompletedSetConfiguration {
-  // Link back to the planned set
+  // 🔗 Link back to the planned set
   final String sessionSetConfigId;
 
-  // Optional snapshot of original (useful if planned set changes later)
+  // 📘 Optional snapshot of original (useful if planned set changes later)
   final String? originalSetTitle;
   final int? originalPlannedDistance; // meters/yards depending on distanceUnitUsed
   final DistanceUnit? originalDistanceUnit;
   final Stroke? originalStroke;
   final EquipmentType? originalEquipment;
 
-  // ✅ Adjustments done by swimmer before completing
+  // ✅ The completed items inside this set (NEW)
+  final List<CompletedSetItem> completedSetItems;
+
+  // 🧩 Adjustments done by swimmer before completing
   final bool wasModified;
   final double? adjustedDistance; // meters/yards
   final Stroke? adjustedStroke;
   final EquipmentType? adjustedEquipment;
   final String? adjustmentNote;
 
-  // Extra optional tracking fields
+  // 🕒 Extra optional tracking fields
   final int? actualRepetitions;
   final Duration? actualDuration;
 
@@ -37,6 +40,7 @@ class CompletedSetConfiguration {
     this.originalDistanceUnit,
     this.originalStroke,
     this.originalEquipment,
+    this.completedSetItems = const [], // ✅ NEW default empty list
     this.wasModified = false,
     this.adjustedDistance,
     this.adjustedStroke,
@@ -57,6 +61,7 @@ class CompletedSetConfiguration {
     DistanceUnit? originalDistanceUnit,
     Stroke? originalStroke,
     EquipmentType? originalEquipment,
+    List<CompletedSetItem>? completedSetItems,
     bool? wasModified,
     double? adjustedDistance,
     Stroke? adjustedStroke,
@@ -73,6 +78,7 @@ class CompletedSetConfiguration {
       originalDistanceUnit: originalDistanceUnit ?? this.originalDistanceUnit,
       originalStroke: originalStroke ?? this.originalStroke,
       originalEquipment: originalEquipment ?? this.originalEquipment,
+      completedSetItems: completedSetItems ?? this.completedSetItems,
       wasModified: wasModified ?? this.wasModified,
       adjustedDistance: adjustedDistance ?? this.adjustedDistance,
       adjustedStroke: adjustedStroke ?? this.adjustedStroke,
@@ -83,7 +89,7 @@ class CompletedSetConfiguration {
     );
   }
 
-  /// Convenience when committing adjustments right before save
+  /// Convenience for marking an in-progress adjustment
   CompletedSetConfiguration copyWithAdjustments({
     double? adjustedDistance,
     Stroke? adjustedStroke,
@@ -106,7 +112,7 @@ class CompletedSetConfiguration {
   }
 
   // --------------------------------------------------------------------------
-  // 🔁 Factory: convert planned → completed
+  // 🏗️ Factory: Convert planned → completed
   // --------------------------------------------------------------------------
   factory CompletedSetConfiguration.fromSessionSetConfiguration(
       SessionSetConfiguration sessionConfig) {
@@ -118,15 +124,14 @@ class CompletedSetConfiguration {
 
     return CompletedSetConfiguration(
       sessionSetConfigId: sessionConfig.sessionSetConfigId,
-      // 🧭 Original (planned) metadata
+      // 🧭 Original metadata
       originalSetTitle: swimSet?.type?.name ??
           sessionConfig.rawSetTypeHeaderFromText ??
           'Unnamed Set',
       originalPlannedDistance: plannedDistance,
       originalEquipment: mainEquipment,
-      // 🔢 Details from session config
+      completedSetItems: const [], // ✅ start empty
       actualRepetitions: sessionConfig.repetitions,
-      // 🧠 Adjustments are empty at first
       wasModified: false,
       adjustedDistance: null,
       adjustedStroke: null,
@@ -137,9 +142,8 @@ class CompletedSetConfiguration {
   }
 
   // --------------------------------------------------------------------------
-  // 🗺️ Serialization
+  // 🧾 Serialization
   // --------------------------------------------------------------------------
-
   Map<String, dynamic> toMap() {
     return {
       'sessionSetConfigId': sessionSetConfigId,
@@ -148,6 +152,8 @@ class CompletedSetConfiguration {
       'originalDistanceUnit': originalDistanceUnit?.name,
       'originalStroke': originalStroke?.name,
       'originalEquipment': originalEquipment?.name,
+      'completedSetItems':
+      completedSetItems.map((item) => item.toMap()).toList(), // ✅ new field
       'wasModified': wasModified,
       'adjustedDistance': adjustedDistance,
       'adjustedStroke': adjustedStroke?.name,
@@ -159,24 +165,27 @@ class CompletedSetConfiguration {
   }
 
   static CompletedSetConfiguration fromMap(Map<String, dynamic> map) {
-    String? _nameToStroke(dynamic v) => v is String ? v : (v?.toString());
-    String? _nameToEquipment(dynamic v) => v is String ? v : (v?.toString());
-
     Stroke? _strokeFrom(dynamic v) =>
-        _nameToStroke(v) == null ? null : Stroke.fromString(_nameToStroke(v)!);
-    EquipmentType? _equipFrom(dynamic v) => _nameToEquipment(v) == null
-        ? null
-        : EquipmentType.values.firstWhereOrNull((e) => e.name == v);
+        v is String ? Stroke.fromString(v) : null;
+    EquipmentType? _equipFrom(dynamic v) => v is String
+        ? EquipmentType.values.firstWhereOrNull((e) => e.name == v)
+        : null;
 
     DistanceUnit? _unitFrom(dynamic v) {
       if (v is String) {
-        return DistanceUnit.values.firstWhere(
-              (e) => e.name == v,
-          orElse: () => DistanceUnit.meters,
-        );
+        return DistanceUnit.values.firstWhereOrNull((e) => e.name == v) ??
+            DistanceUnit.meters;
       }
       return null;
     }
+
+    final List<dynamic> itemsRaw = (map['completedSetItems'] ?? []) as List<dynamic>;
+    final items = itemsRaw
+        .map((e) => e is Map<String, dynamic>
+        ? CompletedSetItem.fromMap(e)
+        : null)
+        .nonNulls
+        .toList();
 
     return CompletedSetConfiguration(
       sessionSetConfigId: (map['sessionSetConfigId'] ?? '') as String,
@@ -186,6 +195,7 @@ class CompletedSetConfiguration {
       originalDistanceUnit: _unitFrom(map['originalDistanceUnit']),
       originalStroke: _strokeFrom(map['originalStroke']),
       originalEquipment: _equipFrom(map['originalEquipment']),
+      completedSetItems: items, // ✅ added
       wasModified: (map['wasModified'] as bool?) ?? false,
       adjustedDistance: (map['adjustedDistance'] as num?)?.toDouble(),
       adjustedStroke: _strokeFrom(map['adjustedStroke']),
@@ -201,7 +211,6 @@ class CompletedSetConfiguration {
   // --------------------------------------------------------------------------
   // ⚖️ Helpers
   // --------------------------------------------------------------------------
-
   bool get hasAdjustments => wasModified;
 
   String get summaryText {
@@ -210,12 +219,8 @@ class CompletedSetConfiguration {
     if (adjustedDistance != null) {
       parts.add("${adjustedDistance!.toInt()}${originalDistanceUnit?.short ?? 'm'}");
     }
-    if (adjustedStroke != null) {
-      parts.add(adjustedStroke!.name);
-    }
-    if (adjustedEquipment != null) {
-      parts.add(adjustedEquipment!.name);
-    }
+    if (adjustedStroke != null) parts.add(adjustedStroke!.name);
+    if (adjustedEquipment != null) parts.add(adjustedEquipment!.name);
     if (adjustmentNote != null && adjustmentNote!.isNotEmpty) {
       parts.add("\"$adjustmentNote\"");
     }
@@ -224,5 +229,5 @@ class CompletedSetConfiguration {
 
   @override
   String toString() =>
-      'CompletedSetConfiguration(id: $sessionSetConfigId, wasModified: $wasModified, adjustedDistance: $adjustedDistance, adjustedStroke: ${adjustedStroke?.name}, adjustedEquipment: ${adjustedEquipment?.name})';
+      'CompletedSetConfiguration(id: $sessionSetConfigId, items: ${completedSetItems.length}, wasModified: $wasModified)';
 }
