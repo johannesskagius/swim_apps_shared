@@ -280,6 +280,20 @@ class UserRepository extends BaseRepository {
     }
   }
 
+  Future<AppUser?> getUserByEmail(String email) async {
+    final snap = await FirebaseFirestore.instance
+        .collection('users')
+        .where('email', isEqualTo: email.toLowerCase())
+        .limit(1)
+        .get();
+
+    if (snap.docs.isEmpty) return null;
+    final data = snap.docs.first.data();
+    // Map to your AppUser/Coach/Swimmer model as you already do
+    return AppUser.fromJson(snap.docs.first.id, data);
+  }
+
+
   // --- GET: My Profile Shortcut ---
   Future<AppUser?> getMyProfile() async {
     final myUid = _authService.currentUserId;
