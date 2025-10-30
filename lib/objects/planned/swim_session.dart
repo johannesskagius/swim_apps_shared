@@ -4,10 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:swim_apps_shared/objects/planned/set_item.dart';
 import 'package:swim_apps_shared/objects/planned/swim_set.dart';
 import 'package:swim_apps_shared/objects/planned/swim_set_config.dart';
-import 'package:swim_apps_shared/swim_session/generator/enums/equipment.dart';
+import 'package:swim_apps_shared/swim_apps_shared.dart';
 
-import '../../swim_session/generator/enums/distance_units.dart';
-import '../../swim_session/generator/enums/session_slot.dart';
 import '../stroke.dart';
 
 class SwimSession {
@@ -19,6 +17,7 @@ class SwimSession {
   SessionSlot sessionSlot;
   List<SessionSetConfiguration> setConfigurations;
   List<SwimSet> sets; // Holds all SwimSet objects for this swim_session
+  TrainingFocus? trainingFocus;
   List<String> assignedSwimmerIds;
   List<String> assignedGroupIds;
   String? overallSessionGoal;
@@ -37,6 +36,7 @@ class SwimSession {
     required this.sessionSlot,
     required this.setConfigurations,
     required this.sets,
+    this.trainingFocus,
     this.overallSessionGoal,
     this.sessionNotes,
     required this.createdAt,
@@ -164,6 +164,9 @@ class SwimSession {
       sessionNotes: json['sessionNotes'],
       createdAt: parseFirestoreTimestamp(json['createdAt']) ?? DateTime.now(),
       updatedAt: parseFirestoreTimestamp(json['updatedAt']),
+      trainingFocus: json['trainingFocus'] != null
+          ? TrainingFocusFactory.fromName(json['trainingFocus'])
+          : TrainingFocusFactory.fromType(TrainingFocusType.mixed),
       distanceUnit:
           getEnumFromString(DistanceUnit.values, json['distanceUnit']) ??
           DistanceUnit.meters,
@@ -186,6 +189,7 @@ class SwimSession {
       'assignedGroupIds': assignedGroupIds,
       'overallSessionGoal': overallSessionGoal,
       'sessionNotes': sessionNotes,
+      if(trainingFocus != null) 'trainingFocus': trainingFocus?.name,
       'createdAt': Timestamp.fromDate(createdAt),
       if (updatedAt != null) 'updatedAt': Timestamp.fromDate(updatedAt!),
       'distanceUnit': distanceUnit.name,
