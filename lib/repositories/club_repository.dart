@@ -1,50 +1,29 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-// Removed: Firebase Crashlytics import is no longer needed.
-// import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
-
 import '../objects/swim_club.dart';
+import 'package:swim_apps_shared/objects/planned/swim_groups.dart';
 
-class ClubRepository {
+class SwimClubRepository {
   final FirebaseFirestore _firestore;
   final CollectionReference _clubsCollection;
 
-  // --- Refactoring for Simplicity ---
-  // The constructor no longer accepts or initializes FirebaseCrashlytics.
-  // This makes the repository more focused and easier to instantiate, especially in tests.
-  ClubRepository(this._firestore)
+  SwimClubRepository(this._firestore)
       : _clubsCollection = _firestore.collection('swimClubs');
 
-  /// Adds a new club to Firestore.
-  ///
-  /// Returns the ID of the newly created club document.
-  /// Throws a [FirebaseException] if the operation fails, allowing the caller
-  /// to implement specific UI feedback (e.g., showing a SnackBar with the error).
+  /// ➕ Adds a new club to Firestore.
   Future<String> addClub({required SwimClub club}) async {
     try {
-      // Use toJson but exclude the 'id' field, as Firestore generates it automatically.
       final data = club.toJson()..remove('id');
       final DocumentReference docRef = await _clubsCollection.add(data);
       return docRef.id;
     } on FirebaseException catch (e) {
-      // --- Error Handling Improvement ---
-      // The error is still caught specifically, and a descriptive message is printed
-      // to the debug console for development purposes. The Crashlytics logging is removed.
       debugPrint('🔥 Firestore Error adding club: ${e.message}');
-      // Re-throwing the original exception remains crucial to let the UI layer handle it.
       rethrow;
     }
   }
 
-  /// Fetches a club's details from Firestore by its ID.
-  ///
-  /// Returns a [SwimClub] object on success.
-  /// Returns null if the clubId is empty or if the document does not exist.
-  /// Throws a [FirebaseException] for Firestore-related errors or other exceptions
-  /// during data parsing, allowing the caller to differentiate between a "not found"
-  /// state and a system error.
+  /// 🔹 Fetch a single SwimClub by its ID
   Future<SwimClub?> getClub(String clubId) async {
-    // Precondition check: An empty ID is an invalid argument.
     if (clubId.isEmpty) {
       debugPrint("⚠️ Error: clubId cannot be empty.");
       return null;
@@ -54,27 +33,98 @@ class ClubRepository {
       final DocumentSnapshot doc = await _clubsCollection.doc(clubId).get();
 
       if (!doc.exists) {
-        // This is not an error but an expected outcome if the club doesn't exist.
         debugPrint("No club document found for ID: $clubId");
         return null;
       }
 
-      // Safely parse the data. If doc.data() is null or not a Map, it will throw an
-      // exception, which is caught below. This prevents crashes from malformed data.
       return SwimClub.fromJson(doc.data() as Map<String, dynamic>, doc.id);
-
     } on FirebaseException catch (e) {
-      // --- Error Handling Improvement ---
-      // This block handles specific errors from Firestore (e.g., network issues).
-      // The error is logged to the console, and the exception is re-thrown.
       debugPrint("🔥 Firestore Error getting club $clubId: ${e.message}");
       rethrow;
     } catch (e, s) {
-      // --- Error Handling Improvement ---
-      // This is a critical fallback for any other unexpected errors, such as a data parsing
-      // failure in SwimClub.fromJson. This is important for catching data consistency issues.
-      // The error is logged to the console with its stack trace for easier debugging.
-      debugPrint("An unexpected error occurred while processing club $clubId: $e\n$s");
+      debugPrint("❌ Unexpected error while processing club $clubId: $e\n$s");
+      rethrow;
+    }
+  }
+
+  /// 🏊 Fetch all SwimGroups belonging to a specific SwimClub
+  ///
+  /// Returns a list of [SwimGroup] objects located under
+  /// `swimClubs/{clubId}/groups`.
+  Future<List<SwimGroup>> getGroups(String clubId) async {
+    if (clubId.isEmpty) {
+      debugPrint("⚠️ getGroups called with empty clubId");
+      return [];
+    }
+
+    try {
+      final querySnapshot = await _clubsCollection
+          .doc(clubId)
+          .collection('groups')
+          .get();
+
+      final groups = querySnapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        return SwimGroup.fromJson(doc.id, data);
+      }).toList();
+
+      debugPrint("✅ Fetched ${groups.length} groups for club $clubId");
+      return groups;
+    } on FirebaseException catch (e) {
+      debugPrint("🔥 Firestore Error fetching groups for club $clubId: ${e.message}");
+      rethrow;
+    } catch (e, s) {
+      debugPrint("❌ Unexpected error fetching groups for club $clubId: $e\n$s");
+      rethrow;
+    }
+  }
+
+  /// 🧩 Adds a new group inside a specific club’s subcollection.
+  Future<String> addGroup(String clubId, SwimGroup group) async {
+    if (clubId.isEmpty) throw ArgumentError('Club ID cannot be empty');
+    try {
+      final data = group.toJson()..remove('id');
+      final ref = await _clubsCollection.doc(clubId).collection('groups').add(data);
+      debugPrint("✅ Added group ${ref.id} to club $clubId");
+      return ref.id;
+    } on FirebaseException catch (e) {
+      debugPrint("🔥 Firestore Error adding group to club $clubId: ${e.message}");
+      rethrow;
+    }
+  }
+
+  /// ✏️ Updates an existing group.
+  Future<void> updateGroup(String clubId, SwimGroup group) async {
+    if (clubId.isEmpty || group.id == null) {
+      debugPrint("⚠️ updateGroup missing clubId or groupId");
+      return;
+    }
+
+    try {
+      await _clubsCollection
+          .doc(clubId)
+          .collection('groups')
+          .doc(group.id)
+          .update(group.toJson());
+      debugPrint("✅ Updated group ${group.id} in club $clubId");
+    } on FirebaseException catch (e) {
+      debugPrint("🔥 Firestore Error updating group: ${e.message}");
+      rethrow;
+    }
+  }
+
+  /// ❌ Deletes a group from a club.
+  Future<void> deleteGroup(String clubId, String groupId) async {
+    if (clubId.isEmpty || groupId.isEmpty) {
+      debugPrint("⚠️ deleteGroup missing clubId or groupId");
+      return;
+    }
+
+    try {
+      await _clubsCollection.doc(clubId).collection('groups').doc(groupId).delete();
+      debugPrint("🗑️ Deleted group $groupId from club $clubId");
+    } on FirebaseException catch (e) {
+      debugPrint("🔥 Firestore Error deleting group: ${e.message}");
       rethrow;
     }
   }
