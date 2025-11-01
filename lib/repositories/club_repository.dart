@@ -128,4 +128,34 @@ class SwimClubRepository {
       rethrow;
     }
   }
+  /// 🔹 Fetches a club created by a specific coach (creatorId)
+  Future<SwimClub?> getClubByCreatorId(String coachId) async {
+    if (coachId.isEmpty) {
+      debugPrint("⚠️ getClubByCreatorId called with empty coachId");
+      return null;
+    }
+
+    try {
+      final querySnapshot = await _clubsCollection
+          .where('creatorId', isEqualTo: coachId)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isEmpty) {
+        debugPrint("ℹ️ No club found for coach $coachId");
+        return null;
+      }
+
+      final doc = querySnapshot.docs.first;
+      final data = doc.data() as Map<String, dynamic>;
+      return SwimClub.fromJson(data, doc.id);
+    } on FirebaseException catch (e) {
+      debugPrint("🔥 Firestore Error getting club by creatorId: ${e.message}");
+      rethrow;
+    } catch (e, s) {
+      debugPrint("❌ Unexpected error fetching club for coach $coachId: $e\n$s");
+      rethrow;
+    }
+  }
+
 }
