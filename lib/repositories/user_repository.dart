@@ -302,4 +302,13 @@ class UserRepository extends BaseRepository {
     }
     return null;
   }
+
+  Future<bool> userExistsByEmail(String email) async {
+    final snap = await FirebaseFirestore.instance
+        .collection("users")
+        .where("email", isEqualTo: email)
+        .limit(1)
+        .get();
+    return snap.docs.isNotEmpty;
+  }
 }
