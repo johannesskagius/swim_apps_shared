@@ -69,7 +69,6 @@ class Coach extends AppUser {
     String? name,
     String? lastName,
     String? email,
-    UserType? userType,
     String? profilePicturePath,
     String? photoUrl,
     DateTime? registerDate,
@@ -79,8 +78,10 @@ class Coach extends AppUser {
     List<String>? ownerOfTeams,
     String? creatorId,
     bool? isAccountHolder,
+    bool? isSwimCoachSupportUser,
+    bool? isSwimAnalyzerProUser,
   }) {
-    return Coach(
+    final coach = Coach(
       id: id ?? this.id,
       name: name ?? this.name,
       lastName: lastName ?? this.lastName,
@@ -95,5 +96,13 @@ class Coach extends AppUser {
       ownerOfTeams: ownerOfTeams ?? this.ownerOfTeams,
       creatorId: creatorId ?? this.creatorId,
     );
+
+    // ✅ assign inherited flags AFTER constructor call
+    coach.isSwimCoachSupportUser =
+        isSwimCoachSupportUser ?? this.isSwimCoachSupportUser;
+    coach.isSwimAnalyzerProUser =
+        isSwimAnalyzerProUser ?? this.isSwimAnalyzerProUser;
+
+    return coach;
   }
 }

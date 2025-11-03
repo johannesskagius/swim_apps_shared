@@ -69,7 +69,6 @@ class Swimmer extends AppUser {
     String? name,
     String? lastName,
     String? email,
-    UserType? userType,
     String? profilePicturePath,
     String? photoUrl,
     DateTime? registerDate,
@@ -80,10 +79,11 @@ class Swimmer extends AppUser {
     String? creatorId,
     String? secondCoachId,
     String? thirdCoachId,
+    bool? isSwimCoachSupportUser,
+    bool? isSwimAnalyzerProUser,
   }) {
-    return Swimmer(
+    final swimmer = Swimmer(
       id: id ?? this.id,
-      mainEventIds: mainEventIds ?? this.mainEventIds,
       name: name ?? this.name,
       lastName: lastName ?? this.lastName,
       email: email ?? this.email,
@@ -96,6 +96,16 @@ class Swimmer extends AppUser {
       creatorId: creatorId ?? this.creatorId,
       secondCoachId: secondCoachId ?? this.secondCoachId,
       thirdCoachId: thirdCoachId ?? this.thirdCoachId,
+      mainEventIds: mainEventIds ?? this.mainEventIds,
     );
+
+    // ✅ assign inherited flags AFTER constructor call
+    swimmer.isSwimCoachSupportUser =
+        isSwimCoachSupportUser ?? this.isSwimCoachSupportUser;
+    swimmer.isSwimAnalyzerProUser =
+        isSwimAnalyzerProUser ?? this.isSwimAnalyzerProUser;
+
+    return swimmer;
   }
+
 }
