@@ -9,6 +9,7 @@ export 'repositories/club_repository.dart';
 export 'repositories/firestore_helper.dart';
 export 'repositories/user_repository.dart';
 export 'repositories/swimmer_focus_profile_repository.dart';
+export 'repositories/entitlement_repository.dart';
 // --- EVENTS ---
 
 // --- OBJECTS / MODELS ---
