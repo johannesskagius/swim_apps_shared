@@ -66,7 +66,179 @@ class RaceAnalysis with AnalyzableBase {
     this.swimmerName = swimmerName;
   }
 
-  /// Converts this object into a Firestore-compatible JSON map.
+  // --- ✅ RESTORED FACTORY ---
+  factory RaceAnalysis.fromSegments({
+    String? id,
+    String? coachId,
+    String? swimmerId,
+    String? swimmerName,
+    required String eventName,
+    required String raceName,
+    required DateTime raceDate,
+    required PoolLength poolLength,
+    required Stroke stroke,
+    required int distance,
+    required List<AnalyzedSegment> segments,
+  }) {
+    // --- Overall Summary Calculations ---
+    final finalTime =
+    segments.map((s) => s.splitTimeMillis).fold(0, (a, b) => a + b);
+    final totalDistance =
+    segments.map((s) => s.distanceMeters).fold(0.0, (a, b) => a + b);
+    final totalStrokes =
+    segments.map((s) => s.strokes ?? 0).fold(0, (a, b) => a + b);
+
+    final averageSpeed = (totalDistance > 0 && finalTime > 0)
+        ? (totalDistance / (finalTime / 1000.0))
+        : 0.0;
+
+    double totalWeightedFreq = 0;
+    double totalWeightedLength = 0;
+    int totalTimeForFreq = 0;
+    double totalDistForLength = 0;
+
+    for (final segment in segments) {
+      if (segment.strokeFrequency != null) {
+        totalWeightedFreq += segment.strokeFrequency! * segment.splitTimeMillis;
+        totalTimeForFreq += segment.splitTimeMillis;
+      }
+      if (segment.strokeLengthMeters != null) {
+        totalWeightedLength +=
+            segment.strokeLengthMeters! * segment.distanceMeters;
+        totalDistForLength += segment.distanceMeters;
+      }
+    }
+
+    final avgFreq =
+    (totalTimeForFreq > 0) ? totalWeightedFreq / totalTimeForFreq : 0.0;
+    final avgLength = (totalDistForLength > 0)
+        ? totalWeightedLength / totalDistForLength
+        : 0.0;
+
+    // --- Standardized Interval Calculations ---
+    final splits25m = _calculateStandardizedSplits(segments, 25);
+    final splits50m = _calculateStandardizedSplits(segments, 50);
+    final speedPer25m = _calculateSpeedPer25m(splits25m);
+    final otherMetrics = _calculateMetricsPer25m(segments, splits25m.length);
+
+    return RaceAnalysis(
+      id: id,
+      coachId: coachId,
+      swimmerId: swimmerId,
+      swimmerName: swimmerName,
+      eventName: eventName,
+      raceName: raceName,
+      raceDate: raceDate,
+      poolLength: poolLength,
+      stroke: stroke,
+      distance: distance,
+      segments: segments,
+      finalTime: finalTime,
+      totalDistance: totalDistance,
+      totalStrokes: totalStrokes,
+      averageSpeedMetersPerSecond: averageSpeed,
+      averageStrokeFrequency: avgFreq,
+      averageStrokeLengthMeters: avgLength,
+      splits25m: splits25m,
+      splits50m: splits50m,
+      speedPer25m: speedPer25m,
+      strokesPer25m: List<int>.from(otherMetrics['strokes']!),
+      frequencyPer25m: List<double>.from(otherMetrics['frequencies']!),
+      strokeLengthPer25m: List<double>.from(otherMetrics['lengths']!),
+    );
+  }
+
+  // --- 🧮 HELPER METHODS (unchanged) ---
+  static List<double> _calculateSpeedPer25m(List<int> splits25m) {
+    if (splits25m.isEmpty) return [];
+    final List<double> speeds = [];
+    int previousSplitTime = 0;
+    for (final splitTime in splits25m) {
+      final intervalTime = splitTime - previousSplitTime;
+      final speed = (intervalTime > 0) ? (25.0 / (intervalTime / 1000.0)) : 0.0;
+      speeds.add(speed);
+      previousSplitTime = splitTime;
+    }
+    return speeds;
+  }
+
+  static Map<String, List<dynamic>> _calculateMetricsPer25m(
+      List<AnalyzedSegment> segments,
+      int numIntervals,
+      ) {
+    if (segments.isEmpty) {
+      return {'strokes': [], 'frequencies': [], 'lengths': []};
+    }
+
+    final List<int> strokes = [];
+    final List<double> frequencies = [];
+    final List<double> lengths = [];
+
+    double cumulativeDistance = 0;
+    int segmentIndex = 0;
+
+    for (int i = 0; i < numIntervals; i++) {
+      final double midpointDistance = (i * 25.0) + 12.5;
+      while (segmentIndex < segments.length - 1 &&
+          (cumulativeDistance + segments[segmentIndex].distanceMeters) <
+              midpointDistance) {
+        cumulativeDistance += segments[segmentIndex].distanceMeters;
+        segmentIndex++;
+      }
+
+      final segment = segments[segmentIndex];
+      strokes.add(segment.strokes ?? 0);
+      frequencies.add(segment.strokeFrequency ?? 0.0);
+      lengths.add(segment.strokeLengthMeters ?? 0.0);
+    }
+    return {'strokes': strokes, 'frequencies': frequencies, 'lengths': lengths};
+  }
+
+  static List<int> _calculateStandardizedSplits(
+      List<AnalyzedSegment> segments,
+      int intervalDistance,
+      ) {
+    if (segments.isEmpty || intervalDistance <= 0) return [];
+
+    final List<int> splits = [];
+    double targetDistance = intervalDistance.toDouble();
+    double cumulativeDistance = 0;
+    int cumulativeTime = 0;
+    int segmentIndex = 0;
+    final double totalRaceDistance =
+    segments.map((s) => s.distanceMeters).fold(0.0, (a, b) => a + b);
+
+    while (targetDistance <= totalRaceDistance + 0.1) {
+      while (segmentIndex < segments.length &&
+          (cumulativeDistance + segments[segmentIndex].distanceMeters) <
+              targetDistance) {
+        cumulativeDistance += segments[segmentIndex].distanceMeters;
+        cumulativeTime += segments[segmentIndex].splitTimeMillis;
+        segmentIndex++;
+      }
+
+      if (segmentIndex >= segments.length) break;
+
+      final currentSegment = segments[segmentIndex];
+      final double distanceIntoSegment = targetDistance - cumulativeDistance;
+
+      if (currentSegment.distanceMeters == 0) {
+        if (distanceIntoSegment == 0) splits.add(cumulativeTime);
+        targetDistance += intervalDistance;
+        continue;
+      }
+
+      final double fractionOfSegment =
+          distanceIntoSegment / currentSegment.distanceMeters;
+      final int timeForFraction =
+      (fractionOfSegment * currentSegment.splitTimeMillis).round();
+      splits.add(cumulativeTime + timeForFraction);
+      targetDistance += intervalDistance;
+    }
+    return splits;
+  }
+
+  // --- FIRESTORE SERIALIZATION ---
   Map<String, dynamic> toJson() {
     return {
       ...analyzableBaseToJson(),
@@ -92,10 +264,7 @@ class RaceAnalysis with AnalyzableBase {
     };
   }
 
-  /// Creates a RaceAnalysis object from a Firestore document.
-  factory RaceAnalysis.fromFirestore(
-      DocumentSnapshot<Map<String, dynamic>> doc,
-      ) {
+  factory RaceAnalysis.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data()!;
     final race = RaceAnalysis(
       id: doc.id,
@@ -129,17 +298,7 @@ class RaceAnalysis with AnalyzableBase {
     return race;
   }
 
-  // --- 🧠 Cached data helpers ---
-  /// Stores a precomputed or UI-only value in memory (not persisted to Firestore).
-  void setExtraData(String key, dynamic value) {
-    _extraData[key] = value;
-  }
-
-  /// Retrieves a cached value of type [T] from memory.
-  T? getExtraData<T>(String key) {
-    if (_extraData.containsKey(key)) {
-      return _extraData[key] as T?;
-    }
-    return null;
-  }
+  // --- CACHE METHODS ---
+  void setExtraData(String key, dynamic value) => _extraData[key] = value;
+  T? getExtraData<T>(String key) => _extraData[key] as T?;
 }
