@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -37,6 +38,40 @@ class _RaceHistoryPageState extends State<RaceHistoryPage> {
     _loadInitialData();
   }
 
+  Future<List<AppUser>> _getSwimmersForCoachLocal(String coachId) async {
+    final firestore = FirebaseFirestore.instance;
+
+    // 1️⃣ Fetch links for this coach
+    final linkSnap = await firestore
+        .collection('coach_swimmer_links')
+        .where('coachId', isEqualTo: coachId)
+        .get();
+
+    final swimmerIds = linkSnap.docs
+        .map((d) => d['swimmerId'] as String)
+        .toSet();
+
+    if (swimmerIds.isEmpty) return [];
+
+    List<AppUser> swimmers = [];
+    final batches = swimmerIds.chunked(10);
+
+    // 2️⃣ Fetch swimmer user docs in batches
+    for (final batch in batches) {
+      final usersSnap = await firestore
+          .collection('users')
+          .where(FieldPath.documentId, whereIn: batch)
+          .get();
+
+      for (var doc in usersSnap.docs) {
+        final user = AppUser.fromJson(doc.id, doc.data());
+        if (user is Swimmer) swimmers.add(user);
+      }
+    }
+
+    return swimmers;
+  }
+
   /// Fetches data based on whether a specific swimmerId is provided or not.
   Future<void> _loadInitialData() async {
     if (!mounted) return;
@@ -69,9 +104,7 @@ class _RaceHistoryPageState extends State<RaceHistoryPage> {
 
       // --- FIX: Restored missing logic for Coach role ---
       if (currentUser is Coach) {
-        final swimmers = await userRepo.getAllSwimmersFromCoach(
-          coachId: currentUser.id,
-        );
+        final swimmers = await _getSwimmersForCoachLocal(currentUser.id);
         if (mounted) {
           setState(() {
             _currentUser = currentUser;
@@ -311,5 +344,15 @@ class _RaceHistoryPageState extends State<RaceHistoryPage> {
           : const Icon(Icons.circle_outlined),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     );
+  }
+}
+
+extension IterableChunk<T> on Iterable<T> {
+  List<List<T>> chunked(int size) {
+    final List<List<T>> chunks = [];
+    for (var i = 0; i < length; i += size) {
+      chunks.add(skip(i).take(size).toList());
+    }
+    return chunks;
   }
 }
