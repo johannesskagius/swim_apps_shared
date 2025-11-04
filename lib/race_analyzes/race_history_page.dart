@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:swim_apps_shared/race_analyzes/race_comparison_page.dart';
 
-import '../objects/race.dart';
+import '../objects/analyzes/race_analyze_model.dart';
 import '../objects/user/coach.dart';
 import '../objects/user/swimmer.dart';
 import '../objects/user/user.dart';

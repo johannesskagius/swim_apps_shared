@@ -9,7 +9,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
 
-import '../objects/race.dart';
+import '../objects/analyzes/race_analyze_model.dart';
 import '../repositories/analyzes_repository.dart';
 import '../repositories/user_repository.dart';
 

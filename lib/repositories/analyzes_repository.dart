@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
 import '../objects/off_the_block_model.dart';
-import '../objects/race.dart';
+import '../objects/analyzes/race_analyze_model.dart';
 import 'base_repository.dart';
 
 class AnalyzesRepository extends BaseRepository {

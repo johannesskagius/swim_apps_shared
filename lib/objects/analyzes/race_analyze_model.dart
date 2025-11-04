@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:swim_apps_shared/objects/pool_length.dart';
 import 'package:swim_apps_shared/objects/stroke.dart';
 
-import 'analyzed_segment.dart';
+import '../analyzed_segment.dart';
 
 
 

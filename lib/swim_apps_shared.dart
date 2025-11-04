@@ -48,3 +48,8 @@ export 'swim_session/training_focus_factory.dart';
 
 ///OBJECTS
 export 'objects/session_set_configuration_extension.dart';
+export 'objects/analyzes/race_analyze_model.dart';
+export 'objects/analyzes/start_analyze.dart';
+export 'objects/analyzes/stroke_analysis.dart';
+export 'objects/analyzes/stroke_segment_matrix.dart';
+export 'objects/analyzes/stroke_under_water_matrix.dart';
