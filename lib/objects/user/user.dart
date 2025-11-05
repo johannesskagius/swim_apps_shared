@@ -110,6 +110,7 @@ abstract class AppUser {
     DateTime? updatedAt,
     String? clubId,
     String? creatorId,
+    UserType userType,
     bool? isSwimCoachSupportUser,
     bool? isSwimAnalyzerProUser,
   });
