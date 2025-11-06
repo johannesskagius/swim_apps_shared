@@ -59,6 +59,7 @@ class Swimmer extends AppUser {
       if (secondCoachId != null) 'secondCoachId': secondCoachId,
       if (thirdCoachId != null) 'thirdCoachId': thirdCoachId,
       if (memberOfTeams != null) 'memberOfTeams': memberOfTeams,
+      if (mainEventIds.isNotEmpty) 'mainEventIds': mainEventIds,
     });
     return json;
   }
@@ -74,13 +75,16 @@ class Swimmer extends AppUser {
     DateTime? registerDate,
     DateTime? updatedAt,
     String? clubId,
-    List<String>? memberOfTeams,
-    List<String>? mainEventIds,
     String? creatorId,
-    String? secondCoachId,
-    String? thirdCoachId,
+    UserType? userType, // ✅ added to match AppUser
     bool? isSwimCoachSupportUser,
     bool? isSwimAnalyzerProUser,
+    // ✅ Swimmer-specific fields
+    String? headCoachId,
+    String? secondCoachId,
+    String? thirdCoachId,
+    List<String>? memberOfTeams,
+    List<String>? mainEventIds,
   }) {
     final swimmer = Swimmer(
       id: id ?? this.id,
@@ -92,20 +96,23 @@ class Swimmer extends AppUser {
       registerDate: registerDate ?? this.registerDate,
       updatedAt: updatedAt ?? this.updatedAt,
       clubId: clubId ?? this.clubId,
-      memberOfTeams: memberOfTeams ?? this.memberOfTeams,
       creatorId: creatorId ?? this.creatorId,
+      memberOfTeams: memberOfTeams ?? this.memberOfTeams,
+      mainEventIds: mainEventIds ?? this.mainEventIds,
       secondCoachId: secondCoachId ?? this.secondCoachId,
       thirdCoachId: thirdCoachId ?? this.thirdCoachId,
-      mainEventIds: mainEventIds ?? this.mainEventIds,
+      // Note: headCoachId is not in constructor but preserved below
     );
 
-    // ✅ assign inherited flags AFTER constructor call
+    // ✅ Assign inherited flags AFTER constructor
     swimmer.isSwimCoachSupportUser =
         isSwimCoachSupportUser ?? this.isSwimCoachSupportUser;
     swimmer.isSwimAnalyzerProUser =
         isSwimAnalyzerProUser ?? this.isSwimAnalyzerProUser;
 
+    // ✅ Preserve additional field
+    swimmer.headCoachId = headCoachId ?? this.headCoachId;
+
     return swimmer;
   }
-
 }

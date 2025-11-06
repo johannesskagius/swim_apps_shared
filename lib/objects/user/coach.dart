@@ -74,12 +74,14 @@ class Coach extends AppUser {
     DateTime? registerDate,
     DateTime? updatedAt,
     String? clubId,
-    List<String>? memberOfTeams,
-    List<String>? ownerOfTeams,
     String? creatorId,
-    bool? isAccountHolder,
+    UserType? userType, // ✅ must match base signature (nullable)
     bool? isSwimCoachSupportUser,
     bool? isSwimAnalyzerProUser,
+    // ✅ Coach-specific fields
+    List<String>? memberOfTeams,
+    List<String>? ownerOfTeams,
+    bool? isAccountHolder,
   }) {
     final coach = Coach(
       id: id ?? this.id,
@@ -91,13 +93,12 @@ class Coach extends AppUser {
       registerDate: registerDate ?? this.registerDate,
       updatedAt: updatedAt ?? this.updatedAt,
       clubId: clubId ?? this.clubId,
-      isAccountHolder: isAccountHolder ?? this.isAccountHolder,
+      creatorId: creatorId ?? this.creatorId,
       memberOfTeams: memberOfTeams ?? this.memberOfTeams,
       ownerOfTeams: ownerOfTeams ?? this.ownerOfTeams,
-      creatorId: creatorId ?? this.creatorId,
+      isAccountHolder: isAccountHolder ?? this.isAccountHolder,
     );
 
-    // ✅ assign inherited flags AFTER constructor call
     coach.isSwimCoachSupportUser =
         isSwimCoachSupportUser ?? this.isSwimCoachSupportUser;
     coach.isSwimAnalyzerProUser =
@@ -105,4 +106,5 @@ class Coach extends AppUser {
 
     return coach;
   }
+
 }
