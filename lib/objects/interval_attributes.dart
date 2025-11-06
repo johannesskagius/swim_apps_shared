@@ -6,6 +6,7 @@ class IntervalAttributes {
   List<Duration> strokeTimestamps;
   double? averageStrokeFrequency;
 
+  ///Constructor
   IntervalAttributes({
     this.strokeCount = 0,
     this.breathCount = 0,
