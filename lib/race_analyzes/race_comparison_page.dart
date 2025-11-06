@@ -13,7 +13,6 @@ import '../objects/analyzes/race_analyze_model.dart';
 import '../repositories/analyzes_repository.dart';
 import '../repositories/user_repository.dart';
 
-
 class RaceComparisonPage extends StatefulWidget {
   final List<String> raceIds;
   final String? brandIconAssetPath; // New optional parameter
@@ -150,16 +149,23 @@ class _RaceComparisonPageState extends State<RaceComparisonPage> {
   }
 
   /// Generates a PDF from the comparison data and opens the native share dialog.
+  /// Generates a PDF from the comparison data and opens the native share dialog.
   Future<void> _shareComparison(
-    BuildContext context,
-    List<RaceAnalysis> races,
-  ) async {
+      BuildContext context,
+      List<RaceAnalysis> races,
+      ) async {
+    // ---
+    // --- FIX: Capture context-dependent variables BEFORE any awaits. ---
+    // ---
+    final theme = Theme.of(context);
+    // ---
+
     pw.MemoryImage? icon;
 
     if (widget.brandIconAssetPath != null) {
       try {
         // Load the app icon from your project's assets.
-        final iconData = await rootBundle.load(widget.brandIconAssetPath!);
+        final iconData = await rootBundle.load(widget.brandIconAssetPath!); // <-- This is the first async gap
         icon = pw.MemoryImage(iconData.buffer.asUint8List());
       } catch (e) {
         // Silently fail if the icon isn't found so it doesn't crash.
@@ -169,7 +175,7 @@ class _RaceComparisonPageState extends State<RaceComparisonPage> {
     // Correctly use swimmerName for display with the right method.
     final swimmerNames = races
         .map((r) => r.swimmerName)
-        .whereNotNull()
+        .nonNulls
         .toSet()
         .join(', ');
     final docTitle = races.length == 2
@@ -184,7 +190,7 @@ class _RaceComparisonPageState extends State<RaceComparisonPage> {
     );
     // --- END: Metadata and Asset Loading ---
 
-    final theme = Theme.of(context);
+    // final theme = Theme.of(context); // <-- This line was moved to the top
 
     // Load Unicode-compatible fonts. This is essential.
     final font = await PdfGoogleFonts.nunitoRegular();
@@ -197,7 +203,7 @@ class _RaceComparisonPageState extends State<RaceComparisonPage> {
         header: (context) =>
             _buildPdfHeader(races, boldFont, icon, swimmerNames),
         build: (pw.Context pdfContext) => [
-          _buildPdfTable(races, theme, font, boldFont, italicFont),
+          _buildPdfTable(races, theme, font, boldFont, italicFont), // 'theme' is now safely passed
           pw.SizedBox(height: 20),
           pw.Text(
             'Avg. SWOLF = Time per Lap (s) + Strokes per Lap. Lower is better.',
@@ -275,7 +281,7 @@ class _RaceComparisonPageState extends State<RaceComparisonPage> {
     final bool showDiffColumn = races.length == 2;
     final headerStyle = pw.TextStyle(font: boldFont);
     final bestValueStyle = pw.TextStyle(
-      color: PdfColor.fromInt(Colors.green.shade800.value),
+      color: PdfColor.fromInt(Colors.green.shade800.g.toInt()),
       font: boldFont,
     );
 
@@ -380,8 +386,8 @@ class _RaceComparisonPageState extends State<RaceComparisonPage> {
             diffStyle = pw.TextStyle(
               font: boldFont,
               color: isImprovement
-                  ? PdfColor.fromInt(Colors.green.shade800.value)
-                  : PdfColor.fromInt(Colors.red.shade700.value),
+                  ? PdfColor.fromInt(Colors.green.shade800.g.toInt())
+                  : PdfColor.fromInt(Colors.red.shade700.r.toInt()),
             );
             diffText = formatDiff != null
                 ? formatDiff(diff)
@@ -402,9 +408,9 @@ class _RaceComparisonPageState extends State<RaceComparisonPage> {
       tableRows.add(pw.TableRow(children: cells));
     }
 
-    final signFormatter = (num v, int frac) =>
+    String signFormatter(num v, int frac) =>
         '${v > 0 ? '+' : ''}${v.toStringAsFixed(frac)}';
-    final signMeterFormatter = (num v) =>
+    String signMeterFormatter(num v) =>
         '${v > 0 ? '+' : ''}${v.toStringAsFixed(2)}m';
     final allBreaststroke = races.every(
       (r) => r.stroke?.name.toLowerCase() == 'breaststroke',
@@ -455,7 +461,7 @@ class _RaceComparisonPageState extends State<RaceComparisonPage> {
     addPdfStatRow(
       title: 'Avg. Stroke Freq',
       isOverall: true,
-      getValue: (i) => races[i].averageStrokeFrequency?.toStringAsFixed(1),
+      getValue: (i) => races[i].averageStrokeFrequency.toStringAsFixed(1),
       getNumericValue: (i) => races[i].averageStrokeFrequency,
       lowerIsBetter: false,
       formatDiff: (v) => signFormatter(v, 1),
@@ -463,9 +469,7 @@ class _RaceComparisonPageState extends State<RaceComparisonPage> {
     addPdfStatRow(
       title: 'Avg. Stroke Len.',
       isOverall: true,
-      getValue: (i) => races[i].averageStrokeLengthMeters != null
-          ? '${races[i].averageStrokeLengthMeters!.toStringAsFixed(2)}m'
-          : '-',
+      getValue: (i) => '${races[i].averageStrokeLengthMeters.toStringAsFixed(2)}m',
       getNumericValue: (i) => races[i].averageStrokeLengthMeters,
       lowerIsBetter: false,
       formatDiff: signMeterFormatter,
@@ -580,7 +584,7 @@ class _RaceComparisonPageState extends State<RaceComparisonPage> {
                   padding: cellPadding,
                   alignment: pw.Alignment.center,
                   child: pw.Text(
-                    _formatMillis(segment?.totalTimeMillis) ?? '-',
+                    _formatMillis(segment?.totalTimeMillis),
                     style: pw.TextStyle(font: boldFont),
                   ),
                 );
@@ -916,11 +920,11 @@ class _RaceComparisonPageState extends State<RaceComparisonPage> {
 
       rows.add(
         DataRow(
-          color: MaterialStateProperty.all(
+          color: WidgetStateProperty.all(
             isOverall
                 ? Theme.of(
                     context,
-                  ).colorScheme.primaryContainer.withOpacity(0.3)
+                  ).colorScheme.primaryContainer.withAlpha(30)
                 : null,
           ),
           cells: cells,
@@ -928,9 +932,9 @@ class _RaceComparisonPageState extends State<RaceComparisonPage> {
       );
     }
 
-    final signFormatter = (num v, int frac) =>
+    String signFormatter(num v, int frac) =>
         '${v > 0 ? '+' : ''}${v.toStringAsFixed(frac)}';
-    final signMeterFormatter = (num v) =>
+    String signMeterFormatter(num v) =>
         '${v > 0 ? '+' : ''}${v.toStringAsFixed(2)}m';
 
     // --- Overall Statistics ---
@@ -980,7 +984,7 @@ class _RaceComparisonPageState extends State<RaceComparisonPage> {
     addStatRow(
       title: 'Avg. Stroke Freq',
       isOverall: true,
-      getValue: (i) => races[i].averageStrokeFrequency?.toStringAsFixed(1),
+      getValue: (i) => races[i].averageStrokeFrequency.toStringAsFixed(1),
       getNumericValue: (i) => races[i].averageStrokeFrequency,
       lowerIsBetter: false,
       formatDiff: (v) => signFormatter(v, 1),
@@ -988,9 +992,7 @@ class _RaceComparisonPageState extends State<RaceComparisonPage> {
     addStatRow(
       title: 'Avg. Stroke Len.',
       isOverall: true,
-      getValue: (i) => races[i].averageStrokeLengthMeters != null
-          ? '${races[i].averageStrokeLengthMeters!.toStringAsFixed(2)}m'
-          : '-',
+      getValue: (i) => '${races[i].averageStrokeLengthMeters.toStringAsFixed(2)}m',
       getNumericValue: (i) => races[i].averageStrokeLengthMeters,
       lowerIsBetter: false,
       formatDiff: signMeterFormatter,
@@ -1110,7 +1112,7 @@ class _RaceComparisonPageState extends State<RaceComparisonPage> {
             return DataCell(
               Center(
                 child: Text(
-                  _formatMillis(segment?.totalTimeMillis) ?? '-',
+                  _formatMillis(segment?.totalTimeMillis),
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
@@ -1121,8 +1123,8 @@ class _RaceComparisonPageState extends State<RaceComparisonPage> {
 
         rows.add(
           DataRow(
-            color: MaterialStateProperty.all(
-              Theme.of(context).colorScheme.secondaryContainer.withOpacity(0.3),
+            color: WidgetStateProperty.all(
+              Theme.of(context).colorScheme.secondaryContainer.withAlpha(30),
             ),
             cells: headerCells,
           ),
@@ -1210,49 +1212,6 @@ class _RaceComparisonPageState extends State<RaceComparisonPage> {
       return null;
     }
     return (strokeLength * strokeFrequency) / 60.0;
-  }
-
-  // This function is now only used for PDF generation, which happens less frequently.
-  // The UI uses the pre-calculated `averageSwolf` value.
-  double? _calculateAverageSwolf(RaceAnalysis race) {
-    // Check if the value was pre-calculated and cached.
-    final cachedSwolf = race.getExtraData<double>('averageSwolf');
-    if (cachedSwolf != null) return cachedSwolf;
-
-    // Fallback to calculation if not cached (for robustness).
-    final List<double> lapSwolfScores = [];
-    final wallSegments =
-        race.segments
-            .where(
-              (s) =>
-                  s.checkPoint == 'start' ||
-                  s.checkPoint == 'turn' ||
-                  s.checkPoint == 'finish',
-            )
-            .toList()
-          ..sort((a, b) => a.sequence.compareTo(b.sequence));
-
-    if (wallSegments.length < 2) return null;
-
-    for (int i = 0; i < wallSegments.length - 1; i++) {
-      final startLapSegment = wallSegments[i];
-      final endLapSegment = wallSegments[i + 1];
-
-      final lapSegments = race.segments.where(
-        (s) =>
-            s.sequence > startLapSegment.sequence &&
-            s.sequence <= endLapSegment.sequence,
-      );
-      final lapTimeMillis =
-          endLapSegment.totalTimeMillis - startLapSegment.totalTimeMillis;
-      final lapStrokes = lapSegments.map((s) => s.strokes ?? 0).sum;
-
-      if (lapTimeMillis > 0 && lapStrokes > 0) {
-        final lapTimeSeconds = lapTimeMillis / 1000.0;
-        lapSwolfScores.add(lapTimeSeconds + lapStrokes);
-      }
-    }
-    return lapSwolfScores.isEmpty ? null : lapSwolfScores.average;
   }
 
   String _formatMillis(int? millis, {bool showSign = false}) {

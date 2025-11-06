@@ -1,9 +1,8 @@
 // TextToSessionObjectParser.dart
 // Clean, platform-safe version (no Firebase Crashlytics).
 
-import 'dart:async' show unawaited;
-import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:swim_apps_shared/swim_session/generator/parsed_summary.dart';
 
 import '../../objects/intensity_zones.dart';
@@ -36,24 +35,34 @@ class TextToSessionObjectParser {
     caseSensitive: false,
   );
 
-  static final RegExp _groupTag =
-  RegExp(r"#group[:\-\s]*([A-Za-z0-9_ ]+?)(?=\s*[\d\'#]|$)", caseSensitive: false);
+  static final RegExp _groupTag = RegExp(
+    r"#group[:\-\s]*([A-Za-z0-9_ ]+?)(?=\s*[\d\'#]|$)",
+    caseSensitive: false,
+  );
 
-  static final RegExp _swimmerTag =
-  RegExp(r"#swimmers?\s+([^#\n\r]+)", caseSensitive: false);
+  static final RegExp _swimmerTag = RegExp(
+    r"#swimmers?\s+([^#\n\r]+)",
+    caseSensitive: false,
+  );
 
-  static final RegExp _standaloneReps =
-  RegExp(r'^\s*(\d+)\s*(?:x|rounds?)\s*$', caseSensitive: false);
+  static final RegExp _standaloneReps = RegExp(
+    r'^\s*(\d+)\s*(?:x|rounds?)\s*$',
+    caseSensitive: false,
+  );
 
-  static final RegExp _inlineReps =
-  RegExp(r'^\s*(\d+)\s*x\s*', caseSensitive: false);
+  static final RegExp _inlineReps = RegExp(
+    r'^\s*(\d+)\s*x\s*',
+    caseSensitive: false,
+  );
 
   static final RegExp _distance = RegExp(r'^\s*(\d+)\s*([A-Za-z]{0,10})');
 
   static final RegExp _interval = RegExp(r'@?\s*(\d{1,2}):(\d{2})');
 
-  static final RegExp _intensityIndex =
-  RegExp(r'\bi\s*([1-5])\b', caseSensitive: false);
+  static final RegExp _intensityIndex = RegExp(
+    r'\bi\s*([1-5])\b',
+    caseSensitive: false,
+  );
 
   static final RegExp _intensityWord = RegExp(
     r'\b(max|easy|moderate|hard|threshold|sp1|sp2|sp3|drill|race|racepace|rp)\b',
@@ -79,14 +88,26 @@ class TextToSessionObjectParser {
     'im': Stroke.medley,
   };
 
-  static final RegExp _kickWord = RegExp(r'\bkick(ing)?\b', caseSensitive: false);
-  static final RegExp _pullWord = RegExp(r'\bpull(ing)?\b', caseSensitive: false);
-  static final RegExp _drillWord = RegExp(r'\bdrill(s)?\b', caseSensitive: false);
+  static final RegExp _kickWord = RegExp(
+    r'\bkick(ing)?\b',
+    caseSensitive: false,
+  );
+  static final RegExp _pullWord = RegExp(
+    r'\bpull(ing)?\b',
+    caseSensitive: false,
+  );
+  static final RegExp _drillWord = RegExp(
+    r'\bdrill(s)?\b',
+    caseSensitive: false,
+  );
 
   // ---------------------------------------------------------------------------
   // 🔹 MAIN ENTRY POINT
   // ---------------------------------------------------------------------------
-  List<SessionSetConfiguration> parse(String? unparsedText, {String? sessionId}) {
+  List<SessionSetConfiguration> parse(
+    String? unparsedText, {
+    String? sessionId,
+  }) {
     final user = FirebaseAuth.instance.currentUser;
     final userId = user?.uid ?? 'anonymous';
 
@@ -132,25 +153,34 @@ class TextToSessionObjectParser {
           return;
         }
 
-        final swimSet = (snapshot.swimSet ??
-            SwimSet(setId: _id('set'), type: currentType, items: const []))
-            .copyWith(
-          items: List.from(currentItems),
-          assignedGroupNames:
-          sectionGroups.map((e) => e.toLowerCase().trim()).toList(),
-        );
+        final swimSet =
+            (snapshot.swimSet ??
+                    SwimSet(
+                      setId: _id('set'),
+                      type: currentType,
+                      items: const [],
+                    ))
+                .copyWith(
+                  items: List.from(currentItems),
+                  assignedGroupNames: sectionGroups
+                      .map((e) => e.toLowerCase().trim())
+                      .toList(),
+                );
 
         final done = snapshot.copyWith(
           repetitions: sectionReps,
           swimSet: swimSet,
-          specificGroupIds:
-          sectionGroups.map((e) => e.toLowerCase().trim()).toList(),
+          specificGroupIds: sectionGroups
+              .map((e) => e.toLowerCase().trim())
+              .toList(),
           specificSwimmerIds: sectionSwimmers.toList(),
         );
 
-        _log("Flushed section '${snapshot.rawSetTypeHeaderFromText}' "
-            "with ${currentItems.length} items, reps=$sectionReps, "
-            "groups=${sectionGroups.join(',')}");
+        _log(
+          "Flushed section '${snapshot.rawSetTypeHeaderFromText}' "
+          "with ${currentItems.length} items, reps=$sectionReps, "
+          "groups=${sectionGroups.join(',')}",
+        );
 
         configs.add(done);
         currentConfig = null;
@@ -227,11 +257,16 @@ class TextToSessionObjectParser {
           if (subMatch != null && currentItems.isNotEmpty) {
             final lastParent = currentItems.last;
             final existingSubItems = lastParent.subItems ?? const <SubItem>[];
-            final sub = _parseSubItem(subMatch.group(1)!, existingSubItems.length);
+            final sub = _parseSubItem(
+              subMatch.group(1)!,
+              existingSubItems.length,
+            );
             if (sub != null) {
-              final updatedSubItems = List<SubItem>.from(existingSubItems)..add(sub);
-              currentItems[currentItems.length - 1] =
-                  lastParent.copyWith(subItems: updatedSubItems);
+              final updatedSubItems = List<SubItem>.from(existingSubItems)
+                ..add(sub);
+              currentItems[currentItems.length - 1] = lastParent.copyWith(
+                subItems: updatedSubItems,
+              );
               _log("Added subitem '${subMatch.group(1)}'");
             }
             continue;
@@ -284,7 +319,10 @@ class TextToSessionObjectParser {
       String line = raw.trim();
       if (line.isEmpty) return null;
 
-      final restMatch = RegExp(r'(\d{1,2}):(\d{2})\s*rest', caseSensitive: false).firstMatch(line);
+      final restMatch = RegExp(
+        r'(\d{1,2}):(\d{2})\s*rest',
+        caseSensitive: false,
+      ).firstMatch(line);
       if (restMatch != null) {
         final mm = int.tryParse(restMatch.group(1) ?? '0') ?? 0;
         final ss = int.tryParse(restMatch.group(2) ?? '0') ?? 0;
@@ -299,7 +337,7 @@ class TextToSessionObjectParser {
           interval: Duration(minutes: mm, seconds: ss),
           intensityZone: null,
           equipment: const [],
-          itemNotes: 'Rest ${mm}:${ss.toString().padLeft(2, '0')}',
+          itemNotes: 'Rest $mm:${ss.toString().padLeft(2, '0')}',
           rawTextLine: raw,
           subItems: const [],
         );
@@ -472,7 +510,8 @@ class TextToSessionObjectParser {
       for (final config in configs) {
         final groupNames = config.swimSet?.assignedGroupNames ?? ['all'];
         for (final item in config.swimSet?.items ?? []) {
-          final double dist = (item.itemDistance.toDouble() *
+          final double dist =
+              (item.itemDistance.toDouble() *
               (item.itemRepetition ?? 1) *
               (config.repetitions));
           totalItems++;

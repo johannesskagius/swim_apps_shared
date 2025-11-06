@@ -18,6 +18,7 @@ dependencies:
   intl: ^0.20.2
   provider: ^6.1.2 # Added provider
   cloud_functions: ^6.0.3
+  collection: ^1.19.1
 
 dev_dependencies:
   flutter_test:

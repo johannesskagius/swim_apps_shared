@@ -1,5 +1,4 @@
 import '../../objects/pool_length.dart';
-import '../../swim_apps_shared.dart';
 import 'checkpoint.dart';
 import 'event.dart';
 
@@ -8,8 +7,10 @@ class HundredMetersRace extends Event {
 
   @override
   String get name => '100m $stroke';
+
   @override
   int get distance => 100;
+
   @override
   PoolLength get poolLength => PoolLength.m25;
 

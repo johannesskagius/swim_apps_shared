@@ -51,7 +51,7 @@ class SwimSession {
 
   /// Calculates the total distance of the swim_session.
   int get totalDistance {
-    return setConfigurations.fold<int>(0, (sum, config) {
+    return setConfigurations.fold<int>(0, (int sum, config) {
       final set = sets.firstWhereOrNull((s) => s.setId == config.swimSetId);
       final setDistance = set?.totalSetDistance ?? 0;
       return sum + (setDistance * config.repetitions);
@@ -60,7 +60,7 @@ class SwimSession {
 
   /// Calculates the total estimated duration of the swim_session.
   Duration get totalDuration {
-    final totalSeconds = setConfigurations.fold<int>(0, (sum, config) {
+    final totalSeconds = setConfigurations.fold<int>(0, (int sum, config) {
       final set = sets.firstWhereOrNull((s) => s.setId == config.swimSetId);
       final setDurationSeconds = set?.totalSetDurationEstimated?.inSeconds ?? 0;
       return sum + (setDurationSeconds * config.repetitions);
@@ -81,7 +81,7 @@ class SwimSession {
 
   /// Helper for calculating distance by a given condition.
   int _calculateDistanceBy(bool Function(SetItem) predicate) {
-    return setConfigurations.fold<int>(0, (sum, config) {
+    return setConfigurations.fold<int>(0, (int sum, config) {
       final set = sets.firstWhereOrNull((s) => s.setId == config.swimSetId);
       int setDistance = 0;
       if (set != null) {

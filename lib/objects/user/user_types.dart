@@ -9,8 +9,6 @@ extension UserTypeExtension on UserType {
         return 'Coach';
       case UserType.swimmer:
         return 'Swimmer';
-      default:
-        return 'Unknown';
     }
   }
 }

@@ -1,14 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
-import '../objects/swim_club.dart';
 import 'package:swim_apps_shared/objects/planned/swim_groups.dart';
 
+import '../objects/swim_club.dart';
+
 class SwimClubRepository {
-  final FirebaseFirestore _firestore;
   final CollectionReference _clubsCollection;
 
-  SwimClubRepository(this._firestore)
-      : _clubsCollection = _firestore.collection('swimClubs');
+  SwimClubRepository(FirebaseFirestore firestore)
+    : _clubsCollection = firestore.collection('swimClubs');
 
   /// ➕ Adds a new club to Firestore.
   Future<String> addClub({required SwimClub club}) async {
@@ -64,14 +64,16 @@ class SwimClubRepository {
           .get();
 
       final groups = querySnapshot.docs.map((doc) {
-        final data = doc.data() as Map<String, dynamic>;
+        final data = doc.data();
         return SwimGroup.fromJson(doc.id, data);
       }).toList();
 
       debugPrint("✅ Fetched ${groups.length} groups for club $clubId");
       return groups;
     } on FirebaseException catch (e) {
-      debugPrint("🔥 Firestore Error fetching groups for club $clubId: ${e.message}");
+      debugPrint(
+        "🔥 Firestore Error fetching groups for club $clubId: ${e.message}",
+      );
       rethrow;
     } catch (e, s) {
       debugPrint("❌ Unexpected error fetching groups for club $clubId: $e\n$s");
@@ -84,11 +86,16 @@ class SwimClubRepository {
     if (clubId.isEmpty) throw ArgumentError('Club ID cannot be empty');
     try {
       final data = group.toJson()..remove('id');
-      final ref = await _clubsCollection.doc(clubId).collection('groups').add(data);
+      final ref = await _clubsCollection
+          .doc(clubId)
+          .collection('groups')
+          .add(data);
       debugPrint("✅ Added group ${ref.id} to club $clubId");
       return ref.id;
     } on FirebaseException catch (e) {
-      debugPrint("🔥 Firestore Error adding group to club $clubId: ${e.message}");
+      debugPrint(
+        "🔥 Firestore Error adding group to club $clubId: ${e.message}",
+      );
       rethrow;
     }
   }
@@ -121,13 +128,18 @@ class SwimClubRepository {
     }
 
     try {
-      await _clubsCollection.doc(clubId).collection('groups').doc(groupId).delete();
+      await _clubsCollection
+          .doc(clubId)
+          .collection('groups')
+          .doc(groupId)
+          .delete();
       debugPrint("🗑️ Deleted group $groupId from club $clubId");
     } on FirebaseException catch (e) {
       debugPrint("🔥 Firestore Error deleting group: ${e.message}");
       rethrow;
     }
   }
+
   /// 🔹 Fetches a club created by a specific coach (creatorId)
   Future<SwimClub?> getClubByCreatorId(String coachId) async {
     if (coachId.isEmpty) {
@@ -157,5 +169,4 @@ class SwimClubRepository {
       rethrow;
     }
   }
-
 }

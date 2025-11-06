@@ -1,12 +1,11 @@
-// Place this in a utility file (e.g., lib/swim/utils/duration_extensions.dart)
-// or at the top level of a relevant file if it's only used locally.
 
 extension DurationRounding on Duration {
   /// Rounds the total seconds of the Duration to the nearest multiple of [roundingValueInSeconds].
   /// Defaults to rounding to the nearest 5 seconds.
   Duration roundToNearestSeconds(int roundingValueInSeconds) {
-    if (roundingValueInSeconds <= 0)
+    if (roundingValueInSeconds <= 0) {
       return this; // Avoid division by zero or invalid input
+    }
 
     int totalSeconds = inSeconds;
     int remainder = totalSeconds % roundingValueInSeconds;

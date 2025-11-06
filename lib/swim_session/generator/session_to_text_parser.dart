@@ -85,11 +85,11 @@ class SessionToTextParser {
     // Stroke / way
     final strokeText = _stroke(item.stroke);
     if (item.swimWay == SwimWay.kick) {
-      parts.add("${strokeText.isNotEmpty ? strokeText + " " : ""}Kick");
+      parts.add("${strokeText.isNotEmpty ? "$strokeText " : ""}Kick");
     } else if (item.swimWay == SwimWay.pull) {
-      parts.add("${strokeText.isNotEmpty ? strokeText + " " : ""}Pull");
+      parts.add("${strokeText.isNotEmpty ? "$strokeText " : ""}Pull");
     } else if (item.swimWay == SwimWay.drill) {
-      parts.add("${strokeText.isNotEmpty ? strokeText + " " : ""}Drill");
+      parts.add("${strokeText.isNotEmpty ? "$strokeText " : ""}Drill");
     } else if (strokeText.isNotEmpty) {
       parts.add(strokeText);
     }

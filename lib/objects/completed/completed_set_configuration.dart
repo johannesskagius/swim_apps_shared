@@ -14,7 +14,8 @@ class CompletedSetConfiguration {
 
   // 📘 Optional snapshot of original (useful if planned set changes later)
   final String? originalSetTitle;
-  final int? originalPlannedDistance; // meters/yards depending on distanceUnitUsed
+  final int?
+  originalPlannedDistance; // meters/yards depending on distanceUnitUsed
   final DistanceUnit? originalDistanceUnit;
   final Stroke? originalStroke;
   final EquipmentType? originalEquipment;
@@ -74,7 +75,7 @@ class CompletedSetConfiguration {
       sessionSetConfigId: sessionSetConfigId ?? this.sessionSetConfigId,
       originalSetTitle: originalSetTitle ?? this.originalSetTitle,
       originalPlannedDistance:
-      originalPlannedDistance ?? this.originalPlannedDistance,
+          originalPlannedDistance ?? this.originalPlannedDistance,
       originalDistanceUnit: originalDistanceUnit ?? this.originalDistanceUnit,
       originalStroke: originalStroke ?? this.originalStroke,
       originalEquipment: originalEquipment ?? this.originalEquipment,
@@ -96,7 +97,8 @@ class CompletedSetConfiguration {
     EquipmentType? adjustedEquipment,
     String? adjustmentNote,
   }) {
-    final hasAny = adjustedDistance != null ||
+    final hasAny =
+        adjustedDistance != null ||
         adjustedStroke != null ||
         adjustedEquipment != null ||
         (adjustmentNote != null && adjustmentNote.isNotEmpty);
@@ -115,22 +117,26 @@ class CompletedSetConfiguration {
   // 🏗️ Factory: Convert planned → completed
   // --------------------------------------------------------------------------
   factory CompletedSetConfiguration.fromSessionSetConfiguration(
-      SessionSetConfiguration sessionConfig) {
+    SessionSetConfiguration sessionConfig,
+  ) {
     final swimSet = sessionConfig.swimSet;
 
     // Extract planned attributes
     final int? plannedDistance = swimSet?.totalSetDistance?.toInt();
-    final EquipmentType? mainEquipment = null; // placeholder if SwimSet lacks equipment
+    final EquipmentType? mainEquipment =
+        null; // placeholder if SwimSet lacks equipment
 
     return CompletedSetConfiguration(
       sessionSetConfigId: sessionConfig.sessionSetConfigId,
       // 🧭 Original metadata
-      originalSetTitle: swimSet?.type?.name ??
+      originalSetTitle:
+          swimSet?.type?.name ??
           sessionConfig.rawSetTypeHeaderFromText ??
           'Unnamed Set',
       originalPlannedDistance: plannedDistance,
       originalEquipment: mainEquipment,
-      completedSetItems: const [], // ✅ start empty
+      completedSetItems: const [],
+      // ✅ start empty
       actualRepetitions: sessionConfig.repetitions,
       wasModified: false,
       adjustedDistance: null,
@@ -152,8 +158,9 @@ class CompletedSetConfiguration {
       'originalDistanceUnit': originalDistanceUnit?.name,
       'originalStroke': originalStroke?.name,
       'originalEquipment': originalEquipment?.name,
-      'completedSetItems':
-      completedSetItems.map((item) => item.toMap()).toList(), // ✅ new field
+      'completedSetItems': completedSetItems
+          .map((item) => item.toMap())
+          .toList(), // ✅ new field
       'wasModified': wasModified,
       'adjustedDistance': adjustedDistance,
       'adjustedStroke': adjustedStroke?.name,
@@ -165,13 +172,12 @@ class CompletedSetConfiguration {
   }
 
   static CompletedSetConfiguration fromMap(Map<String, dynamic> map) {
-    Stroke? _strokeFrom(dynamic v) =>
-        v is String ? Stroke.fromString(v) : null;
-    EquipmentType? _equipFrom(dynamic v) => v is String
+    Stroke? strokeFrom(dynamic v) => v is String ? Stroke.fromString(v) : null;
+    EquipmentType? equipFrom(dynamic v) => v is String
         ? EquipmentType.values.firstWhereOrNull((e) => e.name == v)
         : null;
 
-    DistanceUnit? _unitFrom(dynamic v) {
+    DistanceUnit? unitFrom(dynamic v) {
       if (v is String) {
         return DistanceUnit.values.firstWhereOrNull((e) => e.name == v) ??
             DistanceUnit.meters;
@@ -179,27 +185,29 @@ class CompletedSetConfiguration {
       return null;
     }
 
-    final List<dynamic> itemsRaw = (map['completedSetItems'] ?? []) as List<dynamic>;
+    final List<dynamic> itemsRaw =
+        (map['completedSetItems'] ?? []) as List<dynamic>;
     final items = itemsRaw
-        .map((e) => e is Map<String, dynamic>
-        ? CompletedSetItem.fromMap(e)
-        : null)
+        .map(
+          (e) => e is Map<String, dynamic> ? CompletedSetItem.fromMap(e) : null,
+        )
         .nonNulls
         .toList();
 
     return CompletedSetConfiguration(
       sessionSetConfigId: (map['sessionSetConfigId'] ?? '') as String,
       originalSetTitle: map['originalSetTitle'] as String?,
-      originalPlannedDistance:
-      (map['originalPlannedDistance'] as num?)?.toInt(),
-      originalDistanceUnit: _unitFrom(map['originalDistanceUnit']),
-      originalStroke: _strokeFrom(map['originalStroke']),
-      originalEquipment: _equipFrom(map['originalEquipment']),
-      completedSetItems: items, // ✅ added
+      originalPlannedDistance: (map['originalPlannedDistance'] as num?)
+          ?.toInt(),
+      originalDistanceUnit: unitFrom(map['originalDistanceUnit']),
+      originalStroke: strokeFrom(map['originalStroke']),
+      originalEquipment: equipFrom(map['originalEquipment']),
+      completedSetItems: items,
+      // ✅ added
       wasModified: (map['wasModified'] as bool?) ?? false,
       adjustedDistance: (map['adjustedDistance'] as num?)?.toDouble(),
-      adjustedStroke: _strokeFrom(map['adjustedStroke']),
-      adjustedEquipment: _equipFrom(map['adjustedEquipment']),
+      adjustedStroke: strokeFrom(map['adjustedStroke']),
+      adjustedEquipment: equipFrom(map['adjustedEquipment']),
       adjustmentNote: map['adjustmentNote'] as String?,
       actualRepetitions: (map['actualRepetitions'] as num?)?.toInt(),
       actualDuration: map['actualDurationSeconds'] != null
@@ -217,7 +225,9 @@ class CompletedSetConfiguration {
     if (!wasModified) return "";
     final parts = <String>[];
     if (adjustedDistance != null) {
-      parts.add("${adjustedDistance!.toInt()}${originalDistanceUnit?.short ?? 'm'}");
+      parts.add(
+        "${adjustedDistance!.toInt()}${originalDistanceUnit?.short ?? 'm'}",
+      );
     }
     if (adjustedStroke != null) parts.add(adjustedStroke!.name);
     if (adjustedEquipment != null) parts.add(adjustedEquipment!.name);
