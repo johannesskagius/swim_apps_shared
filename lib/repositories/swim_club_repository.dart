@@ -1,27 +1,28 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:swim_apps_shared/objects/planned/swim_groups.dart';
-// ⭐️ Import the new 'Invite' superclass
 import 'package:swim_apps_shared/objects/swim_club.dart';
+import 'package:swim_apps_shared/objects/user/invites/app_enums.dart';
+import 'package:swim_apps_shared/objects/user/invites/app_invite.dart';
+import 'package:swim_apps_shared/objects/user/invites/invite_service.dart';
+import 'package:swim_apps_shared/objects/user/invites/invite_type.dart';
 
 import '../objects/user/invites/invite.dart';
 
 class SwimClubRepository {
-  final FirebaseFirestore _db; // ⭐️ Defined _db
+  final FirebaseFirestore _db;
   final CollectionReference _clubsCollection;
+  final InviteService _inviteService;
 
-  /// Injects the Firestore instance for testability.
-  SwimClubRepository(FirebaseFirestore firestore)
-    : _db = firestore,
-      // ⭐️ Assign _db
-      _clubsCollection = firestore.collection('swimClubs');
+  SwimClubRepository(FirebaseFirestore firestore, {InviteService? inviteService})
+      : _db = firestore,
+        _inviteService = inviteService ?? InviteService(),
+        _clubsCollection = firestore.collection('swimClubs');
 
   /// ➕ Adds a new club to Firestore.
   Future<String> addClub({required SwimClub club}) async {
     try {
-      final DocumentReference docRef = await _clubsCollection.add(
-        club.toJson(),
-      );
+      final DocumentReference docRef = await _clubsCollection.add(club.toJson());
       return docRef.id;
     } on FirebaseException catch (e) {
       debugPrint('🔥 Firestore Error adding club: ${e.message}');
@@ -29,21 +30,17 @@ class SwimClubRepository {
     }
   }
 
-  /// ⭐️ UPDATED: Fetches all pending invites from the 'invites' collection.
+  /// ⭐️ Fetches all pending invites from the 'invites' collection.
   Future<List<Invite>> getPendingInvitations(String clubId) async {
     try {
-      final snapshot =
-          await _db // Use the defined _db instance
-              .collection('invites') // Query the 'invites' collection
-              .where('clubId', isEqualTo: clubId)
-              .where(
-                'status',
-                isEqualTo: InviteStatus.pending.name,
-              ) // Filter by status
-              .get();
+      final snapshot = await _db
+          .collection('invites')
+          .where('clubId', isEqualTo: clubId)
+          .where('status', isEqualTo: InviteStatus.pending.name)
+          .get();
 
       return snapshot.docs
-          .map((doc) => Invite.fromJson(doc.data())) // Use Invite.fromJson
+          .map((doc) => Invite.fromJson(doc.data()))
           .toList();
     } catch (e) {
       debugPrint('❌ Failed to get pending invites: $e');
@@ -51,20 +48,17 @@ class SwimClubRepository {
     }
   }
 
-  /// ⭐️ UPDATED: Deletes a specific invite document from 'invites'.
+  /// Deletes a specific invite document from 'invites'.
   Future<void> deleteInvitation(String clubId, String invitationId) async {
     try {
-      await _db // Use the defined _db instance
-          .collection('invites') // Query the 'invites' collection
-          .doc(invitationId)
-          .delete();
+      await _db.collection('invites').doc(invitationId).delete();
     } catch (e) {
       debugPrint('❌ Failed to delete invite: $e');
       rethrow;
     }
   }
 
-  /// 🔹 Fetch a single SwimClub by its ID
+  /// 🔹 Fetch a single SwimClub by its ID.
   Future<SwimClub?> getClub(String clubId) async {
     if (clubId.isEmpty) {
       debugPrint("⚠️ Error: clubId cannot be empty.");
@@ -89,7 +83,7 @@ class SwimClubRepository {
     }
   }
 
-  /// 🏊 Fetch all SwimGroups belonging to a specific SwimClub
+  /// 🏊 Fetch all SwimGroups belonging to a specific SwimClub.
   Future<List<SwimGroup>> getGroups(String clubId) async {
     if (clubId.isEmpty) {
       debugPrint("⚠️ getGroups called with empty clubId");
@@ -97,10 +91,8 @@ class SwimClubRepository {
     }
 
     try {
-      final querySnapshot = await _clubsCollection
-          .doc(clubId)
-          .collection('groups')
-          .get();
+      final querySnapshot =
+      await _clubsCollection.doc(clubId).collection('groups').get();
 
       final groups = querySnapshot.docs.map((doc) {
         final data = doc.data();
@@ -110,9 +102,7 @@ class SwimClubRepository {
       debugPrint("✅ Fetched ${groups.length} groups for club $clubId");
       return groups;
     } on FirebaseException catch (e) {
-      debugPrint(
-        "🔥 Firestore Error fetching groups for club $clubId: ${e.message}",
-      );
+      debugPrint("🔥 Firestore Error fetching groups for club $clubId: ${e.message}");
       rethrow;
     } catch (e, s) {
       debugPrint("❌ Unexpected error fetching groups for club $clubId: $e\n$s");
@@ -125,16 +115,12 @@ class SwimClubRepository {
     if (clubId.isEmpty) throw ArgumentError('Club ID cannot be empty');
     try {
       final data = group.toJson()..remove('id');
-      final ref = await _clubsCollection
-          .doc(clubId)
-          .collection('groups')
-          .add(data);
+      final ref =
+      await _clubsCollection.doc(clubId).collection('groups').add(data);
       debugPrint("✅ Added group ${ref.id} to club $clubId");
       return ref.id;
     } on FirebaseException catch (e) {
-      debugPrint(
-        "🔥 Firestore Error adding group to club $clubId: ${e.message}",
-      );
+      debugPrint("🔥 Firestore Error adding group to club $clubId: ${e.message}");
       rethrow;
     }
   }
@@ -179,7 +165,7 @@ class SwimClubRepository {
     }
   }
 
-  /// 🔹 Fetches a club created by a specific coach (creatorId)
+  /// 🔹 Fetches a club created by a specific coach (creatorId).
   Future<SwimClub?> getClubByCreatorId(String coachId) async {
     if (coachId.isEmpty) {
       debugPrint("⚠️ getClubByCreatorId called with empty coachId");
@@ -205,6 +191,55 @@ class SwimClubRepository {
       rethrow;
     } catch (e, s) {
       debugPrint("❌ Unexpected error fetching club for coach $coachId: $e\n$s");
+      rethrow;
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // 📨 CLUB INVITE LOGIC (wrapper around shared InviteService)
+  // --------------------------------------------------------------------------
+
+  /// 📩 Send a club-level invite via the shared InviteService.
+  Future<void> sendClubInvite({
+    required String clubId,
+    required String inviteeEmail,
+    required String inviterId,
+    required InviteType type,
+    String? relatedEntityId,
+  }) async {
+    try {
+      debugPrint('📨 Sending club invite to $inviteeEmail for club $clubId');
+      await _inviteService.sendInvite(
+        email: inviteeEmail,
+        type: type,
+        app: App.swimSuite,
+        clubId: clubId,
+        relatedEntityId: relatedEntityId,
+      );
+    } catch (e) {
+      debugPrint('❌ Failed to send club invite: $e');
+      rethrow;
+    }
+  }
+
+  /// 🚫 Revoke a club invite using the shared InviteService.
+  Future<void> revokeClubInvite(String inviteId) async {
+    try {
+      debugPrint('🗑️ Revoking club invite $inviteId');
+      await _inviteService.revokeInvite(inviteId);
+    } catch (e) {
+      debugPrint('❌ Failed to revoke club invite: $e');
+      rethrow;
+    }
+  }
+
+  /// 📋 Get all pending invites for this club using the shared InviteService.
+  Future<List<AppInvite>> getClubInvites(String clubId) async {
+    try {
+      debugPrint('📋 Fetching all pending invites for club $clubId');
+      return await _inviteService.getPendingInvitesByClub(clubId);
+    } catch (e) {
+      debugPrint('❌ Failed to fetch club invites: $e');
       rethrow;
     }
   }
