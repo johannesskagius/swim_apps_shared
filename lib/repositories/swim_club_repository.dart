@@ -1,23 +1,65 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:swim_apps_shared/objects/planned/swim_groups.dart';
+// ⭐️ Import the new 'Invite' superclass
+import 'package:swim_apps_shared/objects/swim_club.dart';
 
-import '../objects/swim_club.dart';
+import '../objects/user/invites/invite.dart';
 
 class SwimClubRepository {
+  final FirebaseFirestore _db; // ⭐️ Defined _db
   final CollectionReference _clubsCollection;
 
+  /// Injects the Firestore instance for testability.
   SwimClubRepository(FirebaseFirestore firestore)
-    : _clubsCollection = firestore.collection('swimClubs');
+    : _db = firestore,
+      // ⭐️ Assign _db
+      _clubsCollection = firestore.collection('swimClubs');
 
   /// ➕ Adds a new club to Firestore.
   Future<String> addClub({required SwimClub club}) async {
     try {
-      final data = club.toJson()..remove('id');
-      final DocumentReference docRef = await _clubsCollection.add(data);
+      final DocumentReference docRef = await _clubsCollection.add(
+        club.toJson(),
+      );
       return docRef.id;
     } on FirebaseException catch (e) {
       debugPrint('🔥 Firestore Error adding club: ${e.message}');
+      rethrow;
+    }
+  }
+
+  /// ⭐️ UPDATED: Fetches all pending invites from the 'invites' collection.
+  Future<List<Invite>> getPendingInvitations(String clubId) async {
+    try {
+      final snapshot =
+          await _db // Use the defined _db instance
+              .collection('invites') // Query the 'invites' collection
+              .where('clubId', isEqualTo: clubId)
+              .where(
+                'status',
+                isEqualTo: InviteStatus.pending.name,
+              ) // Filter by status
+              .get();
+
+      return snapshot.docs
+          .map((doc) => Invite.fromJson(doc.data())) // Use Invite.fromJson
+          .toList();
+    } catch (e) {
+      debugPrint('❌ Failed to get pending invites: $e');
+      rethrow;
+    }
+  }
+
+  /// ⭐️ UPDATED: Deletes a specific invite document from 'invites'.
+  Future<void> deleteInvitation(String clubId, String invitationId) async {
+    try {
+      await _db // Use the defined _db instance
+          .collection('invites') // Query the 'invites' collection
+          .doc(invitationId)
+          .delete();
+    } catch (e) {
+      debugPrint('❌ Failed to delete invite: $e');
       rethrow;
     }
   }
@@ -48,9 +90,6 @@ class SwimClubRepository {
   }
 
   /// 🏊 Fetch all SwimGroups belonging to a specific SwimClub
-  ///
-  /// Returns a list of [SwimGroup] objects located under
-  /// `swimClubs/{clubId}/groups`.
   Future<List<SwimGroup>> getGroups(String clubId) async {
     if (clubId.isEmpty) {
       debugPrint("⚠️ getGroups called with empty clubId");

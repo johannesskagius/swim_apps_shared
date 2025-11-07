@@ -7,14 +7,17 @@ export 'objects/analyzes/stroke_segment_matrix.dart';
 export 'objects/analyzes/stroke_under_water_matrix.dart';
 ///OBJECTS
 export 'objects/session_set_configuration_extension.dart';
+export 'objects/user/invites/coach_invite.dart';
+export 'objects/user/invites/invite.dart';
+export 'objects/user/invites/swimmer_invite.dart';
 // --- widgets ---
 export 'race_analyzes/race_comparison_page.dart';
 export 'repositories/analyzes_repository.dart';
 // --- Repositories ---
 export 'repositories/base_repository.dart';
-export 'repositories/club_repository.dart';
 export 'repositories/entitlement_repository.dart';
 export 'repositories/firestore_helper.dart';
+export 'repositories/swim_club_repository.dart';
 export 'repositories/swimmer_focus_profile_repository.dart';
 export 'repositories/user_repository.dart';
 export 'swim_session/generator/config/advanced_generator_config.dart';

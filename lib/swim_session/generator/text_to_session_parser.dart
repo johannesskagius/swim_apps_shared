@@ -1,7 +1,6 @@
 // TextToSessionObjectParser.dart
-// Clean, platform-safe version (no Firebase Crashlytics).
+// ✅ Clean, platform-safe version (no Firebase, no Crashlytics)
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:swim_apps_shared/swim_session/generator/parsed_summary.dart';
 
@@ -17,10 +16,15 @@ import 'enums/set_types.dart';
 import 'enums/swim_way.dart';
 
 /// 🧠 Parser for AI-generated swim text.
-/// No Crashlytics — just safe local logging for debug visibility.
+/// Now completely Firebase-free — `userId` must be provided in constructor.
 class TextToSessionObjectParser {
   final RegExp _lineBreak = RegExp(r'\r\n?|\n');
   static int _idCounter = 0;
+
+  /// The ID of the user owning or creating this parsed session.
+  final String userId;
+
+  TextToSessionObjectParser({required this.userId});
 
   String _id([String prefix = 'id']) =>
       '${prefix}_${++_idCounter}_${DateTime.now().millisecondsSinceEpoch}';
@@ -29,40 +33,31 @@ class TextToSessionObjectParser {
     if (kDebugMode) debugPrint('[Parser] $msg');
   }
 
-  // --- REGEX DEFINITIONS ---
+  // ---------------------------------------------------------------------------
+  // REGEX DEFINITIONS
+  // ---------------------------------------------------------------------------
   static final RegExp _sectionHeader = RegExp(
     r'^\s*(warm\s*up|main\s*set|pre\s*set|post\s*set|cool\s*down|kick\s*set|pull\s*set|drill\s*set|sprint\s*set|recovery|technique\s*set|main|warmup|cooldown)\b',
     caseSensitive: false,
   );
 
-  static final RegExp _groupTag = RegExp(
-    r"#group[:\-\s]*([A-Za-z0-9_ ]+?)(?=\s*[\d\'#]|$)",
-    caseSensitive: false,
-  );
+  static final RegExp _groupTag =
+  RegExp(r"#group[:\-\s]*([A-Za-z0-9_ ]+?)(?=\s*[\d\'#]|$)", caseSensitive: false);
 
-  static final RegExp _swimmerTag = RegExp(
-    r"#swimmers?\s+([^#\n\r]+)",
-    caseSensitive: false,
-  );
+  static final RegExp _swimmerTag =
+  RegExp(r"#swimmers?\s+([^#\n\r]+)", caseSensitive: false);
 
-  static final RegExp _standaloneReps = RegExp(
-    r'^\s*(\d+)\s*(?:x|rounds?)\s*$',
-    caseSensitive: false,
-  );
+  static final RegExp _standaloneReps =
+  RegExp(r'^\s*(\d+)\s*(?:x|rounds?)\s*$', caseSensitive: false);
 
-  static final RegExp _inlineReps = RegExp(
-    r'^\s*(\d+)\s*x\s*',
-    caseSensitive: false,
-  );
+  static final RegExp _inlineReps =
+  RegExp(r'^\s*(\d+)\s*x\s*', caseSensitive: false);
 
   static final RegExp _distance = RegExp(r'^\s*(\d+)\s*([A-Za-z]{0,10})');
-
   static final RegExp _interval = RegExp(r'@?\s*(\d{1,2}):(\d{2})');
 
-  static final RegExp _intensityIndex = RegExp(
-    r'\bi\s*([1-5])\b',
-    caseSensitive: false,
-  );
+  static final RegExp _intensityIndex =
+  RegExp(r'\bi\s*([1-5])\b', caseSensitive: false);
 
   static final RegExp _intensityWord = RegExp(
     r'\b(max|easy|moderate|hard|threshold|sp1|sp2|sp3|drill|race|racepace|rp)\b',
@@ -88,29 +83,17 @@ class TextToSessionObjectParser {
     'im': Stroke.medley,
   };
 
-  static final RegExp _kickWord = RegExp(
-    r'\bkick(ing)?\b',
-    caseSensitive: false,
-  );
-  static final RegExp _pullWord = RegExp(
-    r'\bpull(ing)?\b',
-    caseSensitive: false,
-  );
-  static final RegExp _drillWord = RegExp(
-    r'\bdrill(s)?\b',
-    caseSensitive: false,
-  );
+  static final RegExp _kickWord = RegExp(r'\bkick(ing)?\b', caseSensitive: false);
+  static final RegExp _pullWord = RegExp(r'\bpull(ing)?\b', caseSensitive: false);
+  static final RegExp _drillWord = RegExp(r'\bdrill(s)?\b', caseSensitive: false);
 
   // ---------------------------------------------------------------------------
   // 🔹 MAIN ENTRY POINT
   // ---------------------------------------------------------------------------
   List<SessionSetConfiguration> parse(
-    String? unparsedText, {
-    String? sessionId,
-  }) {
-    final user = FirebaseAuth.instance.currentUser;
-    final userId = user?.uid ?? 'anonymous';
-
+      String? unparsedText, {
+        String? sessionId,
+      }) {
     _log('parse() start | user=$userId | session=${sessionId ?? 'none'}');
 
     try {
@@ -143,8 +126,8 @@ class TextToSessionObjectParser {
         );
 
         if (currentItems.isEmpty) {
-          _log("Flushing empty section '${snapshot.rawSetTypeHeaderFromText}'");
-          configs.add(snapshot);
+          // 🔧 Do NOT add empty sections to configs
+          _log("Skipping empty section '${snapshot.rawSetTypeHeaderFromText}'");
           currentConfig = null;
           sectionReps = 1;
           sectionGroups.clear();
@@ -153,34 +136,25 @@ class TextToSessionObjectParser {
           return;
         }
 
-        final swimSet =
-            (snapshot.swimSet ??
-                    SwimSet(
-                      setId: _id('set'),
-                      type: currentType,
-                      items: const [],
-                    ))
-                .copyWith(
-                  items: List.from(currentItems),
-                  assignedGroupNames: sectionGroups
-                      .map((e) => e.toLowerCase().trim())
-                      .toList(),
-                );
+        final swimSet = (snapshot.swimSet ??
+            SwimSet(setId: _id('set'), type: currentType, items: const []))
+            .copyWith(
+          items: List.from(currentItems),
+          assignedGroupNames:
+          sectionGroups.map((e) => e.toLowerCase().trim()).toList(),
+        );
 
         final done = snapshot.copyWith(
           repetitions: sectionReps,
           swimSet: swimSet,
-          specificGroupIds: sectionGroups
-              .map((e) => e.toLowerCase().trim())
-              .toList(),
+          specificGroupIds:
+          sectionGroups.map((e) => e.toLowerCase().trim()).toList(),
           specificSwimmerIds: sectionSwimmers.toList(),
         );
 
-        _log(
-          "Flushed section '${snapshot.rawSetTypeHeaderFromText}' "
-          "with ${currentItems.length} items, reps=$sectionReps, "
-          "groups=${sectionGroups.join(',')}",
-        );
+        _log("Flushed section '${snapshot.rawSetTypeHeaderFromText}' "
+            "with ${currentItems.length} items, reps=$sectionReps, "
+            "groups=${sectionGroups.join(',')}");
 
         configs.add(done);
         currentConfig = null;
@@ -257,16 +231,11 @@ class TextToSessionObjectParser {
           if (subMatch != null && currentItems.isNotEmpty) {
             final lastParent = currentItems.last;
             final existingSubItems = lastParent.subItems ?? const <SubItem>[];
-            final sub = _parseSubItem(
-              subMatch.group(1)!,
-              existingSubItems.length,
-            );
+            final sub = _parseSubItem(subMatch.group(1)!, existingSubItems.length);
             if (sub != null) {
-              final updatedSubItems = List<SubItem>.from(existingSubItems)
-                ..add(sub);
-              currentItems[currentItems.length - 1] = lastParent.copyWith(
-                subItems: updatedSubItems,
-              );
+              final updated = List<SubItem>.from(existingSubItems)..add(sub);
+              currentItems[currentItems.length - 1] =
+                  lastParent.copyWith(subItems: updated);
               _log("Added subitem '${subMatch.group(1)}'");
             }
             continue;
@@ -302,7 +271,6 @@ class TextToSessionObjectParser {
       }
 
       flushSection();
-
       _log("Completed parsing ${configs.length} sections");
       return configs;
     } catch (e, st) {
@@ -312,20 +280,19 @@ class TextToSessionObjectParser {
   }
 
   // ---------------------------------------------------------------------------
-  // ITEM PARSER
+  // ITEM + SUBITEM PARSERS
   // ---------------------------------------------------------------------------
   SetItem? _parseItem(String raw, int order) {
     try {
       String line = raw.trim();
       if (line.isEmpty) return null;
 
-      final restMatch = RegExp(
-        r'(\d{1,2}):(\d{2})\s*rest',
-        caseSensitive: false,
-      ).firstMatch(line);
-      if (restMatch != null) {
-        final mm = int.tryParse(restMatch.group(1) ?? '0') ?? 0;
-        final ss = int.tryParse(restMatch.group(2) ?? '0') ?? 0;
+      // Rest detection (e.g. "1:00 rest")
+      final rest = RegExp(r'(\d{1,2}):(\d{2})\s*rest', caseSensitive: false)
+          .firstMatch(line);
+      if (rest != null) {
+        final mm = int.parse(rest.group(1)!);
+        final ss = int.parse(rest.group(2)!);
         return SetItem(
           id: _id('rest'),
           order: order,
@@ -343,6 +310,7 @@ class TextToSessionObjectParser {
         );
       }
 
+      // Inline repetitions
       int reps = 1;
       final rm = _inlineReps.firstMatch(line);
       if (rm != null) {
@@ -350,26 +318,43 @@ class TextToSessionObjectParser {
         line = line.substring(rm.end).trimLeft();
       }
 
+      // Distance
       final dm = _distance.firstMatch(line);
       if (dm == null) return null;
+
       final dist = int.tryParse(dm.group(1) ?? '0') ?? 0;
-      DistanceUnit unit = _parseUnit(dm.group(2));
+
+      // Token found immediately after distance (could be unit or stroke)
+      final trailing = (dm.group(2) ?? '').toLowerCase().trim();
+
+      DistanceUnit unit = DistanceUnit.meters;
+      Stroke? stroke;
+      if (_strokeMap.containsKey(trailing)) {
+        // e.g., "50 fr"
+        stroke = _strokeMap[trailing];
+      } else if (trailing.isNotEmpty) {
+        // e.g., "50m", "50yd"
+        unit = _parseUnit(trailing);
+      }
+
+      // Advance the line past the matched distance+token
       line = line.substring(dm.end).trimLeft();
 
+      // Interval
       Duration? interval;
       final im = _interval.firstMatch(line);
       if (im != null) {
-        final mm = int.tryParse(im.group(1) ?? '0') ?? 0;
-        final ss = int.tryParse(im.group(2) ?? '0') ?? 0;
+        final mm = int.parse(im.group(1)!);
+        final ss = int.parse(im.group(2)!);
         interval = Duration(minutes: mm, seconds: ss);
         line = line.replaceFirst(im.group(0)!, '').trim();
       }
 
+      // Intensity
       IntensityZone? zone;
       final iz = _intensityIndex.firstMatch(line);
       if (iz != null) {
-        final idx = int.tryParse(iz.group(1) ?? '0') ?? 0;
-        zone = _mapIntensityIndex(idx);
+        zone = _mapIntensityIndex(int.parse(iz.group(1)!));
         line = line.replaceFirst(iz.group(0)!, '').trim();
       } else {
         final iw = _intensityWord.firstMatch(line);
@@ -379,36 +364,33 @@ class TextToSessionObjectParser {
         }
       }
 
-      Stroke? stroke;
+      // Augment stroke from remaining tokens if still null
       for (final token in line.split(RegExp(r'\s+'))) {
-        final st = _strokeMap[token.toLowerCase()];
-        if (st != null) {
-          stroke = st;
-          break;
-        }
+        stroke ??= _strokeMap[token.toLowerCase()];
       }
 
+      // Swim way
       SwimWay way = SwimWay.swim;
       if (_kickWord.hasMatch(line)) way = SwimWay.kick;
       if (_pullWord.hasMatch(line)) way = SwimWay.pull;
       if (_drillWord.hasMatch(line)) way = SwimWay.drill;
 
+      // Equipment
       List<EquipmentType> detectedEquipment = [];
       final eq = _equipment.firstMatch(raw);
       if (eq != null) {
-        final equipmentStrings = eq
+        final names = eq
             .group(1)!
             .split(',')
             .map((e) => e.trim().toLowerCase())
             .where((e) => e.isNotEmpty)
             .toList();
-        detectedEquipment = equipmentStrings.map(_mapEquipment).toList();
-        line = line.replaceFirst(eq.group(0)!, '').trim();
+        detectedEquipment = names.map(_mapEquipment).toList();
       }
 
-      String? notes;
+      // Notes
       final q = RegExp(r"'([^']+)'").firstMatch(raw);
-      if (q != null) notes = q.group(1);
+      final notes = q?.group(1);
 
       return SetItem(
         id: _id('item'),
@@ -423,7 +405,7 @@ class TextToSessionObjectParser {
         equipment: detectedEquipment,
         itemNotes: notes,
         rawTextLine: raw,
-        subItems: const <SubItem>[],
+        subItems: const [],
       );
     } catch (e, st) {
       _log('Error in _parseItem(): "$raw" — $e\n$st');
@@ -431,54 +413,59 @@ class TextToSessionObjectParser {
     }
   }
 
-  // ---------------------------------------------------------------------------
-  // SUB-ITEM PARSER
-  // ---------------------------------------------------------------------------
   SubItem? _parseSubItem(String raw, int order) {
     try {
       String line = raw.trim();
-      if (line.isEmpty) return null;
 
       final dm = _distance.firstMatch(line);
-      int? dist = dm != null ? int.tryParse(dm.group(1) ?? '0') : null;
-      DistanceUnit unit = _parseUnit(dm?.group(2));
+      final int? dist = dm != null ? int.tryParse(dm.group(1) ?? '0') : null;
 
+      DistanceUnit unit = DistanceUnit.meters;
       Stroke? stroke;
-      for (final token in line.split(RegExp(r'\s+'))) {
-        final st = _strokeMap[token.toLowerCase()];
-        if (st != null) {
-          stroke = st;
-          break;
-        }
+
+      // Treat the token after distance as unit OR stroke (same as items)
+      final trailing = (dm?.group(2) ?? '').toLowerCase().trim();
+      if (_strokeMap.containsKey(trailing)) {
+        stroke = _strokeMap[trailing];
+      } else if (trailing.isNotEmpty) {
+        unit = _parseUnit(trailing);
       }
 
+      // If still no stroke, augment from remaining tokens
+      for (final token in line.split(RegExp(r'\s+'))) {
+        stroke ??= _strokeMap[token.toLowerCase()];
+      }
+
+      // Swim way
       SwimWay way = SwimWay.swim;
       if (_kickWord.hasMatch(line)) way = SwimWay.kick;
       if (_pullWord.hasMatch(line)) way = SwimWay.pull;
       if (_drillWord.hasMatch(line)) way = SwimWay.drill;
 
+      // Intensity
       IntensityZone? zone;
       final iz = _intensityIndex.firstMatch(line);
       if (iz != null) {
-        final idx = int.tryParse(iz.group(1) ?? '0') ?? 0;
-        zone = _mapIntensityIndex(idx);
+        zone = _mapIntensityIndex(int.parse(iz.group(1)!));
       } else {
         final iw = _intensityWord.firstMatch(line);
         if (iw != null) zone = _mapIntensityWord(iw.group(1)!);
       }
 
-      List<EquipmentType> detectedEquipment = [];
+      // Equipment
       final eq = _equipment.firstMatch(line);
+      List<EquipmentType> detectedEquipment = [];
       if (eq != null) {
-        final equipmentStrings = eq
+        final names = eq
             .group(1)!
             .split(',')
             .map((e) => e.trim().toLowerCase())
             .where((e) => e.isNotEmpty)
             .toList();
-        detectedEquipment = equipmentStrings.map(_mapEquipment).toList();
+        detectedEquipment = names.map(_mapEquipment).toList();
       }
 
+      // Notes
       final q = RegExp(r"'([^']+)'").firstMatch(raw);
       final notes = q?.group(1);
 
@@ -500,24 +487,50 @@ class TextToSessionObjectParser {
   // ---------------------------------------------------------------------------
   // SUMMARY + HELPERS
   // ---------------------------------------------------------------------------
-  ParsedSummary parseWithSummary(String? unparsedText, {String? sessionId}) {
+  ParsedSummary parseWithSummary(
+      String? unparsedText, {
+        String? sessionId,
+        Iterable<String>? allGroupNames, // 👈 NEW (optional)
+      }) {
     try {
       final configs = parse(unparsedText, sessionId: sessionId);
-      final Map<String, double> metersByGroup = {};
+      final metersByGroup = <String, double>{};
       double totalMeters = 0;
       int totalItems = 0;
 
-      for (final config in configs) {
-        final groupNames = config.swimSet?.assignedGroupNames ?? ['all'];
-        for (final item in config.swimSet?.items ?? []) {
-          final double dist =
-              (item.itemDistance.toDouble() *
-              (item.itemRepetition ?? 1) *
-              (config.repetitions));
-          totalItems++;
-          if (item.itemDistance > 0) totalMeters += dist;
+      // Normalize provided global group names (if any)
+      final globalGroups = (allGroupNames ?? const <String>[])
+          .map((g) => g.trim().toLowerCase())
+          .where((g) => g.isNotEmpty)
+          .toList();
 
-          for (final g in groupNames) {
+      for (final config in configs) {
+        final assigned = config.swimSet?.assignedGroupNames;
+        final sectionGroups = (assigned != null && assigned.isNotEmpty)
+            ? assigned.map((g) => g.trim().toLowerCase()).toList()
+            : <String>[];
+
+        for (final item in config.swimSet?.items ?? []) {
+          final d = (item.itemDistance ?? 0).toDouble();
+          final r = (item.itemRepetition ?? 1);
+          final dist = d * r * (config.repetitions);
+
+          totalItems++;
+          if ((item.itemDistance ?? 0) > 0) totalMeters += dist;
+
+          // ✅ Decide which groups to credit
+          final groupsToCredit = sectionGroups.isNotEmpty
+              ? sectionGroups
+              : (globalGroups.isNotEmpty
+              ? globalGroups
+              : (metersByGroup.keys.isNotEmpty
+              ? metersByGroup.keys.toList()
+              : const <String>['all'])); // final fallback
+
+          // Always keep a global 'all' total too
+          final withAll = {...groupsToCredit, 'all'};
+
+          for (final g in withAll) {
             final key = g.trim().toLowerCase();
             metersByGroup[key] = (metersByGroup[key] ?? 0) + dist;
           }
@@ -541,6 +554,7 @@ class TextToSessionObjectParser {
     }
   }
 
+
   // ---------------------------------------------------------------------------
   // MAPPERS
   // ---------------------------------------------------------------------------
@@ -551,22 +565,13 @@ class TextToSessionObjectParser {
     return DistanceUnit.meters;
   }
 
-  IntensityZone? _mapIntensityIndex(int i) {
-    switch (i) {
-      case 1:
-        return IntensityZone.i1;
-      case 2:
-        return IntensityZone.i2;
-      case 3:
-        return IntensityZone.i3;
-      case 4:
-        return IntensityZone.i4;
-      case 5:
-        return IntensityZone.max;
-      default:
-        return null;
-    }
-  }
+  IntensityZone? _mapIntensityIndex(int i) => {
+    1: IntensityZone.i1,
+    2: IntensityZone.i2,
+    3: IntensityZone.i3,
+    4: IntensityZone.i4,
+    5: IntensityZone.max,
+  }[i];
 
   IntensityZone? _mapIntensityWord(String w) {
     switch (w.toLowerCase()) {
@@ -612,13 +617,11 @@ class TextToSessionObjectParser {
     return SetType.mainSet;
   }
 
-  List<String> _extractGroups(String text) {
-    final matches = _groupTag.allMatches(text);
-    return matches
-        .map((m) => (m.group(1) ?? '').trim())
-        .where((x) => x.isNotEmpty)
-        .toList();
-  }
+  List<String> _extractGroups(String text) => _groupTag
+      .allMatches(text)
+      .map((m) => (m.group(1) ?? '').trim())
+      .where((x) => x.isNotEmpty)
+      .toList();
 
   List<String> _extractSwimmers(String text) {
     final res = _swimmerTag.firstMatch(text);
