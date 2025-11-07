@@ -1,0 +1,1 @@
+enum App { swimAnalyzer, swimSuite }
