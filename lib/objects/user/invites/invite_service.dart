@@ -1,9 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:swim_apps_shared/repositories/invite_repository.dart';
-
-import 'app_enums.dart'; // for App
-import 'app_invite.dart';
-import 'invite_type.dart';
+import 'package:swim_apps_shared/objects/user/invites/app_enums.dart';
+import 'package:swim_apps_shared/objects/user/invites/app_invite.dart';
+import 'package:swim_apps_shared/objects/user/invites/invite_type.dart';
+import 'package:flutter/foundation.dart';
 
 class InviteService {
   final InviteRepository _inviteRepository;
@@ -54,7 +54,7 @@ class InviteService {
     await _inviteRepository.acceptInvite(inviteId, user.uid);
   }
 
-  /// 🚫 Revoke (coach cancels or removes a swimmer)
+  /// 🚫 Revoke an invite (e.g. coach removes swimmer)
   Future<void> revokeInvite(String inviteId) async {
     await _inviteRepository.revokeInvite(inviteId);
   }
@@ -81,5 +81,19 @@ class InviteService {
       inviterId: user.uid,
       acceptedUserId: otherUserId,
     );
+  }
+
+  // --------------------------------------------------------------------------
+  // 🏢 CLUB / CONTEXTUAL INVITE QUERIES (delegated to repository)
+  // --------------------------------------------------------------------------
+
+  /// 📋 Fetches all *pending* invites associated with a specific club.
+  Future<List<AppInvite>> getPendingInvitesByClub(String clubId) async {
+    try {
+      return await _inviteRepository.getPendingInvitesByClub(clubId);
+    } catch (e) {
+      debugPrint('❌ Failed to fetch pending invites by club: $e');
+      rethrow;
+    }
   }
 }

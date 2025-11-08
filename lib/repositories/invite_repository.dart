@@ -143,4 +143,22 @@ class InviteRepository {
       return null;
     }
   }
+  Future<List<AppInvite>> getPendingInvitesByClub(String clubId) async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('app_invites')
+          .where('clubId', isEqualTo: clubId)
+          .where('accepted', isEqualTo: false)
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        return AppInvite.fromJson(doc.id, data);
+      }).toList();
+    } catch (e) {
+      debugPrint('❌ InviteRepository.getPendingInvitesByClub failed: $e');
+      rethrow;
+    }
+  }
 }
