@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:swim_apps_shared/repositories/invite_repository.dart';
 import 'package:swim_apps_shared/objects/user/invites/app_invite.dart';
 import 'package:swim_apps_shared/objects/user/invites/app_enums.dart';
@@ -17,15 +18,18 @@ void main() {
   late MockUser mockUser;
   late MockInviteRepository mockRepo;
   late InviteService inviteService;
+  late FakeFirebaseFirestore fakeFirestore;
 
   setUp(() {
     mockAuth = MockFirebaseAuth();
     mockUser = MockUser();
     mockRepo = MockInviteRepository();
+    fakeFirestore = FakeFirebaseFirestore();
 
     inviteService = InviteService(
       inviteRepository: mockRepo,
       auth: mockAuth,
+      firestore: fakeFirestore, // ✅ inject fake Firestore
     );
   });
 
@@ -101,8 +105,7 @@ void main() {
     test('getMyAcceptedSwimmers should call repository with coach UID', () async {
       when(mockAuth.currentUser).thenReturn(mockUser);
       when(mockUser.uid).thenReturn('coach_555');
-      when(mockRepo.getAcceptedSwimmersForCoach(any))
-          .thenAnswer((_) async => []);
+      when(mockRepo.getAcceptedSwimmersForCoach(any)).thenAnswer((_) async => []);
 
       await inviteService.getMyAcceptedSwimmers();
 
@@ -121,8 +124,7 @@ void main() {
     test('getMyAcceptedCoaches should call repository with swimmer UID', () async {
       when(mockAuth.currentUser).thenReturn(mockUser);
       when(mockUser.uid).thenReturn('swimmer_888');
-      when(mockRepo.getAcceptedCoachesForSwimmer(any))
-          .thenAnswer((_) async => []);
+      when(mockRepo.getAcceptedCoachesForSwimmer(any)).thenAnswer((_) async => []);
 
       await inviteService.getMyAcceptedCoaches();
 

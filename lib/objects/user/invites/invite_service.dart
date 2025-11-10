@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:swim_apps_shared/repositories/invite_repository.dart';
@@ -8,12 +9,15 @@ import 'package:swim_apps_shared/objects/user/invites/invite_type.dart';
 class InviteService {
   final InviteRepository _inviteRepository;
   final FirebaseAuth _auth;
+  final FirebaseFirestore _firestore;
 
   InviteService({
     InviteRepository? inviteRepository,
     FirebaseAuth? auth,
+    FirebaseFirestore? firestore,
   })  : _inviteRepository = inviteRepository ?? InviteRepository(),
-        _auth = auth ?? FirebaseAuth.instance;
+        _auth = auth ?? FirebaseAuth.instance,
+        _firestore = firestore ?? FirebaseFirestore.instance;
 
   // --------------------------------------------------------------------------
   // ✉️ INVITE CREATION
@@ -51,17 +55,61 @@ class InviteService {
   }
 
   // --------------------------------------------------------------------------
+  // 🧩 NEW: INVITE + PRE-CREATE USER PROFILE
+  // --------------------------------------------------------------------------
+
+  /// 📬 Sends an invite **and** immediately creates a "pending" user profile
+  /// under `/users/{email}`. This allows the club roster to show invited users
+  /// even if they haven't signed up yet.
+  Future<void> sendInviteAndCreatePendingUser({
+    required String email,
+    required InviteType type,
+    required App app,
+    required String inviterId,
+    required String clubId,
+    String? message,
+  }) async {
+    final normalizedEmail = email.trim().toLowerCase();
+
+    // 1️⃣ Create the invite first
+    await sendInvite(
+      email: normalizedEmail,
+      type: type,
+      app: app,
+      clubId: clubId,
+      relatedEntityId: clubId,
+    );
+
+    // 2️⃣ Pre-create pending user document
+    final docId = normalizedEmail.replaceAll('.', ','); // safer Firestore key
+    final pendingUserRef = _firestore.collection('users').doc(docId);
+
+    final role = type == InviteType.clubInvite ? 'coach' : 'swimmer';
+
+    await pendingUserRef.set({
+      'email': normalizedEmail,
+      'role': role,
+      'status': 'pending', // pending | active
+      'createdAt': FieldValue.serverTimestamp(),
+      'invitedBy': inviterId,
+      'clubId': clubId,
+      'app': app.name,
+      if (message != null && message.isNotEmpty) 'inviteMessage': message,
+    }, SetOptions(merge: true));
+
+    debugPrint('✅ Pending user created for $normalizedEmail ($role)');
+  }
+
+  // --------------------------------------------------------------------------
   // ✅ ACCEPT / REVOKE
   // --------------------------------------------------------------------------
 
-  /// ✅ Accept an invite.
   Future<void> acceptInvite(String inviteId) async {
     final user = _auth.currentUser;
     if (user == null) throw Exception('No logged-in user.');
     await _inviteRepository.acceptInvite(inviteId, user.uid);
   }
 
-  /// 🚫 Revoke an invite (e.g. coach removes swimmer).
   Future<void> revokeInvite(String inviteId) async {
     await _inviteRepository.revokeInvite(inviteId);
   }
@@ -70,21 +118,18 @@ class InviteService {
   // 🔍 LOOKUPS
   // --------------------------------------------------------------------------
 
-  /// 👥 Load all swimmers for the logged-in coach.
   Future<List<AppInvite>> getMyAcceptedSwimmers() async {
     final coach = _auth.currentUser;
     if (coach == null) throw Exception('No logged-in coach.');
     return _inviteRepository.getAcceptedSwimmersForCoach(coach.uid);
   }
 
-  /// 🧭 Load all coaches for the logged-in swimmer.
   Future<List<AppInvite>> getMyAcceptedCoaches() async {
     final swimmer = _auth.currentUser;
     if (swimmer == null) throw Exception('No logged-in swimmer.');
     return _inviteRepository.getAcceptedCoachesForSwimmer(swimmer.uid);
   }
 
-  /// 🔎 Verify if the logged-in user has a link (accepted invite) with another.
   Future<bool> hasLinkWith(String otherUserId) async {
     final user = _auth.currentUser;
     if (user == null) throw Exception('No logged-in user.');
@@ -98,7 +143,6 @@ class InviteService {
   // 🏢 CLUB / EMAIL CONTEXTUAL QUERIES
   // --------------------------------------------------------------------------
 
-  /// 📋 Fetches all *pending* invites associated with a specific club.
   Future<List<AppInvite>> getPendingInvitesByClub(String clubId) async {
     try {
       return await _inviteRepository.getPendingInvitesByClub(clubId);
@@ -108,17 +152,12 @@ class InviteService {
     }
   }
 
-  /// 📧 Fetches the most recent invite for a specific email (used in InviteResponsePage).
-  ///
-  /// Automatically normalizes the email and sorts by `createdAt`.
   Future<AppInvite?> getInviteByEmail(String email) async {
     try {
       final normalized = email.trim().toLowerCase();
       final invites = await _inviteRepository.getInvitesByEmail(normalized);
 
       if (invites.isEmpty) return null;
-
-      // Prefer most recent pending invite
       invites.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
       return invites.firstWhere(
@@ -131,9 +170,6 @@ class InviteService {
     }
   }
 
-  /// 🚦 Determines which app this invite belongs to (for routing after link open).
-  ///
-  /// Returns `"swimSuite"` or `"swimAnalyzer"`, or `null` if not found.
   Future<String?> getAppForInviteEmail(String email) async {
     final invite = await getInviteByEmail(email);
     if (invite == null) return null;
