@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:swim_apps_shared/repositories/invite_repository.dart';
@@ -10,98 +11,107 @@ class InviteService {
   final InviteRepository _inviteRepository;
   final FirebaseAuth _auth;
   final FirebaseFirestore _firestore;
+  final FirebaseFunctions _functions;
 
   InviteService({
     InviteRepository? inviteRepository,
     FirebaseAuth? auth,
     FirebaseFirestore? firestore,
+    FirebaseFunctions? functions,
   })  : _inviteRepository = inviteRepository ?? InviteRepository(),
         _auth = auth ?? FirebaseAuth.instance,
-        _firestore = firestore ?? FirebaseFirestore.instance;
+        _firestore = firestore ?? FirebaseFirestore.instance,
+        _functions = functions ?? FirebaseFunctions.instance;
 
   // --------------------------------------------------------------------------
-  // ✉️ INVITE CREATION
+  // ✉️ SEND INVITE (delegates Firestore + email to Cloud Function)
   // --------------------------------------------------------------------------
 
-  /// 📩 Send an invite from the current user to another email.
   Future<void> sendInvite({
     required String email,
     required InviteType type,
     required App app,
-    String? relatedEntityId,
     String? clubId,
+    String? groupId,
+    String? clubName,
   }) async {
     final inviter = _auth.currentUser;
     if (inviter == null) throw Exception('No logged-in user.');
 
-    final inviteId = 'invite_${DateTime.now().millisecondsSinceEpoch}';
+    final normalizedEmail = email.trim().toLowerCase();
 
-    final invite = AppInvite(
-      id: inviteId,
-      inviterId: inviter.uid,
-      inviterEmail: inviter.email ?? '',
-      inviteeEmail: email.trim().toLowerCase(),
-      type: type,
-      app: app,
-      createdAt: DateTime.now(),
-      accepted: false,
-      acceptedUserId: null,
-      clubId: clubId,
-      relatedEntityId: relatedEntityId,
-      acceptedAt: null,
-    );
+    try {
+      final callable = _functions.httpsCallable('sendInviteEmail');
+      final result = await callable.call({
+        'email': normalizedEmail,
+        'senderId': inviter.uid,
+        'senderName': inviter.displayName ?? inviter.email ?? 'A Swimify coach',
+        'clubId': clubId,
+        'groupId': groupId,
+        'type': type.name,
+        'clubName': clubName,
+        'app': app.name,
+      });
 
-    await _inviteRepository.sendInvite(invite);
+      final data = Map<String, dynamic>.from(result.data ?? {});
+      if (data['success'] == true) {
+        debugPrint('✅ Invite sent successfully to $normalizedEmail (ID: ${data['inviteId']})');
+      } else {
+        throw Exception(data['message'] ?? 'Failed to send invite');
+      }
+    } on FirebaseFunctionsException catch (e) {
+      debugPrint('❌ FirebaseFunctionsException: ${e.code} - ${e.message}');
+      rethrow;
+    } catch (e, st) {
+      debugPrint('❌ Error sending invite: $e\n$st');
+      rethrow;
+    }
   }
 
   // --------------------------------------------------------------------------
-  // 🧩 NEW: INVITE + PRE-CREATE USER PROFILE
+  // 🧩 SEND INVITE + CREATE PENDING USER
   // --------------------------------------------------------------------------
 
-  /// 📬 Sends an invite **and** immediately creates a "pending" user profile
-  /// under `/users/{email}`. This allows the club roster to show invited users
-  /// even if they haven't signed up yet.
   Future<void> sendInviteAndCreatePendingUser({
     required String email,
     required InviteType type,
     required App app,
     required String inviterId,
     required String clubId,
-    String? message,
+    String? clubName,
   }) async {
     final normalizedEmail = email.trim().toLowerCase();
 
-    // 1️⃣ Create the invite first
+    // Send via Cloud Function
     await sendInvite(
       email: normalizedEmail,
       type: type,
       app: app,
       clubId: clubId,
-      relatedEntityId: clubId,
+      clubName: clubName,
     );
 
-    // 2️⃣ Pre-create pending user document
-    final docId = normalizedEmail.replaceAll('.', ','); // safer Firestore key
-    final pendingUserRef = _firestore.collection('users').doc(docId);
+    // Locally pre-create pending user in Firestore
+    final safeDocId = normalizedEmail.replaceAll('.', ',');
+    final ref = _firestore.collection('users').doc(safeDocId);
 
     final role = type == InviteType.clubInvite ? 'coach' : 'swimmer';
 
-    await pendingUserRef.set({
+    await ref.set({
       'email': normalizedEmail,
       'role': role,
-      'status': 'pending', // pending | active
+      'status': 'pending',
       'createdAt': FieldValue.serverTimestamp(),
       'invitedBy': inviterId,
       'clubId': clubId,
       'app': app.name,
-      if (message != null && message.isNotEmpty) 'inviteMessage': message,
     }, SetOptions(merge: true));
 
-    debugPrint('✅ Pending user created for $normalizedEmail ($role)');
+    debugPrint('✅ Pending user created locally for $normalizedEmail');
   }
 
   // --------------------------------------------------------------------------
-  // ✅ ACCEPT / REVOKE
+  // ✅ ACCEPT / REVOKE INVITES
   // --------------------------------------------------------------------------
 
   Future<void> acceptInvite(String inviteId) async {
@@ -156,14 +166,9 @@ class InviteService {
     try {
       final normalized = email.trim().toLowerCase();
       final invites = await _inviteRepository.getInvitesByEmail(normalized);
-
       if (invites.isEmpty) return null;
       invites.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-
-      return invites.firstWhere(
-            (i) => !i.accepted,
-        orElse: () => invites.first,
-      );
+      return invites.firstWhere((i) => !i.accepted, orElse: () => invites.first);
     } catch (e, st) {
       debugPrint('❌ Failed to fetch invite by email: $e\n$st');
       rethrow;
@@ -172,7 +177,6 @@ class InviteService {
 
   Future<String?> getAppForInviteEmail(String email) async {
     final invite = await getInviteByEmail(email);
-    if (invite == null) return null;
-    return invite.app.name;
+    return invite?.app.name;
   }
 }
