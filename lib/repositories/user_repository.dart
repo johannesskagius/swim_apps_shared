@@ -17,10 +17,8 @@ class UserRepository extends BaseRepository {
   // --- Refactoring for Simplicity ---
   // The constructor is simplified to only require essential dependencies (_db and _authService).
   // The optional FirebaseCrashlytics parameter and the private _crashlytics field are removed.
-  UserRepository(
-      this._db, {
-        required AuthService authService,
-      }) : _authService = authService;
+  UserRepository(this._db, {required AuthService authService})
+    : _authService = authService;
 
   CollectionReference get usersCollection => _db.collection('users');
 
@@ -85,11 +83,11 @@ class UserRepository extends BaseRepository {
         .snapshots()
         .map(_mapSnapshotToUsers)
         .handleError((error, stackTrace) {
-      // Catch and log errors from the stream itself (e.g., permission denied).
-      debugPrint("🔥 Error in getUsersByClub stream: $error");
-      // Return an empty list to keep the stream alive and the UI stable.
-      return <AppUser>[];
-    });
+          // Catch and log errors from the stream itself (e.g., permission denied).
+          debugPrint("🔥 Error in getUsersByClub stream: $error");
+          // Return an empty list to keep the stream alive and the UI stable.
+          return <AppUser>[];
+        });
   }
 
   // --- STREAM: Users created by me ---
@@ -102,10 +100,10 @@ class UserRepository extends BaseRepository {
         .snapshots()
         .map(_mapSnapshotToUsers)
         .handleError((error, stackTrace) {
-      // Catch and log errors from the stream itself.
-      debugPrint("🔥 Error in getUsersCreatedByMe stream: $error");
-      return <AppUser>[];
-    });
+          // Catch and log errors from the stream itself.
+          debugPrint("🔥 Error in getUsersCreatedByMe stream: $error");
+          return <AppUser>[];
+        });
   }
 
   // --- CREATE: Swimmer ---
@@ -221,7 +219,9 @@ class UserRepository extends BaseRepository {
       for (final doc in snapshot.docs) {
         final raw = doc.data();
         if (raw is! Map<String, dynamic>) {
-          debugPrint("⚠️ Skipped swimmer ${doc.id} — data type ${raw.runtimeType}.");
+          debugPrint(
+            "⚠️ Skipped swimmer ${doc.id} — data type ${raw.runtimeType}.",
+          );
           continue;
         }
         try {
@@ -240,6 +240,61 @@ class UserRepository extends BaseRepository {
   }
 
   // --- CREATE / UPDATE ---
+  Future<void> createOrMergeUserByEmail({required AppUser newUser}) async {
+    try {
+      // 1️⃣ Search for an existing user document with same email
+      final query = await usersCollection
+          .where('email', isEqualTo: newUser.email)
+          .limit(1)
+          .get();
+
+      if (query.docs.isNotEmpty) {
+        final existingDoc = query.docs.first;
+        final existingId = existingDoc.id;
+
+        debugPrint("📬 Found existing invited user doc for ${newUser.email}");
+
+        // Make sure we have a typed Map<String, dynamic>
+        final Map<String, dynamic> existingData =
+            existingDoc.data() as Map<String, dynamic>;
+
+        // 2️⃣ Merge new UID & data into the existing document (by email)
+        final Map<String, dynamic> mergedIntoExisting = <String, dynamic>{
+          ...existingData, // keep existing fields (invitedBy, clubId...)
+          ...newUser.toJson(), // override / add new fields (name, role, etc.)
+          'id': newUser.id, // ensure we store the real uid
+        };
+
+        await usersCollection
+            .doc(existingId)
+            .set(mergedIntoExisting, SetOptions(merge: true));
+
+        // 3️⃣ Optionally migrate to users/{uid} instead of users/{randomInviteId}
+        if (existingId != newUser.id) {
+          final Map<String, dynamic> mergedForUidDoc = <String, dynamic>{
+            ...mergedIntoExisting,
+          };
+
+          await usersCollection
+              .doc(newUser.id)
+              .set(mergedForUidDoc, SetOptions(merge: true));
+
+          // Optional: delete old “invited” doc to avoid duplicates
+          await usersCollection.doc(existingId).delete();
+
+          debugPrint("♻️ Migrated invited user $existingId → ${newUser.id}");
+        }
+      } else {
+        // 4️⃣ No existing doc → create a brand new one at users/{uid}
+        await usersCollection.doc(newUser.id).set(newUser.toJson());
+        debugPrint("✨ Created new user document for ${newUser.email}");
+      }
+    } catch (e) {
+      debugPrint("🔥 Error in createOrMergeUserByEmail: $e");
+      throw Exception("Failed to create or merge user by email: $e");
+    }
+  }
+
   Future<void> createAppUser({required AppUser newUser}) async {
     try {
       await usersCollection.doc(newUser.id).set(newUser.toJson());
@@ -270,7 +325,9 @@ class UserRepository extends BaseRepository {
 
       final raw = doc.data();
       if (raw is! Map<String, dynamic>) {
-        debugPrint("⚠️ Skipped coach ${doc.id} — invalid type ${raw.runtimeType}.");
+        debugPrint(
+          "⚠️ Skipped coach ${doc.id} — invalid type ${raw.runtimeType}.",
+        );
         return null;
       }
       return AppUser.fromJson(doc.id, raw);
@@ -292,7 +349,6 @@ class UserRepository extends BaseRepository {
     // Map to your AppUser/Coach/Swimmer model as you already do
     return AppUser.fromJson(snap.docs.first.id, data);
   }
-
 
   // --- GET: My Profile Shortcut ---
   Future<AppUser?> getMyProfile() async {
