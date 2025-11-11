@@ -40,6 +40,19 @@ class InviteService {
 
     final normalizedEmail = email.trim().toLowerCase();
 
+    // 🔹 Map Dart enum to backend string format
+    String inviteTypeKey;
+    switch (type) {
+      case InviteType.coachToSwimmer:
+        inviteTypeKey = 'coach_invite';
+        break;
+      case InviteType.clubInvite:
+        inviteTypeKey = 'club_invite';
+        break;
+      default:
+        inviteTypeKey = 'generic_invite';
+    }
+
     try {
       final callable = _functions.httpsCallable('sendInviteEmail');
       final result = await callable.call({
@@ -48,7 +61,7 @@ class InviteService {
         'senderName': inviter.displayName ?? inviter.email ?? 'A Swimify coach',
         'clubId': clubId,
         'groupId': groupId,
-        'type': type.name,
+        'type': inviteTypeKey, // ✅ correct format for backend
         'clubName': clubName,
         'app': app.name,
       });
@@ -67,6 +80,7 @@ class InviteService {
       rethrow;
     }
   }
+
 
   // --------------------------------------------------------------------------
   // 🧩 SEND INVITE + CREATE PENDING USER
