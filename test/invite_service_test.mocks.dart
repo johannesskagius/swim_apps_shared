@@ -12,7 +12,6 @@ import 'package:firebase_core/firebase_core.dart' as _i2;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i6;
 import 'package:swim_apps_shared/objects/user/invites/app_invite.dart' as _i8;
-import 'package:swim_apps_shared/objects/user/invites/invite.dart' as _i9;
 import 'package:swim_apps_shared/repositories/invite_repository.dart' as _i7;
 
 // ignore_for_file: type=lint
@@ -968,24 +967,4 @@ class MockInviteRepository extends _i1.Mock implements _i7.InviteRepository {
             returnValue: _i5.Stream<List<_i8.AppInvite>>.empty(),
           )
           as _i5.Stream<List<_i8.AppInvite>>);
-
-  @override
-  _i5.Future<void> addInvitation(_i9.Invite? invite) =>
-      (super.noSuchMethod(
-            Invocation.method(#addInvitation, [invite]),
-            returnValue: _i5.Future<void>.value(),
-            returnValueForMissingStub: _i5.Future<void>.value(),
-          )
-          as _i5.Future<void>);
-
-  @override
-  _i5.Future<_i9.Invite?> findPendingInviteByEmail(
-    String? clubId,
-    String? email,
-  ) =>
-      (super.noSuchMethod(
-            Invocation.method(#findPendingInviteByEmail, [clubId, email]),
-            returnValue: _i5.Future<_i9.Invite?>.value(),
-          )
-          as _i5.Future<_i9.Invite?>);
 }

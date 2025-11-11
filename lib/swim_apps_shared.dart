@@ -7,13 +7,9 @@ export 'objects/analyzes/stroke_segment_matrix.dart';
 export 'objects/analyzes/stroke_under_water_matrix.dart';
 ///OBJECTS
 export 'objects/session_set_configuration_extension.dart';
-export 'objects/user/invites/coach_invite.dart';
-export 'objects/user/invites/invite.dart';
-export 'objects/user/invites/swimmer_invite.dart';
 export 'objects/user/invites/app_enums.dart';
 export 'objects/user/invites/app_invite.dart';
 export 'objects/user/invites/invite_service.dart';
-
 // --- widgets ---
 export 'race_analyzes/race_comparison_page.dart';
 export 'repositories/analyzes_repository.dart';

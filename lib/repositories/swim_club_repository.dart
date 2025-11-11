@@ -4,7 +4,6 @@ import 'package:swim_apps_shared/objects/planned/swim_groups.dart';
 // ⭐️ Import the new 'Invite' superclass
 import 'package:swim_apps_shared/objects/swim_club.dart';
 
-import '../objects/user/invites/invite.dart';
 
 class SwimClubRepository {
   final FirebaseFirestore _db; // ⭐️ Defined _db
@@ -25,28 +24,6 @@ class SwimClubRepository {
       return docRef.id;
     } on FirebaseException catch (e) {
       debugPrint('🔥 Firestore Error adding club: ${e.message}');
-      rethrow;
-    }
-  }
-
-  /// ⭐️ UPDATED: Fetches all pending invites from the 'invites' collection.
-  Future<List<Invite>> getPendingInvitations(String clubId) async {
-    try {
-      final snapshot =
-          await _db // Use the defined _db instance
-              .collection('invites') // Query the 'invites' collection
-              .where('clubId', isEqualTo: clubId)
-              .where(
-                'status',
-                isEqualTo: InviteStatus.pending.name,
-              ) // Filter by status
-              .get();
-
-      return snapshot.docs
-          .map((doc) => Invite.fromJson(doc.data())) // Use Invite.fromJson
-          .toList();
-    } catch (e) {
-      debugPrint('❌ Failed to get pending invites: $e');
       rethrow;
     }
   }
