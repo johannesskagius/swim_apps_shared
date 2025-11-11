@@ -23,6 +23,26 @@ class InviteService {
         _firestore = firestore ?? FirebaseFirestore.instance,
         _functions = functions ?? FirebaseFunctions.instanceFor(region: 'europe-west1');
 
+
+  /// 🔍 Fetch a single invite by its Firestore document ID.
+  /// Returns an [AppInvite] if found, or `null` if not found.
+  Future<AppInvite?> getInviteById(String inviteId) async {
+    try {
+      final doc = await _firestore.collection('invites').doc(inviteId).get();
+
+      if (!doc.exists) return null;
+
+      final data = doc.data();
+      if (data == null) return null;
+
+      // ✅ Matches: factory AppInvite.fromJson(String id, Map<String, dynamic> json)
+      return AppInvite.fromJson(doc.id, data);
+    } catch (e, st) {
+      debugPrint('❌ Error fetching invite by ID: $e\n$st');
+      return null;
+    }
+  }
+
   // --------------------------------------------------------------------------
   // ✉️ SEND INVITE (Firestore first, email optional)
   // --------------------------------------------------------------------------
