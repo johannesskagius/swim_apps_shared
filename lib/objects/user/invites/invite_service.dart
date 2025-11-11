@@ -133,18 +133,67 @@ class InviteService {
   }
 
   // --------------------------------------------------------------------------
-  // ✅ ACCEPT / REVOKE INVITES
-  // --------------------------------------------------------------------------
+// ✅ ACCEPT / REVOKE INVITES (via Cloud Functions)
+// --------------------------------------------------------------------------
 
+  /// Accepts an invite by calling the backend `respondToInvite` function.
+  /// This ensures Firestore, user linking, and club membership are updated atomically.
   Future<void> acceptInvite(String inviteId) async {
     final user = _auth.currentUser;
     if (user == null) throw Exception('No logged-in user.');
-    await _inviteRepository.acceptInvite(inviteId, user.uid);
+
+    try {
+      final callable = _functions.httpsCallable('respondToInvite');
+      final result = await callable.call({
+        'inviteId': inviteId,
+        'action': 'accept',
+        'userId': user.uid,
+      });
+
+      final data = Map<String, dynamic>.from(result.data ?? {});
+      if (data['success'] != true) {
+        throw Exception(data['message'] ?? 'Failed to accept invite.');
+      }
+
+      debugPrint('✅ Invite $inviteId accepted successfully by ${user.uid}');
+    } on FirebaseFunctionsException catch (e) {
+      debugPrint('❌ FirebaseFunctionsException: ${e.code} - ${e.message}');
+      rethrow;
+    } catch (e, st) {
+      debugPrint('❌ Error in acceptInvite: $e\n$st');
+      rethrow;
+    }
   }
 
+  /// Revokes (declines) an invite via the same backend function.
+  /// Use this when the user explicitly declines or cancels an invitation.
   Future<void> revokeInvite(String inviteId) async {
-    await _inviteRepository.revokeInvite(inviteId);
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('No logged-in user.');
+
+    try {
+      final callable = _functions.httpsCallable('respondToInvite');
+      final result = await callable.call({
+        'inviteId': inviteId,
+        'action': 'decline',
+        'userId': user.uid,
+      });
+
+      final data = Map<String, dynamic>.from(result.data ?? {});
+      if (data['success'] != true) {
+        throw Exception(data['message'] ?? 'Failed to decline invite.');
+      }
+
+      debugPrint('🚫 Invite $inviteId declined successfully by ${user.uid}');
+    } on FirebaseFunctionsException catch (e) {
+      debugPrint('❌ FirebaseFunctionsException: ${e.code} - ${e.message}');
+      rethrow;
+    } catch (e, st) {
+      debugPrint('❌ Error in revokeInvite: $e\n$st');
+      rethrow;
+    }
   }
+
 
   // --------------------------------------------------------------------------
   // 🔍 LOOKUPS
