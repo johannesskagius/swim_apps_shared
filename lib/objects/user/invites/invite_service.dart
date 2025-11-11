@@ -21,12 +21,11 @@ class InviteService {
   })  : _inviteRepository = inviteRepository ?? InviteRepository(),
         _auth = auth ?? FirebaseAuth.instance,
         _firestore = firestore ?? FirebaseFirestore.instance,
-        _functions = functions ?? FirebaseFunctions.instance;
+        _functions = functions ?? FirebaseFunctions.instanceFor(region: 'europe-west1');
 
   // --------------------------------------------------------------------------
-  // ✉️ SEND INVITE (delegates Firestore + email to Cloud Function)
+  // ✉️ SEND INVITE (Firestore first, email optional)
   // --------------------------------------------------------------------------
-
   Future<void> sendInvite({
     required String email,
     required InviteType type,
@@ -40,7 +39,7 @@ class InviteService {
 
     final normalizedEmail = email.trim().toLowerCase();
 
-    // 🔹 Map Dart enum to backend string format
+    // 🔹 Map Dart enum to backend key
     String inviteTypeKey;
     switch (type) {
       case InviteType.coachToSwimmer:
@@ -53,34 +52,43 @@ class InviteService {
         inviteTypeKey = 'generic_invite';
     }
 
+    // 1️⃣ Create invite record directly in Firestore
+    final invite = AppInvite(
+      id: 'invite_${DateTime.now().millisecondsSinceEpoch}',
+      inviterId: inviter.uid,
+      inviterEmail: inviter.email ?? '',
+      inviteeEmail: normalizedEmail,
+      type: type,
+      app: app,
+      clubId: clubId,
+      relatedEntityId: groupId,
+      createdAt: DateTime.now(),
+      accepted: false,
+      acceptedUserId: null,
+    );
+
+    await _inviteRepository.sendInvite(invite);
+    debugPrint('📄 Invite document created in Firestore for $normalizedEmail');
+
+    // 2️⃣ Trigger email asynchronously (optional)
     try {
       final callable = _functions.httpsCallable('sendInviteEmail');
-      final result = await callable.call({
+      await callable.call({
         'email': normalizedEmail,
         'senderId': inviter.uid,
         'senderName': inviter.displayName ?? inviter.email ?? 'A Swimify coach',
         'clubId': clubId,
         'groupId': groupId,
-        'type': inviteTypeKey, // ✅ correct format for backend
+        'type': inviteTypeKey,
         'clubName': clubName,
         'app': app.name,
       });
-
-      final data = Map<String, dynamic>.from(result.data ?? {});
-      if (data['success'] == true) {
-        debugPrint('✅ Invite sent successfully to $normalizedEmail (ID: ${data['inviteId']})');
-      } else {
-        throw Exception(data['message'] ?? 'Failed to send invite');
-      }
-    } on FirebaseFunctionsException catch (e) {
-      debugPrint('❌ FirebaseFunctionsException: ${e.code} - ${e.message}');
-      rethrow;
-    } catch (e, st) {
-      debugPrint('❌ Error sending invite: $e\n$st');
-      rethrow;
+      debugPrint('📧 Invite email sent via Cloud Function');
+    } catch (e) {
+      debugPrint('⚠️ Email sending failed (invite still stored): $e');
+      // Don’t rethrow — Firestore record is already valid
     }
   }
-
 
   // --------------------------------------------------------------------------
   // 🧩 SEND INVITE + CREATE PENDING USER
@@ -96,7 +104,7 @@ class InviteService {
   }) async {
     final normalizedEmail = email.trim().toLowerCase();
 
-    // Send via Cloud Function
+    // Create invite + send email (best-effort)
     await sendInvite(
       email: normalizedEmail,
       type: type,
@@ -105,7 +113,7 @@ class InviteService {
       clubName: clubName,
     );
 
-    // Locally pre-create pending user in Firestore
+    // Pre-create pending user locally in Firestore
     final safeDocId = normalizedEmail.replaceAll('.', ',');
     final ref = _firestore.collection('users').doc(safeDocId);
 
