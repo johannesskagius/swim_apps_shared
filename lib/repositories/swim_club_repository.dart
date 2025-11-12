@@ -67,8 +67,8 @@ class SwimClubRepository {
   }
 
   /// 🏊 Fetch all SwimGroups belonging to a specific SwimClub
-  Future<List<SwimGroup>> getGroups(String clubId) async {
-    if (clubId.isEmpty) {
+  Future<List<SwimGroup>> getGroups(String? clubId) async {
+    if (clubId == null || clubId.isEmpty) {
       debugPrint("⚠️ getGroups called with empty clubId");
       return [];
     }
