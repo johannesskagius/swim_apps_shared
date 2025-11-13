@@ -2,178 +2,223 @@ import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:swim_apps_shared/objects/planned/swim_groups.dart';
 import 'package:swim_apps_shared/objects/swim_club.dart';
-import 'package:swim_apps_shared/swim_apps_shared.dart';
-
+import 'package:swim_apps_shared/repositories/swim_club_repository.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 void main() {
-  // ------------------------------------------------------------------
-  // Setup
-  // ------------------------------------------------------------------
   late FakeFirebaseFirestore fakeFirestore;
   late SwimClubRepository repository;
 
-  // Re-initialize a fresh fake database and repository before each test
-  // This ensures tests don't interfere with each other.
   setUp(() {
     fakeFirestore = FakeFirebaseFirestore();
     repository = SwimClubRepository(fakeFirestore);
   });
 
-  // ------------------------------------------------------------------
-  // Club Tests
-  // ------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // 🏊 CLUB TESTS
+  // ---------------------------------------------------------------------------
   group('Club Tests', () {
-    test('addClub: should add a club and return its ID', () async {
-      // Arrange
-      // ⭐️ UPDATED: Instantiate with all required fields.
-      // The 'id' here is just a placeholder for the object,
-      // Firestore will assign a new one.
+    test('addClub → should add a club and return its ID', () async {
       final club = SwimClub(
-        id: 'temp-id',
+        id: 'tmp',
         name: 'Wave Riders',
         creatorId: 'coach123',
-        createdAt: DateTime.now(),
+        createdAt: DateTime(2024, 1, 1),
       );
 
-      // Act
       final clubId = await repository.addClub(club: club);
 
-      // Assert
       expect(clubId, isNotEmpty);
+
       final doc = await fakeFirestore.collection('swimClubs').doc(clubId).get();
-      expect(doc.exists, isTrue);
+
+      expect(doc.exists, true);
       expect(doc.data()?['name'], 'Wave Riders');
       expect(doc.data()?['creatorId'], 'coach123');
+
+      // Timestamp should be stored
+      expect(doc.data()?['createdAt'], isA<Timestamp>());
     });
 
-    test('getClub: should fetch a club by its ID', () async {
-      // Arrange: Manually add a club to the fake database
-      // ⭐️ UPDATED: Use the model's toJson() for accuracy.
-      final newClub = SwimClub(
-        id: 'temp-id',
+    test('getClub → should fetch a club by its ID', () async {
+      final club = SwimClub(
+        id: 'tmp',
         name: 'Test Club',
-        creatorId: 'coach123',
-        createdAt: DateTime.now(),
+        creatorId: 'coachA',
+        createdAt: DateTime(2023, 5, 20),
       );
+
       final docRef = await fakeFirestore
           .collection('swimClubs')
-          .add(newClub.toJson());
+          .add(club.toJson());
 
-      // Act
-      final fetchedClub = await repository.getClub(docRef.id);
+      final fetched = await repository.getClub(docRef.id);
 
-      // Assert
-      expect(fetchedClub, isNotNull);
-      expect(fetchedClub?.id, docRef.id);
-      expect(fetchedClub?.name, 'Test Club');
+      expect(fetched, isNotNull);
+      expect(fetched!.id, docRef.id);
+      expect(fetched.name, 'Test Club');
+      expect(fetched.createdAt, isA<DateTime>());
     });
 
-    test('getClub: should return null for a non-existent ID', () async {
-      // ... (no change)
+    test('getClub → should return null for missing ID', () async {
+      final fetched = await repository.getClub('does-not-exist');
+      expect(fetched, isNull);
     });
 
-    test('getClubByCreatorId: should fetch a club by its creator ID', () async {
-      // Arrange
-      // ⭐️ UPDATED: Use the model's toJson() for accuracy.
-      final newClub = SwimClub(
-        id: 'temp-id',
+    test('getClubByCreatorId → fetches the correct club', () async {
+      final club = SwimClub(
+        id: 'tmp',
         name: 'Sharks',
-        creatorId: 'unique-coach-id',
-        createdAt: DateTime.now(),
+        creatorId: 'coachXYZ',
+        createdAt: DateTime(2023, 5, 1),
       );
-      await fakeFirestore
+
+      await fakeFirestore.collection('swimClubs').add(club.toJson());
+
+      final fetched = await repository.getClubByCreatorId('coachXYZ');
+
+      expect(fetched, isNotNull);
+      expect(fetched!.name, 'Sharks');
+    });
+
+    test('addClub → supports optional subscription fields', () async {
+      final club = SwimClub(
+        id: 'tmp',
+        name: 'Premium Club',
+        creatorId: 'coach999',
+        createdAt: DateTime.now(),
+        planId: 'club_large',
+        isActive: true,
+        endDate: DateTime.now().add(const Duration(days: 30)),
+        maxGroups: 25,
+        groupsCount: 3,
+      );
+
+      final clubId = await repository.addClub(club: club);
+      final doc =
+      await fakeFirestore.collection('swimClubs').doc(clubId).get();
+
+      expect(doc.data()?['planId'], 'club_large');
+      expect(doc.data()?['isActive'], true);
+      expect(doc.data()?['maxGroups'], 25);
+      expect(doc.data()?['groupsCount'], 3);
+    });
+
+    test('getClub → parses embedded groups if present', () async {
+      await fakeFirestore.collection('swimClubs').add({
+        'name': 'Embedded Club',
+        'creatorId': 'coachX',
+        'createdAt': Timestamp.fromDate(DateTime(2024)),
+        'groups': [
+          {'id': 'g1', 'name': 'Group A'},
+          {'id': 'g2', 'name': 'Group B'},
+        ],
+      });
+
+      final snapshot = await fakeFirestore
           .collection('swimClubs')
-          .add(newClub.toJson());
+          .where('creatorId', isEqualTo: 'coachX')
+          .get();
 
-      // Act
-      final fetchedClub = await repository.getClubByCreatorId('unique-coach-id');
+      final fetched =
+      SwimClub.fromJson(snapshot.docs.first.data(), snapshot.docs.first.id);
 
-      // Assert
-      expect(fetchedClub, isNotNull);
-      expect(fetchedClub?.name, 'Sharks');
+      expect(fetched.groups, isNotNull);
+      expect(fetched.groups!.length, 2);
+      expect(fetched.totalGroups, 2);
     });
   });
 
-  // ------------------------------------------------------------------
-  // Group Tests
-  // ------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // 👥 GROUP TESTS
+  // ---------------------------------------------------------------------------
   group('Group Tests', () {
     late String testClubId;
 
-    // Before each test in *this group*, create a club to add groups to
     setUp(() async {
-      final docRef = await fakeFirestore
-          .collection('swimClubs')
-          .add({'creatorId': 'coach123', 'name': 'Test Club'});
-      testClubId = docRef.id;
+      final ref = await fakeFirestore.collection('swimClubs').add({
+        'name': 'Test Club',
+        'creatorId': 'coach123',
+        'createdAt': Timestamp.fromDate(DateTime(2024)),
+      });
+      testClubId = ref.id;
     });
 
-    test('addGroup: should add a group to the subcollection', () async {
-      // Arrange
-      final group = SwimGroup(name: 'Seniors', coachId: 'c1', swimmerIds: []);
+    test('addGroup → should add a group to the club subcollection', () async {
+      final group = SwimGroup(
+        name: 'Seniors',
+        coachId: 'c1',
+        swimmerIds: const [],
+      );
 
-      // Act
       final groupId = await repository.addGroup(testClubId, group);
 
-      // Assert
-      expect(groupId, isNotEmpty);
       final doc = await fakeFirestore
           .collection('swimClubs')
           .doc(testClubId)
           .collection('groups')
           .doc(groupId)
           .get();
-      expect(doc.exists, isTrue);
+
+      expect(doc.exists, true);
       expect(doc.data()?['name'], 'Seniors');
     });
 
-    test('getGroups: should fetch all groups for a club', () async {
-      // Arrange
-      await repository.addGroup(testClubId, SwimGroup(name: 'Seniors', coachId: 'c1', swimmerIds: []));
-      await repository.addGroup(testClubId, SwimGroup(name: 'Juniors', coachId: 'c2', swimmerIds: []));
+    test('getGroups → should return all groups for a club', () async {
+      await repository.addGroup(
+        testClubId,
+        SwimGroup(name: 'A', coachId: 'c1', swimmerIds: const []),
+      );
+      await repository.addGroup(
+        testClubId,
+        SwimGroup(name: 'B', coachId: 'c2', swimmerIds: const []),
+      );
 
-      // Act
       final groups = await repository.getGroups(testClubId);
 
-      // Assert
       expect(groups.length, 2);
-      expect(groups.any((g) => g.name == 'Seniors'), isTrue);
+      expect(groups.any((g) => g.name == 'A'), true);
     });
 
-    test('updateGroup: should update an existing group', () async {
-      // Arrange
-      final group = SwimGroup(name: 'Old Name', coachId: 'c1', swimmerIds: []);
+    test('updateGroup → updates an existing group', () async {
+      final group = SwimGroup(
+        name: 'Old Name',
+        coachId: 'c1',
+        swimmerIds: const [],
+      );
+
       final groupId = await repository.addGroup(testClubId, group);
 
-      // Act
-      final updatedGroup = group.copyWith(id: groupId, name: 'New Name');
-      await repository.updateGroup(testClubId, updatedGroup);
+      final updated = group.copyWith(id: groupId, name: 'New Name');
 
-      // Assert
-      final doc = await fakeFirestore
+      await repository.updateGroup(testClubId, updated);
+
+      final stored = await fakeFirestore
           .collection('swimClubs')
           .doc(testClubId)
           .collection('groups')
           .doc(groupId)
           .get();
-      expect(doc.data()?['name'], 'New Name');
+
+      expect(stored.data()?['name'], 'New Name');
     });
 
-    test('deleteGroup: should delete a group from the subcollection', () async {
-      // Arrange
-      final groupId = await repository.addGroup(testClubId, SwimGroup(name: 'To Delete', coachId: 'c1', swimmerIds: []));
+    test('deleteGroup → removes the group from Firestore', () async {
+      final groupId = await repository.addGroup(
+        testClubId,
+        SwimGroup(name: 'Delete Me', coachId: 'c1', swimmerIds: const []),
+      );
 
-      // Act
       await repository.deleteGroup(testClubId, groupId);
 
-      // Assert
-      final doc = await fakeFirestore
+      final stored = await fakeFirestore
           .collection('swimClubs')
           .doc(testClubId)
           .collection('groups')
           .doc(groupId)
           .get();
-      expect(doc.exists, isFalse);
+
+      expect(stored.exists, false);
     });
   });
 }
