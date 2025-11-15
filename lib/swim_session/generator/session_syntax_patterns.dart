@@ -9,6 +9,15 @@
 import 'package:flutter/material.dart';
 
 class SessionSyntaxPatterns {
+
+  // ---------------------------------------------------------------------------
+  // 🎨 Map for CodeController (String keys)
+  // ---------------------------------------------------------------------------
+  /// This converts the [highlightMap] into the Map<String, TextStyle>
+  /// that the CodeController's [patternMap] parameter requires.
+  static final Map<String, TextStyle> codeFieldPatternMap =
+  highlightMap.map((key, value) => MapEntry(key.pattern, value));
+
   // ---------------------------------------------------------------------------
   // 🔹 Section Headers (warm up, main set, cooldown, etc.)
   // ---------------------------------------------------------------------------
