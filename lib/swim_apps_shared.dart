@@ -22,6 +22,7 @@ export 'repositories/swimmer_focus_profile_repository.dart';
 export 'repositories/user_repository.dart';
 export 'swim_session/generator/config/advanced_generator_config.dart';
 export 'swim_session/generator/config/setconfig_to_text_parser.dart';
+export 'swim_session/generator/session_syntax_patterns.dart';
 // --- EVENTS ---
 
 // --- OBJECTS / MODELS ---
