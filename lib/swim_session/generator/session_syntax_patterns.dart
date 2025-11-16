@@ -9,14 +9,73 @@
 import 'package:flutter/material.dart';
 
 class SessionSyntaxPatterns {
+  // ---------------------------------------------------------------------------
+  // 🎨 Map for CodeController (String keys, SAFE for CodeField)
+  // ---------------------------------------------------------------------------
+  ///
+  /// IMPORTANT:
+  /// These are *simplified* patterns for UI highlighting only.
+  /// The parser still uses the richer RegExp objects below.
+  ///
+  /// We avoid:
+  ///   - ^ / $ anchors
+  ///   - greedy `.*?`
+  ///   - capturing groups (only non-capturing `(?:...)`)
+  ///   - complex lookaheads
+  ///
+  /// to prevent CodeTextField from throwing RangeError on partial edits.
+  static final Map<String, TextStyle> codeFieldPatternMap = {
+    // Section headers (warmup, main set, etc.)
+    r'\b(?:warm ?up|main ?set|pre ?set|post ?set|cool ?down|'
+    r'kick ?set|pull ?set|drill ?set|sprint ?set|recovery|'
+    r'technique ?set|main|warmup|cooldown)\b':
+    const TextStyle(
+      fontWeight: FontWeight.bold,
+      color: Colors.teal,
+    ),
 
-  // ---------------------------------------------------------------------------
-  // 🎨 Map for CodeController (String keys)
-  // ---------------------------------------------------------------------------
-  /// This converts the [highlightMap] into the Map<String, TextStyle>
-  /// that the CodeController's [patternMap] parameter requires.
-  static final Map<String, TextStyle> codeFieldPatternMap =
-  highlightMap.map((key, value) => MapEntry(key.pattern, value));
+    // Distances: "50 fr", "100m", "25 bk", etc.
+    r'\b\d+\s*(?:m|fr|bk|br|fly|im)\b':
+    const TextStyle(
+      fontWeight: FontWeight.bold,
+      color: Colors.indigo,
+    ),
+
+    // Intervals: @1:30, 1:20, etc.
+    r'@?\d{1,2}:\d{2}':
+    const TextStyle(
+      color: Colors.deepOrange,
+      fontWeight: FontWeight.w600,
+    ),
+
+    // Intensity index: i1–i5
+    r'\bi\s*[1-5]\b':
+    const TextStyle(
+      color: Colors.orange,
+      fontWeight: FontWeight.bold,
+    ),
+
+    // Intensity words: easy, moderate, threshold, sp1–3, etc.
+    r'\b(?:max|easy|moderate|hard|threshold|sp1|sp2|sp3|drill|race|racepace|rp)\b':
+    const TextStyle(
+      color: Colors.redAccent,
+      fontWeight: FontWeight.w600,
+    ),
+
+    // Kick / Pull / Drill keywords
+    r'\bkick(?:ing)?\b': const TextStyle(color: Colors.green),
+    r'\bpull(?:ing)?\b': const TextStyle(color: Colors.purple),
+    r'\bdrill(?:s)?\b':
+    const TextStyle(color: Colors.blue, fontStyle: FontStyle.italic),
+
+    // Equipment: [paddles], [fins, snorkel], etc.
+    // Safe pattern: any chars except ']' inside brackets.
+    r'\[[^\]]*\]':
+    const TextStyle(
+      color: Colors.brown,
+      fontWeight: FontWeight.w500,
+    ),
+  };
 
   // ---------------------------------------------------------------------------
   // 🔹 Section Headers (warm up, main set, cooldown, etc.)
@@ -103,28 +162,21 @@ class SessionSyntaxPatterns {
   );
 
   // ---------------------------------------------------------------------------
-  // 🎨 Highlight styles for CodeField (patternMap)
+  // 🎨 Highlight styles (can still be used elsewhere if needed)
   // ---------------------------------------------------------------------------
   static final Map<RegExp, TextStyle> highlightMap = {
-    // Headers
     sectionHeader: const TextStyle(
       fontWeight: FontWeight.bold,
       color: Colors.teal,
     ),
-
-    // Distances
     distance: const TextStyle(
       fontWeight: FontWeight.bold,
       color: Colors.indigo,
     ),
-
-    // Intervals @1:30
     interval: const TextStyle(
       color: Colors.deepOrange,
       fontWeight: FontWeight.w600,
     ),
-
-    // Intensities
     intensityIndex: const TextStyle(
       color: Colors.orange,
       fontWeight: FontWeight.bold,
@@ -133,13 +185,10 @@ class SessionSyntaxPatterns {
       color: Colors.redAccent,
       fontWeight: FontWeight.w600,
     ),
-
-    // Kick / Pull / Drill
     kickWord: const TextStyle(color: Colors.green),
     pullWord: const TextStyle(color: Colors.purple),
-    drillWord: const TextStyle(color: Colors.blue, fontStyle: FontStyle.italic),
-
-    // Equipment [paddles]
+    drillWord:
+    const TextStyle(color: Colors.blue, fontStyle: FontStyle.italic),
     equipment: const TextStyle(
       color: Colors.brown,
       fontWeight: FontWeight.w500,
