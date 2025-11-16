@@ -102,6 +102,41 @@ Main set
       expect(item.itemRepetition, 4);
       expect(item.itemDistance, 100);
     });
+    test('standalone reps are still recognized even when auto-indented', () {
+      // Simulate what autoIndent produces:
+      // Two spaces before 2x
+      const input = '''
+Main set
+  2x
+  4x50 fr
+''';
+
+      final conf = parser.parse(input).first;
+
+      // Repetitions must still be parsed correctly
+      expect(conf.repetitions, 2);
+
+      // And item should still have reps applied (2 × 4 × 50 = 400)
+      final summary = parser.parseWithSummary(input);
+      expect(summary.totalMeters, 400);
+    });
+
+    test('standalone reps remain valid with tabs or mixed whitespace', () {
+      const input = '''
+Main set
+\t2x
+  4x25 fr
+''';
+
+      final conf = parser.parse(input).first;
+
+      // standalone repetition still recognized
+      expect(conf.repetitions, 2);
+
+      // inline × standalone multiplication still correct (2 × (4 × 25))
+      final summary = parser.parseWithSummary(input);
+      expect(summary.totalMeters, 200);
+    });
   });
 
   // ---------------------------------------------------------------------------
