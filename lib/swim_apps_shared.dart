@@ -23,6 +23,8 @@ export 'repositories/user_repository.dart';
 export 'swim_session/generator/config/advanced_generator_config.dart';
 export 'swim_session/generator/config/setconfig_to_text_parser.dart';
 export 'swim_session/generator/session_syntax_patterns.dart';
+export 'results/result_service.dart';
+export 'results/set_item_result.dart';
 // --- EVENTS ---
 
 // --- OBJECTS / MODELS ---

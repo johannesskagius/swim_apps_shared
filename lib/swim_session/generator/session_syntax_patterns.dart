@@ -180,6 +180,18 @@ class SessionSyntaxPatterns {
     caseSensitive: false,
   );
 
+  // Tags that mark items as requiring results
+  static final RegExp requiresResultTag = RegExp(
+    r'(\!result|\[result\]|\*[ ]?result|\#result\b)',
+    caseSensitive: false,
+  );
+
+// More general result tags like #test_50free, #speed_test
+  static final RegExp resultTag = RegExp(
+    r'\#(test_[A-Za-z0-9_]+)',
+    caseSensitive: false,
+  );
+
   // ---------------------------------------------------------------------------
   // 🎨 Highlight styles (can still be used elsewhere if needed)
   // ---------------------------------------------------------------------------

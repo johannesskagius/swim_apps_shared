@@ -19,12 +19,18 @@ class SetItem {
   final Duration? interval;
   final String? targetPaceOrTime;
   final List<EquipmentType>? equipment;
+
+
   final String? itemNotes;
   final String? rawTextLine;
   final IntensityZone? intensityZone;
   final DistanceUnit? distanceUnit;
   final SwimWay swimWay;
   final List<SubItem>? subItems;
+
+  final bool requiresResult;
+  final List<String>? resultTags;
+  final Map<String, dynamic>? resultSchema;
 
   const SetItem({
     required this.id,
@@ -42,6 +48,9 @@ class SetItem {
     this.distanceUnit,
     this.subItems,
     this.rawTextLine,
+    this.requiresResult = false,
+    this.resultTags,
+    this.resultSchema,
   });
 
   const SetItem.custom({
@@ -60,6 +69,9 @@ class SetItem {
     this.distanceUnit,
     this.subItems,
     this.rawTextLine,
+    this.requiresResult = false,
+    this.resultTags,
+    this.resultSchema,
   });
 
   List<Map<String, dynamic>> _convertSubItemsToJson() =>
@@ -81,6 +93,9 @@ class SetItem {
     DistanceUnit? distanceUnit,
     List<SubItem>? subItems,
     String? rawTextLine,
+    bool? requiresResult,
+    List<String>? resultTags,
+    Map<String, dynamic>? resultSchema,
   }) {
     return SetItem(
       id: id ?? this.id,
@@ -98,6 +113,9 @@ class SetItem {
       distanceUnit: distanceUnit ?? this.distanceUnit,
       subItems: subItems ?? this.subItems,
       rawTextLine: rawTextLine ?? this.rawTextLine,
+      requiresResult: requiresResult ?? this.requiresResult,    // NEW
+      resultTags: resultTags ?? this.resultTags,                // NEW
+      resultSchema: resultSchema ?? this.resultSchema,          // NEW
     );
   }
 
@@ -118,6 +136,9 @@ class SetItem {
       distanceUnit: distanceUnit,
       subItems: subItems?.map((s) => s.copyWith()).toList(),
       rawTextLine: rawTextLine,
+      requiresResult: requiresResult,                                  // NEW
+      resultTags: resultTags != null ? List.of(resultTags!) : null,    // NEW
+      resultSchema: resultSchema != null ? Map.of(resultSchema!) : null, // NEW
     );
   }
 
@@ -140,6 +161,9 @@ class SetItem {
         'subItems': _convertSubItemsToJson(),
       if (rawTextLine != null) 'rawTextLine': rawTextLine,
       'swimWay': swimWay.name,
+      'requiresResult': requiresResult,
+      if (resultTags != null && resultTags!.isNotEmpty) 'resultTags': resultTags,
+      if (resultSchema != null && resultSchema!.isNotEmpty) 'resultSchema': resultSchema,
     };
   }
 
@@ -224,6 +248,13 @@ class SetItem {
       distanceUnit: safeDistanceUnit,
       subItems: safeSubItems,
       rawTextLine: json['rawTextLine'] as String?,
+      requiresResult: json['requiresResult'] == true,
+      resultTags: (json['resultTags'] as List?)
+          ?.whereType<String>()
+          .toList(),
+      resultSchema: json['resultSchema'] is Map<String, dynamic>
+          ? Map<String, dynamic>.from(json['resultSchema'])
+          : null,
     );
   }
 }
