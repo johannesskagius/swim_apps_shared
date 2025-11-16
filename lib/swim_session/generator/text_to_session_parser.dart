@@ -162,6 +162,10 @@ class TextToSessionObjectParser {
   // 2) PARSE SECTIONS → SessionSetConfiguration
   // ==========================================================================
 
+  // ==========================================================================
+  // 2) PARSE SECTIONS → SessionSetConfiguration
+  // ==========================================================================
+
   List<SessionSetConfiguration> parse(String? text, {String? sessionId}) {
     if (text == null || text.trim().isEmpty) return [];
 
@@ -179,26 +183,45 @@ class TextToSessionObjectParser {
           // Skip pure section header lines (optional – safe)
           if (_sectionHeader.hasMatch(raw)) continue;
 
-          // --- 1) Sub-items FIRST (so "  25 kick" doesn't become a parent item)
+          // -------------------------------------------------------------------
+          // 1) STRICT SUB-ITEM DETECTION USING "- ..."
+          // -------------------------------------------------------------------
+          //
+          // Allowed syntax:
+          //   - 25 kick
+          //   - 25 drill i2
+          //   - 50 fr @40
+          //
+          // No other sub-item forms are allowed.
+          //
           final subm = _subItemLine.firstMatch(raw);
-          if (subm != null && items.isNotEmpty) {
+
+          // valid sub-item ONLY if it starts with "-", ignoring leading spaces
+          final bool isValidSubItem = subm != null;
+
+          if (isValidSubItem && items.isNotEmpty) {
             final last = items.last;
+
             final parsedSub = _parseSubItem(
-              subm.group(1)!,
+              subm.group(1)!, // content after "- "
               last.subItems?.length ?? 0,
             );
 
             if (parsedSub != null) {
-              final List<SubItem> updated = [
+              final updated = [
                 ...(last.subItems ?? const <SubItem>[]),
                 parsedSub,
               ];
+
               items[items.length - 1] = last.copyWith(subItems: updated);
             }
-            continue;
+
+            continue; // handled — move on
           }
 
-          // --- 2) Normal / rest / distance item
+          // -------------------------------------------------------------------
+          // 2) NORMAL / REST / DISTANCE ITEM
+          // -------------------------------------------------------------------
           final item = _parseItem(raw, itemOrder);
           if (item != null) {
             items.add(item);

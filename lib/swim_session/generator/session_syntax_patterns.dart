@@ -160,7 +160,10 @@ class SessionSyntaxPatterns {
   // ---------------------------------------------------------------------------
   // 🔹 Sub-items (indented or bullet lines)
   // ---------------------------------------------------------------------------
-  static final RegExp subItemLine = RegExp(r'^(?:\s{2,}|[-•>]\s+)(.+)$');
+  static final RegExp subItemLine = RegExp(
+    r'^\s*-\s+(.+)$',
+    caseSensitive: false,
+  );
 
   // ---------------------------------------------------------------------------
   // 🔹 Swim way keywords (kick, pull, drill)

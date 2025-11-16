@@ -220,21 +220,22 @@ Main set
   // ---------------------------------------------------------------------------
 
   group('Sub-item parsing', () {
-    test('detects indented subitems', () {
+    test('detects dash-marked subitems', () {
       const input = '''
 Main set
 100 fr
-  25 kick
-  25 drill
+  - 25 kick
+  - 25 drill
 ''';
 
       final parent = parser.parse(input).first.swimSet!.items.first;
+      expect(parent.subItems, isNotNull);
       expect(parent.subItems!.length, 2);
       expect(parent.subItems![0].swimWay, SwimWay.kick);
       expect(parent.subItems![1].swimWay, SwimWay.drill);
     });
 
-    test('detects bullet and arrow subitems', () {
+    test('detects dash subitems only', () {
       const input = '''
 Main set
 100 fr
@@ -243,7 +244,10 @@ Main set
 ''';
 
       final parent = parser.parse(input).first.swimSet!.items.first;
-      expect(parent.subItems!.length, 2);
+
+      // Only the dash line becomes a subitem
+      expect(parent.subItems!.length, 1);
+      expect(parent.subItems![0].swimWay, SwimWay.kick);
     });
   });
 
