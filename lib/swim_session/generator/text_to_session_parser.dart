@@ -460,11 +460,10 @@ class TextToSessionObjectParser {
   }
 
   // ==========================================================================
-  // 5) SUMMARY BUILDER (with groups)
+// 5) SUMMARY BUILDER (with groups) — SubItems never count toward meters
   // ==========================================================================
 
-  ParsedSummary parseWithSummary(
-    String? text, {
+  ParsedSummary parseWithSummary(String? text, {
     String? sessionId,
     Iterable<String>? allGroupNames,
   }) {
@@ -487,16 +486,30 @@ class TextToSessionObjectParser {
             .toList();
 
         for (final item in config.swimSet?.items ?? []) {
+          // ------------------------------------------------------------
+          // ❗ RULE: Sub-items never contribute to distance
+          // ------------------------------------------------------------
+          // A SetItem ALWAYS defines its own distance; subItems are metadata
+          if (item.itemDistance == null || item.itemDistance == 0) {
+            // parent contributes 0 meters
+            totalItems++;
+            continue;
+          }
+
+          // ------------------------------------------------------------
+          // Compute meters for the parent item
+          // ------------------------------------------------------------
           final dist =
-              (item.itemDistance ?? 0) *
+              item.itemDistance! *
               (item.itemRepetition ?? 1) *
               config.repetitions;
 
-          if (item.itemDistance != null && item.itemDistance! > 0) {
-            totalMeters += dist;
-          }
+          totalMeters += dist;
           totalItems++;
 
+          // ------------------------------------------------------------
+          // Assign meters to groups
+          // ------------------------------------------------------------
           final groupsToCredit = sectionGroups.isNotEmpty
               ? sectionGroups
               : (globalGroups.isNotEmpty
