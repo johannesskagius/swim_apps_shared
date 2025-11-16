@@ -25,57 +25,76 @@ class SessionSyntaxPatterns {
   ///
   /// to prevent CodeTextField from throwing RangeError on partial edits.
   static final Map<String, TextStyle> codeFieldPatternMap = {
-    // Section headers (warmup, main set, etc.)
+    // SECTION HEADERS
     r'\b(?:warm ?up|main ?set|pre ?set|post ?set|cool ?down|'
     r'kick ?set|pull ?set|drill ?set|sprint ?set|recovery|'
     r'technique ?set|main|warmup|cooldown)\b':
     const TextStyle(
       fontWeight: FontWeight.bold,
-      color: Colors.teal,
+      color: Color(0xFF2F6EAA), // Blue
     ),
 
-    // Distances: "50 fr", "100m", "25 bk", etc.
+    // DISTANCES (50m fr)
     r'\b\d+\s*(?:m|fr|bk|br|fly|im)\b':
     const TextStyle(
-      fontWeight: FontWeight.bold,
-      color: Colors.indigo,
+      fontWeight: FontWeight.w700,
+      color: Color(0xFFC44536), // Red orange
     ),
 
-    // Intervals: @1:30, 1:20, etc.
+    // INTERVALS (@1:20)
     r'@?\d{1,2}:\d{2}':
     const TextStyle(
-      color: Colors.deepOrange,
-      fontWeight: FontWeight.w600,
+      fontWeight: FontWeight.bold,
+      color: Color(0xFF5E8C31), // Green
     ),
 
-    // Intensity index: i1–i5
+    // INTENSITY INDEX (i1..i5)
     r'\bi\s*[1-5]\b':
     const TextStyle(
-      color: Colors.orange,
       fontWeight: FontWeight.bold,
+      color: Color(0xFFD97706), // Amber
     ),
 
-    // Intensity words: easy, moderate, threshold, sp1–3, etc.
+    // INTENSITY WORDS (easy, moderate...)
     r'\b(?:max|easy|moderate|hard|threshold|sp1|sp2|sp3|drill|race|racepace|rp)\b':
     const TextStyle(
-      color: Colors.redAccent,
       fontWeight: FontWeight.w600,
+      color: Color(0xFFD97706), // Amber
     ),
 
-    // Kick / Pull / Drill keywords
-    r'\bkick(?:ing)?\b': const TextStyle(color: Colors.green),
-    r'\bpull(?:ing)?\b': const TextStyle(color: Colors.purple),
-    r'\bdrill(?:s)?\b':
-    const TextStyle(color: Colors.blue, fontStyle: FontStyle.italic),
+    // TECHNIQUE WORDS
+    r'\bkick(?:ing)?\b':
+    const TextStyle(
+      color: Color(0xFF6B46C1), // Purple
+      fontStyle: FontStyle.italic,
+    ),
 
-    // Equipment: [paddles], [fins, snorkel], etc.
-    // Safe pattern: any chars except ']' inside brackets.
+    r'\bpull(?:ing)?\b':
+    const TextStyle(
+      color: Color(0xFF6B46C1),
+      fontStyle: FontStyle.italic,
+    ),
+
+    r'\bdrill(?:s)?\b':
+    const TextStyle(
+      color: Color(0xFF6B46C1),
+      fontStyle: FontStyle.italic,
+    ),
+
+    // EQUIPMENT ([paddles], [fins])
     r'\[[^\]]*\]':
     const TextStyle(
-      color: Colors.brown,
+      color: Color(0xFF008B8B), // Dark Cyan
       fontWeight: FontWeight.w500,
     ),
+
+    // GROUP TAGS (#group, #swimmers)
+    r'#(?:group|swimmers?)\b.*':
+    const TextStyle(
+      color: Color(0xFF3182CE), // Light blue
+    ),
   };
+
 
   // ---------------------------------------------------------------------------
   // 🔹 Section Headers (warm up, main set, cooldown, etc.)
