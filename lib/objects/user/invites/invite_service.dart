@@ -116,6 +116,22 @@ class InviteService {
     }
   }
 
+  Stream<AppInvite?> streamInviteForEmail(String email) {
+    final normalized = email.trim().toLowerCase();
+
+    return _firestore
+        .collection('invites')
+        .where('receiverEmail', isEqualTo: normalized)
+        .orderBy('createdAt', descending: true)
+        .limit(1)
+        .snapshots()
+        .map((snapshot) {
+          if (snapshot.docs.isEmpty) return null;
+          final doc = snapshot.docs.first;
+          return AppInvite.fromJson(doc.id, doc.data());
+        });
+  }
+
   // --------------------------------------------------------------------------
   // 🧩 SEND INVITE + CREATE PENDING USER
   // --------------------------------------------------------------------------
