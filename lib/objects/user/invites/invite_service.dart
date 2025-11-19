@@ -55,7 +55,9 @@ class InviteService {
     String? clubName,
   }) async {
     final inviter = _auth.currentUser;
-    if (inviter == null) throw Exception('No logged-in user.');
+    if (inviter == null) {
+      throw Exception('No logged-in user.');
+    }
 
     final normalizedEmail = email.trim().toLowerCase();
 
@@ -72,7 +74,7 @@ class InviteService {
         inviteTypeKey = 'generic_invite';
     }
 
-    // 1️⃣ Create invite record directly in Firestore
+    // 1️⃣ Create the invite record in Firestore
     final invite = AppInvite(
       id: 'invite_${DateTime.now().millisecondsSinceEpoch}',
       inviterId: inviter.uid,
@@ -90,10 +92,10 @@ class InviteService {
     await _inviteRepository.sendInvite(invite);
     debugPrint('📄 Invite document created in Firestore for $normalizedEmail');
 
-    // 2️⃣ Trigger email asynchronously (optional)
+    // 2️⃣ Call Python Cloud Function via URL
     try {
       final callable = _functions.httpsCallableFromUrl(
-        'https://sendinviteemail-dvni7kn54wa-ew.a.run.app',
+        "https://sendinviteemail-dvni7kn54wa-ew.a.run.app",
       );
 
       await callable.call({
@@ -107,10 +109,10 @@ class InviteService {
         'app': app.name,
       });
 
-      debugPrint('📧 Invite email sent via Cloud Function');
+      debugPrint('📧 Invite email sent via Python Cloud Function');
     } catch (e) {
-      debugPrint('⚠️ Email sending failed (invite still stored): $e');
-      // Don’t rethrow — Firestore record is already valid
+      debugPrint('⚠️ Email sending failed (invite stored anyway): $e');
+      // Do NOT throw — Firestore invite is valid even if email sending fails
     }
   }
 
