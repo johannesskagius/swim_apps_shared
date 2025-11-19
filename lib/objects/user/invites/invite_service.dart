@@ -162,6 +162,23 @@ class InviteService {
     });
   }
 
+  /// Returns all pending swimmer invites sent by a coach.
+  Stream<List<AppInvite>> streamPendingInvitesForCoach(String coachId) {
+    return _firestore
+        .collection('invites')
+        .where('inviterId', isEqualTo: coachId)
+        .where('type', isEqualTo: 'coachToSwimmer')
+        .where('accepted', isEqualTo: false)
+        .where('app', isEqualTo: App.swimAnalyzer.name)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snap) {
+      return snap.docs
+          .map((d) => AppInvite.fromJson(d.id, d.data()))
+          .toList();
+    });
+  }
+
 
   // --------------------------------------------------------------------------
   // 🧩 SEND INVITE + CREATE PENDING USER
