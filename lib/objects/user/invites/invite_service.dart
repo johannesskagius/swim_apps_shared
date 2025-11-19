@@ -7,6 +7,8 @@ import 'package:swim_apps_shared/objects/user/invites/app_invite.dart';
 import 'package:swim_apps_shared/objects/user/invites/invite_type.dart';
 import 'package:swim_apps_shared/repositories/invite_repository.dart';
 
+import '../user.dart';
+
 class InviteService {
   final InviteRepository _inviteRepository;
   final FirebaseAuth _auth;
@@ -140,6 +142,26 @@ class InviteService {
           return AppInvite.fromJson(doc.id, data);
         });
   }
+
+  Stream<AppInvite?> streamPendingInviteForUser(
+      {required AppUser user, required App app }) {
+    final email = user.email.trim().toLowerCase();
+
+    return _firestore
+        .collection('invites')
+        .where('inviteeEmail', isEqualTo: email)
+        .where('accepted', isEqualTo: false)
+        .where('app', isEqualTo: app.name) // NEW
+        .orderBy('createdAt', descending: true)
+        .limit(1)
+        .snapshots()
+        .map((snap) {
+      if (snap.docs.isEmpty) return null;
+      final doc = snap.docs.first;
+      return AppInvite.fromJson(doc.id, doc.data());
+    });
+  }
+
 
   // --------------------------------------------------------------------------
   // 🧩 SEND INVITE + CREATE PENDING USER
