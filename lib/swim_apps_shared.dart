@@ -11,7 +11,6 @@ export 'objects/user/invites/app_enums.dart';
 export 'objects/user/invites/app_invite.dart';
 export 'objects/user/invites/invite_service.dart';
 // --- widgets ---
-export 'race_analyzes/race_comparison_page.dart';
 export 'repositories/analyzes_repository.dart';
 // --- Repositories ---
 export 'repositories/base_repository.dart';
@@ -20,11 +19,10 @@ export 'repositories/firestore_helper.dart';
 export 'repositories/swim_club_repository.dart';
 export 'repositories/swimmer_focus_profile_repository.dart';
 export 'repositories/user_repository.dart';
-export 'swim_session/generator/config/advanced_generator_config.dart';
-export 'swim_session/generator/config/setconfig_to_text_parser.dart';
-export 'swim_session/generator/session_syntax_patterns.dart';
 export 'results/result_service.dart';
 export 'results/set_item_result.dart';
+export 'swim_session/generator/config/advanced_generator_config.dart';
+export 'swim_session/generator/config/setconfig_to_text_parser.dart';
 // --- EVENTS ---
 
 // --- OBJECTS / MODELS ---
@@ -34,6 +32,7 @@ export 'swim_session/generator/enums/session_slot.dart';
 export 'swim_session/generator/enums/set_types.dart';
 export 'swim_session/generator/enums/swim_way.dart';
 export 'swim_session/generator/parsed_summary.dart';
+export 'swim_session/generator/session_syntax_patterns.dart';
 export 'swim_session/generator/session_to_text_parser.dart';
 // ---- Swim session ----
 export 'swim_session/generator/text_to_session_parser.dart';
