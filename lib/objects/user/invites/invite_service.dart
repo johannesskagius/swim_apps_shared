@@ -116,6 +116,8 @@ class InviteService {
     }
   }
 
+  /// Streams the most recent *pending* invite for the user’s email.
+  /// Returns null if none exist.
   Stream<AppInvite?> streamInviteForEmail(String email) {
     final normalized = email.trim().toLowerCase();
 
@@ -127,8 +129,10 @@ class InviteService {
         .snapshots()
         .map((snapshot) {
           if (snapshot.docs.isEmpty) return null;
+
           final doc = snapshot.docs.first;
-          return AppInvite.fromJson(doc.id, doc.data());
+          final data = doc.data();
+          return AppInvite.fromJson(doc.id, data);
         });
   }
 
