@@ -143,8 +143,10 @@ class InviteService {
         });
   }
 
-  Stream<AppInvite?> streamPendingInviteForUser(
-      {required AppUser user, required App app }) {
+  Stream<AppInvite?> streamPendingInviteForUser({
+    required AppUser user,
+    required App app,
+  }) {
     final email = user.email.trim().toLowerCase();
 
     return _firestore
@@ -156,10 +158,10 @@ class InviteService {
         .limit(1)
         .snapshots()
         .map((snap) {
-      if (snap.docs.isEmpty) return null;
-      final doc = snap.docs.first;
-      return AppInvite.fromJson(doc.id, doc.data());
-    });
+          if (snap.docs.isEmpty) return null;
+          final doc = snap.docs.first;
+          return AppInvite.fromJson(doc.id, doc.data());
+        });
   }
 
   /// Returns all pending swimmer invites sent by a coach.
@@ -173,12 +175,11 @@ class InviteService {
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snap) {
-      return snap.docs
-          .map((d) => AppInvite.fromJson(d.id, d.data()))
-          .toList();
-    });
+          return snap.docs
+              .map((d) => AppInvite.fromJson(d.id, d.data()))
+              .toList();
+        });
   }
-
 
   // --------------------------------------------------------------------------
   // 🧩 SEND INVITE + CREATE PENDING USER
@@ -228,24 +229,33 @@ class InviteService {
 
   /// Accepts an invite by calling the backend `respondToInvite` function.
   /// This ensures Firestore, user linking, and club membership are updated atomically.
-  Future<void> acceptInvite(String inviteId) async {
+  Future<void> acceptInvite({
+    required AppInvite appInvite,
+    required String userId,
+  }) async {
     final user = _auth.currentUser;
     if (user == null) throw Exception('No logged-in user.');
 
     try {
-      final callable = _functions.httpsCallable('respondToInvite');
-      final result = await callable.call({
-        'inviteId': inviteId,
-        'action': 'accept',
-        'userId': user.uid,
-      });
+      var updatedAppInvite = appInvite.copyWith(
+        accepted: true,
+        acceptedAt: DateTime.now(),
+        acceptedUserId: userId,
+      );
+      _firestore
+          .collection('invites')
+          .doc(updatedAppInvite.id)
+          .update(updatedAppInvite.toJson());
+      // final callable = _functions.httpsCallable('respondToInvite');
+      // final result = await callable.call({
+      //   'inviteId': inviteId,
+      //   'action': 'accept',
+      //   'userId': user.uid,
+      // });
 
-      final data = Map<String, dynamic>.from(result.data ?? {});
-      if (data['success'] != true) {
-        throw Exception(data['message'] ?? 'Failed to accept invite.');
-      }
-
-      debugPrint('✅ Invite $inviteId accepted successfully by ${user.uid}');
+      debugPrint(
+        '✅ Invite ${updatedAppInvite.id} accepted successfully by ${user.uid}',
+      );
     } on FirebaseFunctionsException catch (e) {
       debugPrint('❌ FirebaseFunctionsException: ${e.code} - ${e.message}');
       rethrow;
