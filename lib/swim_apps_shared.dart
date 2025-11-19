@@ -11,6 +11,7 @@ export 'objects/user/invites/app_enums.dart';
 export 'objects/user/invites/app_invite.dart';
 export 'objects/user/invites/invite_service.dart';
 // --- widgets ---
+export 'race_analyzes/race_comparison_page.dart';
 export 'repositories/analyzes_repository.dart';
 // --- Repositories ---
 export 'repositories/base_repository.dart';
