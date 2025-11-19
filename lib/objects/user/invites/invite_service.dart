@@ -118,7 +118,10 @@ class InviteService {
 
   /// Streams the most recent *pending* invite for the user’s email.
   /// Returns null if none exist.
-  Stream<AppInvite?> streamInviteForEmail(String email, App app) {
+  Stream<AppInvite?> streamInviteForEmail({
+    required String email,
+    required App app,
+  }) {
     final normalized = email.trim().toLowerCase();
 
     return _firestore
@@ -133,9 +136,9 @@ class InviteService {
           if (snapshot.docs.isEmpty) return null;
 
           final doc = snapshot.docs.first;
-      final data = doc.data();
-      return AppInvite.fromJson(doc.id, data);
-    });
+          final data = doc.data();
+          return AppInvite.fromJson(doc.id, data);
+        });
   }
 
   // --------------------------------------------------------------------------
