@@ -123,7 +123,7 @@ class InviteService {
 
     return _firestore
         .collection('invites')
-        .where('receiverEmail', isEqualTo: normalized)
+        .where('inviteeEmail', isEqualTo: normalized)
         .orderBy('createdAt', descending: true)
         .limit(1)
         .snapshots()
