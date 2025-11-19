@@ -2,10 +2,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
-import 'package:swim_apps_shared/repositories/invite_repository.dart';
 import 'package:swim_apps_shared/objects/user/invites/app_enums.dart';
 import 'package:swim_apps_shared/objects/user/invites/app_invite.dart';
 import 'package:swim_apps_shared/objects/user/invites/invite_type.dart';
+import 'package:swim_apps_shared/repositories/invite_repository.dart';
 
 class InviteService {
   final InviteRepository _inviteRepository;
@@ -18,11 +18,11 @@ class InviteService {
     FirebaseAuth? auth,
     FirebaseFirestore? firestore,
     FirebaseFunctions? functions,
-  })  : _inviteRepository = inviteRepository ?? InviteRepository(),
-        _auth = auth ?? FirebaseAuth.instance,
-        _firestore = firestore ?? FirebaseFirestore.instance,
-        _functions = functions ?? FirebaseFunctions.instanceFor(region: 'europe-west1');
-
+  }) : _inviteRepository = inviteRepository ?? InviteRepository(),
+       _auth = auth ?? FirebaseAuth.instance,
+       _firestore = firestore ?? FirebaseFirestore.instance,
+       _functions =
+           functions ?? FirebaseFunctions.instanceFor(region: 'europe-west1');
 
   /// 🔍 Fetch a single invite by its Firestore document ID.
   /// Returns an [AppInvite] if found, or `null` if not found.
@@ -92,7 +92,10 @@ class InviteService {
 
     // 2️⃣ Trigger email asynchronously (optional)
     try {
-      final callable = _functions.httpsCallable('sendInviteEmail');
+      final callable = _functions.httpsCallableFromUrl(
+        'https://sendinviteemail-dvni7kn54wa-ew.a.run.app',
+      );
+
       await callable.call({
         'email': normalizedEmail,
         'senderId': inviter.uid,
@@ -103,6 +106,7 @@ class InviteService {
         'clubName': clubName,
         'app': app.name,
       });
+
       debugPrint('📧 Invite email sent via Cloud Function');
     } catch (e) {
       debugPrint('⚠️ Email sending failed (invite still stored): $e');
@@ -153,8 +157,8 @@ class InviteService {
   }
 
   // --------------------------------------------------------------------------
-// ✅ ACCEPT / REVOKE INVITES (via Cloud Functions)
-// --------------------------------------------------------------------------
+  // ✅ ACCEPT / REVOKE INVITES (via Cloud Functions)
+  // --------------------------------------------------------------------------
 
   /// Accepts an invite by calling the backend `respondToInvite` function.
   /// This ensures Firestore, user linking, and club membership are updated atomically.
@@ -214,7 +218,6 @@ class InviteService {
     }
   }
 
-
   // --------------------------------------------------------------------------
   // 🔍 LOOKUPS
   // --------------------------------------------------------------------------
@@ -259,7 +262,10 @@ class InviteService {
       final invites = await _inviteRepository.getInvitesByEmail(normalized);
       if (invites.isEmpty) return null;
       invites.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      return invites.firstWhere((i) => !i.accepted, orElse: () => invites.first);
+      return invites.firstWhere(
+        (i) => !i.accepted,
+        orElse: () => invites.first,
+      );
     } catch (e, st) {
       debugPrint('❌ Failed to fetch invite by email: $e\n$st');
       rethrow;
