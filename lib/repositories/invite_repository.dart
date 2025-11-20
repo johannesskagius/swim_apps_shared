@@ -82,12 +82,13 @@ class InviteRepository {
 
   /// 🔍 Get all invites received by a specific email (optionally filtered by accepted).
   Future<List<AppInvite>> getInvitesByInviteeEmail(String email,
-      {bool? accepted}) async {
+      {bool? isAccepted}) async {
     try {
       final normalized = email.trim().toLowerCase();
       Query<Map<String, dynamic>> query =
-      _collection.where('inviteeEmail', isEqualTo: normalized);
-      if (accepted != null) query = query.where('accepted', isEqualTo: accepted);
+      _collection.where('receiverEmail', isEqualTo: normalized);
+      if (isAccepted != null)
+        query = query.where('accepted', isEqualTo: isAccepted);
 
       final snapshot = await query.get();
       return snapshot.docs
