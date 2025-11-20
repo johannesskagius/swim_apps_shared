@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+
 import '../objects/user/invites/app_invite.dart';
 import '../objects/user/invites/invite_type.dart';
 
@@ -95,10 +96,27 @@ class InviteRepository {
     }
   }
 
-  /// 🔍 Alias for convenience used by InviteService.getInviteByEmail()
-  Future<List<AppInvite>> getInvitesByEmail(String email) async {
-    return getInvitesByInviteeEmail(email);
+  /// 🔍 Fetch all invites where the receiverEmail matches this email.
+  /// Works for invites/{inviteId}
+  Future<List<AppInvite>> getInviteByReceiverEmail(
+      {required String email}) async {
+    try {
+      final normalized = email.trim().toLowerCase();
+
+      final snapshot = await _collection
+          .where('receiverEmail', isEqualTo: normalized)
+          .get();
+
+      return snapshot.docs
+          .map((doc) => AppInvite.fromJson(doc.id, doc.data()))
+          .toList();
+    } catch (e, st) {
+      debugPrint('❌ Failed to get invites by email: $e');
+      debugPrint('Stack trace:\n$st');
+      rethrow;
+    }
   }
+
 
   /// 🔍 Get all accepted swimmers for a given coach.
   Future<List<AppInvite>> getAcceptedSwimmersForCoach(String coachId) async {
