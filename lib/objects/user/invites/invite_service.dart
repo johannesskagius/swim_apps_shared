@@ -164,8 +164,8 @@ class InviteService {
         });
   }
 
-  /// Returns all pending swimmer invites sent by a coach.
-  Stream<List<AppInvite>> streamPendingInvitesForCoach({
+  /// Returns all pending invites sent by a user.
+  Stream<List<AppInvite>> streamPendingInvites({
     required String userId,
     required InviteType inviteType,
   }) {
