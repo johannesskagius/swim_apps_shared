@@ -217,7 +217,6 @@ class InviteService {
     required App app,
     required String inviterId,
     required String clubId,
-    String? clubName,
     String? groupId,
   }) async {
     final normalizedEmail = email.trim().toLowerCase();
@@ -229,14 +228,17 @@ class InviteService {
       final functions = FirebaseFunctions.instanceFor(region: 'europe-west1');
       final callable = functions.httpsCallable('sendInviteEmail');
 
+      final currentUser = FirebaseAuth.instance.currentUser;
+
       final result = await callable.call({
-        'email': normalizedEmail,
-        'senderId': inviterId,
-        'senderName': FirebaseAuth.instance.currentUser?.displayName,
-        'clubId': clubId,
-        'clubName': clubName,
-        'groupId': groupId,
-        'type': type.name,
+        'email': normalizedEmail, // inviteeEmail
+        'senderId': inviterId, // inviterId
+        'senderName': currentUser?.displayName, // optional
+        'senderEmail': currentUser?.email, // NEW — inviterEmail
+        'type': type.name, // invite type
+        'app': app.name, // REQUIRED for filtering
+        'clubId': clubId, // SAME
+        'groupId': groupId, // → relatedEntityId
       });
 
       debugPrint('📨 sendInviteEmail response: ${result.data}');
@@ -247,7 +249,7 @@ class InviteService {
     }
 
     // ----------------------------------------------------------------------
-    // 👤 2. PRE-CREATE PENDING USER IN FIRESTORE
+    // 👤 2. PRE-CREATE LOCAL PENDING USER IN FIRESTORE
     // ----------------------------------------------------------------------
     final safeDocId = normalizedEmail.replaceAll('.', ',');
     final ref = _firestore.collection('users').doc(safeDocId);
