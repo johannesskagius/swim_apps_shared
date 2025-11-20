@@ -218,19 +218,37 @@ class InviteService {
     required String inviterId,
     required String clubId,
     String? clubName,
+    String? groupId,
   }) async {
     final normalizedEmail = email.trim().toLowerCase();
 
-    // Create invite + send email (best-effort)
-    await sendInvite(
-      email: normalizedEmail,
-      type: type,
-      app: app,
-      clubId: clubId,
-      clubName: clubName,
-    );
+    // ----------------------------------------------------------------------
+    // 📨 1. SEND EMAIL INVITE VIA CLOUD FUNCTION (best-effort)
+    // ----------------------------------------------------------------------
+    try {
+      final functions = FirebaseFunctions.instanceFor(region: 'europe-west1');
+      final callable = functions.httpsCallable('sendInviteEmail');
 
-    // Pre-create pending user locally in Firestore
+      final result = await callable.call({
+        'email': normalizedEmail,
+        'senderId': inviterId,
+        'senderName': FirebaseAuth.instance.currentUser?.displayName,
+        'clubId': clubId,
+        'clubName': clubName,
+        'groupId': groupId,
+        'type': type.name,
+      });
+
+      debugPrint('📨 sendInviteEmail response: ${result.data}');
+    } catch (e, st) {
+      debugPrint('❌ Error calling sendInviteEmail: $e');
+      debugPrint('Stack: $st');
+      // Do NOT rethrow — continue with user creation
+    }
+
+    // ----------------------------------------------------------------------
+    // 👤 2. PRE-CREATE PENDING USER IN FIRESTORE
+    // ----------------------------------------------------------------------
     final safeDocId = normalizedEmail.replaceAll('.', ',');
     final ref = _firestore.collection('users').doc(safeDocId);
 
@@ -248,6 +266,7 @@ class InviteService {
 
     debugPrint('✅ Pending user created locally for $normalizedEmail');
   }
+
 
   // --------------------------------------------------------------------------
   // ✅ ACCEPT / REVOKE INVITES (via Cloud Functions)
