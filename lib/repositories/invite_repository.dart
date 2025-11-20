@@ -1,8 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'package:rxdart/rxdart.dart';
 
+import '../objects/user/invites/app_enums.dart';
 import '../objects/user/invites/app_invite.dart';
 import '../objects/user/invites/invite_type.dart';
+
 
 class InviteRepository {
   final FirebaseFirestore _firestore;
@@ -95,6 +98,50 @@ class InviteRepository {
       rethrow;
     }
   }
+
+  /// 🔍 Stream all active (accepted) invite links for a user.
+  /// Works in BOTH directions:
+  /// - user invited someone else
+  /// - someone else invited the user
+  ///
+  /// This allows visibility of analyses, training plans, etc.
+  Stream<List<AppInvite>> streamActiveViewerLinks({
+    required String? userId,
+    required String email,
+    required App app,
+  }) {
+    final normalizedEmail = email.trim().toLowerCase();
+
+    // Stream where user is the RECEIVER (someone invited them)
+    final incoming = _collection
+        .where('receiverEmail', isEqualTo: normalizedEmail)
+        .where('status', isEqualTo: 'accepted')
+        .where('app', isEqualTo: app.name)
+        .snapshots();
+
+    // Stream where user is the SENDER (they invited someone else)
+    final outgoing = _collection
+        .where('senderId', isEqualTo: userId)
+        .where('status', isEqualTo: 'accepted')
+        .where('app', isEqualTo: app.name)
+        .snapshots();
+
+    // Combine both streams into a single stream
+    return Rx.combineLatest2(
+      incoming,
+      outgoing,
+          (QuerySnapshot<Map<String, dynamic>> inc,
+          QuerySnapshot<Map<String, dynamic>> out) {
+        final allDocs = [...inc.docs, ...out.docs];
+
+        // Convert to model
+        return allDocs
+            .map((doc) => AppInvite.fromJson(doc.id, doc.data()))
+            .toList();
+      },
+    );
+  }
+
 
   /// 🔍 Fetch all invites where the receiverEmail matches this email.
   /// Works for invites/{inviteId}
