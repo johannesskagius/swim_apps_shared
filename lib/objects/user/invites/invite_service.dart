@@ -143,7 +143,7 @@ class InviteService {
         });
   }
 
-  Stream<AppInvite?> streamPendingInviteForUser({
+  Stream<AppInvite?> streamPendingReceivedInvites({
     required AppUser user,
     required App app,
   }) {
@@ -165,7 +165,7 @@ class InviteService {
   }
 
   /// Returns all pending invites sent by a user.
-  Stream<List<AppInvite>> streamPendingInvites({
+  Stream<List<AppInvite>> streamPendingSentInvites({
     required String userId,
     required InviteType inviteType,
   }) {
