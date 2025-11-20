@@ -153,7 +153,28 @@ class InviteService {
         .collection('invites')
         .where('inviteeEmail', isEqualTo: email)
         .where('accepted', isEqualTo: false)
-        .where('app', isEqualTo: app.name) // NEW
+        .where('app', isEqualTo: app.name)
+        .orderBy('createdAt', descending: true)
+        .limit(1)
+        .snapshots()
+        .map((snap) {
+          if (snap.docs.isEmpty) return null;
+          final doc = snap.docs.first;
+          return AppInvite.fromJson(doc.id, doc.data());
+        });
+  }
+
+  Stream<AppInvite?> streamAcceptedInvites({
+    required AppUser user,
+    required App app,
+  }) {
+    final email = user.email.trim().toLowerCase();
+
+    return _firestore
+        .collection('invites')
+        .where('inviteeEmail', isEqualTo: email)
+        .where('accepted', isEqualTo: true)
+        .where('app', isEqualTo: app.name)
         .orderBy('createdAt', descending: true)
         .limit(1)
         .snapshots()
