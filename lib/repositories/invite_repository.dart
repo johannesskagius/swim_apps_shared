@@ -117,6 +117,10 @@ class InviteRepository {
     }
   }
 
+  /// 🔍 Alias for convenience used by InviteService.getInviteByEmail()
+  Future<List<AppInvite>> getInvitesByEmail(String email) async {
+    return getInvitesByInviteeEmail(email);
+  }
 
   /// 🔍 Get all accepted swimmers for a given coach.
   Future<List<AppInvite>> getAcceptedSwimmersForCoach(String coachId) async {
