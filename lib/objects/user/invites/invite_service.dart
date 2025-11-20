@@ -165,11 +165,14 @@ class InviteService {
   }
 
   /// Returns all pending swimmer invites sent by a coach.
-  Stream<List<AppInvite>> streamPendingInvitesForCoach(String coachId) {
+  Stream<List<AppInvite>> streamPendingInvitesForCoach({
+    required String userId,
+    required InviteType inviteType,
+  }) {
     return _firestore
         .collection('invites')
-        .where('inviterId', isEqualTo: coachId)
-        .where('type', isEqualTo: 'coachToSwimmer')
+        .where('inviterId', isEqualTo: userId)
+        .where('type', isEqualTo: inviteType.name)
         .where('accepted', isEqualTo: false)
         .where('app', isEqualTo: App.swimAnalyzer.name)
         .orderBy('createdAt', descending: true)
