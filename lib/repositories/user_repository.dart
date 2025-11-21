@@ -350,7 +350,7 @@ class UserRepository extends BaseRepository {
     return AppUser.fromJson(snap.docs.first.id, data);
   }
 
-  // --- GET: My Profile Shortcut ---
+  /// --- GET: My Profile Shortcut ---
   Future<AppUser?> getMyProfile() async {
     final myUid = _authService.currentUserId;
     if (myUid != null) {
@@ -360,8 +360,7 @@ class UserRepository extends BaseRepository {
   }
 
   Future<bool> userExistsByEmail(String email) async {
-    final snap = await FirebaseFirestore.instance
-        .collection("users")
+    final snap = await usersCollection
         .where("email", isEqualTo: email)
         .limit(1)
         .get();
