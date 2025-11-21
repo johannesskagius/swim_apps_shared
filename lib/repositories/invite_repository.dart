@@ -87,8 +87,9 @@ class InviteRepository {
       final normalized = email.trim().toLowerCase();
       Query<Map<String, dynamic>> query =
       _collection.where('receiverEmail', isEqualTo: normalized);
-      if (isAccepted != null)
+      if (isAccepted != null) {
         query = query.where('accepted', isEqualTo: isAccepted);
+      }
 
       final snapshot = await query.get();
       return snapshot.docs
