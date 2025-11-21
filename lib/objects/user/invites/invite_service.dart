@@ -226,21 +226,22 @@ class InviteService {
     // ----------------------------------------------------------------------
     try {
       final functions = FirebaseFunctions.instanceFor(region: 'europe-west1');
-      final callable = functions.httpsCallable('sendInviteEmail');
+      final sendInvite = functions.httpsCallable('sendInviteEmail');
 
       final currentUser = FirebaseAuth.instance.currentUser;
+      final inviterEmail = currentUser?.email ?? '';
+      final inviterName = currentUser?.displayName ?? '';
 
-      final result = await callable.call({
-        'email': normalizedEmail, // inviteeEmail
-        'senderId': inviterId, // inviterId
-        'senderName': currentUser?.displayName, // optional
-        'senderEmail': currentUser?.email, // NEW — inviterEmail
-        'type': type.name, // invite type
-        'app': app.name, // REQUIRED for filtering
-        'clubId': clubId, // SAME
-        'groupId': groupId, // → relatedEntityId
+      final result = await sendInvite.call({
+        'email': normalizedEmail,
+        'senderId': inviterId,
+        'senderEmail': inviterEmail,
+        'senderName': inviterName,
+        'type': type.name,
+        'app': app.name,
+        'clubId': clubId,
+        'groupId': groupId,
       });
-
       debugPrint('📨 sendInviteEmail response: ${result.data}');
     } catch (e, st) {
       debugPrint('❌ Error calling sendInviteEmail: $e');
