@@ -22,6 +22,12 @@ export 'repositories/swimmer_focus_profile_repository.dart';
 export 'repositories/user_repository.dart';
 export 'results/result_service.dart';
 export 'results/set_item_result.dart';
+export 'support/my_support_requests.dart';
+export 'support/support_controller.dart';
+export 'support/support_detail.dart';
+export 'support/support_list.dart';
+export 'support/support_request_detail.dart';
+export 'support/support_ui.dart';
 export 'swim_session/generator/config/advanced_generator_config.dart';
 export 'swim_session/generator/config/setconfig_to_text_parser.dart';
 // --- EVENTS ---
