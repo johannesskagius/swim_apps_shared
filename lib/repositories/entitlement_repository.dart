@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../objects/user/invites/app_enums.dart';
+
 class EntitlementRepository {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
@@ -21,6 +23,29 @@ class EntitlementRepository {
     };
 
     _cache[product] = plans;
+    return plans;
+  }
+
+  /// Load all plans for a product (club, analyzer, etc)
+  Future<Map<String, Map<String, dynamic>>> getPlansForService(
+      {required App app}) async {
+    String appName = '';
+    switch (app) {
+      case App.swimAnalyzer:
+        appName = 'swim_analyzer';
+      case App.swimSuite:
+        appName = 'swim_coach_support';
+    }
+
+    final snapshot = await _db
+        .collection('entitlements')
+        .doc(appName)
+        .collection('plans')
+        .get();
+
+    final plans = {
+      for (var doc in snapshot.docs) doc.id: doc.data(),
+    };
     return plans;
   }
 
