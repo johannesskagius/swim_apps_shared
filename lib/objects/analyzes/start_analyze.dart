@@ -33,6 +33,9 @@ class StartAnalyze {
   /// Height of the start platform (in meters).
   final double startHeight;
 
+  /// Ai interpretation
+  String? aiInterpretation;
+
   /// Optional physics/jump data calculated from the analysis.
   final Map<String, double>? jumpData;
 
@@ -54,6 +57,7 @@ class StartAnalyze {
     this.swimmerId,
     this.swimmerName,
     this.jumpData,
+    this.aiInterpretation
   });
 
   /// Creates an instance from a map (e.g., from Firestore or JSON).
@@ -73,6 +77,7 @@ class StartAnalyze {
       markedTimestamps: Map<String, int>.from(map['markedTimestamps'] as Map),
       startDistance: (map['startDistance'] as num).toDouble(),
       startHeight: (map['startHeight'] as num).toDouble(),
+      aiInterpretation: map['aiInterpretation'],
       jumpData: map['jumpData'] != null
           ? Map<String, double>.from(map['jumpData'] as Map)
           : null,
@@ -93,6 +98,7 @@ class StartAnalyze {
       'markedTimestamps': markedTimestamps,
       'startDistance': startDistance,
       'startHeight': startHeight,
+      'aiInterpretation': aiInterpretation,
       if (jumpData != null) 'jumpData': jumpData,
     };
   }

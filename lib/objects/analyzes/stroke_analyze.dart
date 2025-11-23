@@ -30,6 +30,8 @@ class StrokeAnalyze with AnalyzableBase {
   late final double startReaction;
   late final double turnTime;
 
+  final String? aiInterpretation;
+
   StrokeAnalyze({
     String? id,
     String? coachId,
@@ -46,6 +48,7 @@ class StrokeAnalyze with AnalyzableBase {
     required this.segment0_15m,
     required this.segment15_25m,
     required this.segmentFull25m,
+    this.aiInterpretation,
   }) {
     this.id = id;
     this.coachId = coachId;
@@ -98,6 +101,7 @@ class StrokeAnalyze with AnalyzableBase {
     'underwaterVelocity': underwaterVelocity,
     'startReaction': startReaction,
     'turnTime': turnTime,
+    'aiInterpretation': aiInterpretation,
   };
 
   factory StrokeAnalyze.fromJson(Map<String, dynamic> json) {
@@ -106,6 +110,7 @@ class StrokeAnalyze with AnalyzableBase {
       coachId: json['coachId'],
       swimmerId: json['swimmerId'],
       swimmerName: json['swimmerName'],
+      aiInterpretation: json['aiInterpretation'],
       title: json['title'],
       createdById: json['createdBy'],
       stroke: Stroke.values.byName(json['stroke']),

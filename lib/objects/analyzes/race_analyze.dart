@@ -15,6 +15,8 @@ class RaceAnalyze with AnalyzableBase {
   Stroke? stroke;
   int? distance;
   List<AnalyzedSegment> segments;
+  final String? aiInterpretation; // NEW
+
 
   // --- OVERALL RACE SUMMARY STATS ---
   int finalTime; // Total race time in milliseconds
@@ -46,6 +48,7 @@ class RaceAnalyze with AnalyzableBase {
     this.poolLength,
     this.stroke,
     this.distance,
+    this.aiInterpretation,
     required this.segments,
     required this.finalTime,
     required this.totalDistance,
@@ -267,6 +270,7 @@ class RaceAnalyze with AnalyzableBase {
       'strokesPer25m': strokesPer25m,
       'frequencyPer25m': frequencyPer25m,
       'strokeLengthPer25m': strokeLengthPer25m,
+      'aiInterpretation': aiInterpretation
     };
   }
 
@@ -278,6 +282,7 @@ class RaceAnalyze with AnalyzableBase {
       id: doc.id,
       eventName: data['eventName'],
       raceName: data['raceName'],
+      aiInterpretation: data['aiInterpretation'],
       raceDate: data['raceDate'] != null
           ? (data['raceDate'] as Timestamp).toDate()
           : null,
