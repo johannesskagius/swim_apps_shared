@@ -5,7 +5,7 @@ import 'package:swim_apps_shared/objects/stroke.dart';
 
 import 'analyze_base.dart';
 
-class StrokeAnalysis with AnalyzableBase {
+class StrokeAnalyze with AnalyzableBase {
   String title;
   String createdById;
   final Stroke stroke;
@@ -30,7 +30,7 @@ class StrokeAnalysis with AnalyzableBase {
   late final double startReaction;
   late final double turnTime;
 
-  StrokeAnalysis({
+  StrokeAnalyze({
     String? id,
     String? coachId,
     String? swimmerId,
@@ -100,8 +100,8 @@ class StrokeAnalysis with AnalyzableBase {
     'turnTime': turnTime,
   };
 
-  factory StrokeAnalysis.fromJson(Map<String, dynamic> json) {
-    final analysis = StrokeAnalysis(
+  factory StrokeAnalyze.fromJson(Map<String, dynamic> json) {
+    final analysis = StrokeAnalyze(
       id: json['id'],
       coachId: json['coachId'],
       swimmerId: json['swimmerId'],

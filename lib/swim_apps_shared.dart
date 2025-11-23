@@ -1,8 +1,8 @@
 // --- REPOSITORIES ---
 // Note: Repositories seem to be in the repositories folder based on your example.
-export 'objects/analyzes/race_analyze_model.dart';
+export 'objects/analyzes/race_analyze.dart';
 export 'objects/analyzes/start_analyze.dart';
-export 'objects/analyzes/stroke_analysis.dart';
+export 'objects/analyzes/stroke_analyze.dart';
 export 'objects/analyzes/stroke_segment_matrix.dart';
 export 'objects/analyzes/stroke_under_water_matrix.dart';
 ///OBJECTS

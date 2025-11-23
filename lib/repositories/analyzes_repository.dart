@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
-import '../objects/off_the_block_model.dart';
-import '../objects/analyzes/race_analyze_model.dart';
+import '../objects/analyzes/race_analyze.dart';
+import '../objects/analyzes/start_analyze.dart';
 import 'base_repository.dart';
 
 class AnalyzesRepository extends BaseRepository {
@@ -51,19 +51,19 @@ class AnalyzesRepository extends BaseRepository {
   }
 
   // --- Race Analyses ---
-  CollectionReference<RaceAnalysis> get _racesRef =>
-      _getCollection<RaceAnalysis>(
+  CollectionReference<RaceAnalyze> get _racesRef =>
+      _getCollection<RaceAnalyze>(
         path: 'racesAnalyzes',
-        fromFirestore: (snapshot) => RaceAnalysis.fromFirestore(snapshot),
+        fromFirestore: (snapshot) => RaceAnalyze.fromFirestore(snapshot),
         toFirestore: (race, _) => race.toJson(),
       );
 
   // --- Off The Block Analyses ---
-  CollectionReference<OffTheBlockAnalysisData> get _offTheBlockRef =>
-      _getCollection<OffTheBlockAnalysisData>(
+  CollectionReference<StartAnalyze> get _offTheBlockRef =>
+      _getCollection<StartAnalyze>(
         path: 'offTheBlockAnalyzes',
         fromFirestore: (snapshot) =>
-            OffTheBlockAnalysisData.fromMap(snapshot.data()!, snapshot.id),
+            StartAnalyze.fromMap(snapshot.data()!, snapshot.id),
         toFirestore: (analysis, _) => analysis.toMap(),
       );
 
@@ -106,15 +106,15 @@ class AnalyzesRepository extends BaseRepository {
 
   // --- CRUD Methods for Off The Block Analyses ---
 
-  Future<DocumentReference<OffTheBlockAnalysisData>> saveOffTheBlock(
-      OffTheBlockAnalysisData analysisData,
+  Future<DocumentReference<StartAnalyze>> saveOffTheBlock(
+      StartAnalyze analysisData,
       ) {
     // This is a write operation, which is typically safe unless there are
     // security rule violations, which will be caught by the calling UI layer.
     return _offTheBlockRef.add(analysisData);
   }
 
-  Future<List<OffTheBlockAnalysisData>> getOffTheBlockAnalysesForUser(
+  Future<List<StartAnalyze>> getOffTheBlockAnalysesForUser(
       String userId,
       ) {
     final query = _offTheBlockRef
@@ -126,7 +126,7 @@ class AnalyzesRepository extends BaseRepository {
     );
   }
 
-  Stream<List<OffTheBlockAnalysisData>> getStreamOfOffTheBlockAnalysesForUser(
+  Stream<List<StartAnalyze>> getStreamOfOffTheBlockAnalysesForUser(
       String userId,
       ) {
     return _offTheBlockRef
@@ -139,7 +139,7 @@ class AnalyzesRepository extends BaseRepository {
         .map((snapshot) => _parseDocsSafely(snapshot.docs, 'stream for user $userId'));
   }
 
-  Stream<List<OffTheBlockAnalysisData>> getStreamOfOffTheBlockAnalysesForClub(
+  Stream<List<StartAnalyze>> getStreamOfOffTheBlockAnalysesForClub(
       String clubId,
       ) {
     return _offTheBlockRef
@@ -149,14 +149,14 @@ class AnalyzesRepository extends BaseRepository {
         .map((snapshot) => _parseDocsSafely(snapshot.docs, 'stream for club $clubId'));
   }
 
-  Future<List<OffTheBlockAnalysisData>> getOffTheBlockAnalysesByIds({
+  Future<List<StartAnalyze>> getOffTheBlockAnalysesByIds({
     required List<String> analysisIds,
   }) async {
     if (analysisIds.isEmpty) return [];
 
     try {
       final chunks = _splitList(analysisIds, 30);
-      List<OffTheBlockAnalysisData> allAnalyses = [];
+      List<StartAnalyze> allAnalyses = [];
 
       for (final chunk in chunks) {
         final query = _offTheBlockRef.where(
@@ -172,7 +172,7 @@ class AnalyzesRepository extends BaseRepository {
       final analysisMap = {for (var a in allAnalyses) a.id: a};
       return analysisIds
           .map((id) => analysisMap[id])
-          .whereType<OffTheBlockAnalysisData>()
+          .whereType<StartAnalyze>()
           .toList();
     } catch (e, s) {
       debugPrint("🔥 Error in getOffTheBlockAnalysesByIds: $e\n$s");
@@ -194,7 +194,7 @@ class AnalyzesRepository extends BaseRepository {
     return chunks;
   }
 
-  Future<OffTheBlockAnalysisData?> getOffTheBlockAnalysis(
+  Future<StartAnalyze?> getOffTheBlockAnalysis(
       String analysisId,
       ) async {
     try {
@@ -207,7 +207,7 @@ class AnalyzesRepository extends BaseRepository {
     }
   }
 
-  Future<void> updateOffTheBlockAnalysis(OffTheBlockAnalysisData analysis) =>
+  Future<void> updateOffTheBlockAnalysis(StartAnalyze analysis) =>
       _offTheBlockRef.doc(analysis.id).update(analysis.toMap());
 
   Future<void> deleteOffTheBlockAnalysis(String analysisId) =>
@@ -215,14 +215,14 @@ class AnalyzesRepository extends BaseRepository {
 
   // --- CRUD Methods for Race Analyses ---
 
-  Future<List<RaceAnalysis>> getRacesForUser(String userId) {
+  Future<List<RaceAnalyze>> getRacesForUser(String userId) {
     final query = _racesRef
         .where('swimmerId', isEqualTo: userId)
         .orderBy('raceDate', descending: true);
     return _fetchFromQuery(query, 'getRacesForUser(userId: $userId)');
   }
 
-  Stream<List<RaceAnalysis>> getStreamOfRacesForUser(String userId) {
+  Stream<List<RaceAnalyze>> getStreamOfRacesForUser(String userId) {
     return _racesRef
         .where('swimmerId', isEqualTo: userId)
         .orderBy('raceDate', descending: true)
@@ -230,7 +230,7 @@ class AnalyzesRepository extends BaseRepository {
         .map((snapshot) => _parseDocsSafely(snapshot.docs, 'race stream for user $userId'));
   }
 
-  Future<RaceAnalysis?> getRace(String raceId) async {
+  Future<RaceAnalyze?> getRace(String raceId) async {
     try {
       final doc = await _racesRef.doc(raceId).get();
       return doc.data();
@@ -240,9 +240,9 @@ class AnalyzesRepository extends BaseRepository {
     }
   }
 
-  Future<void> addRace(RaceAnalysis race) => _racesRef.add(race);
+  Future<void> addRace(RaceAnalyze race) => _racesRef.add(race);
 
-  Future<void> updateRace(RaceAnalysis race) =>
+  Future<void> updateRace(RaceAnalyze race) =>
       _racesRef.doc(race.id).update(race.toJson());
 
   Future<void> deleteRace(String raceId) => _racesRef.doc(raceId).delete();

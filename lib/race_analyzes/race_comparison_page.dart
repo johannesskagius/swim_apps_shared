@@ -9,7 +9,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
 
-import '../objects/analyzes/race_analyze_model.dart';
+import '../objects/analyzes/race_analyze.dart';
 import '../repositories/analyzes_repository.dart';
 import '../repositories/user_repository.dart';
 
@@ -28,8 +28,8 @@ class RaceComparisonPage extends StatefulWidget {
 }
 
 class _RaceComparisonPageState extends State<RaceComparisonPage> {
-  late Future<List<RaceAnalysis>> _racesFuture;
-  List<RaceAnalysis>? _loadedRaces;
+  late Future<List<RaceAnalyze>> _racesFuture;
+  List<RaceAnalyze>? _loadedRaces;
 
   @override
   void initState() {
@@ -54,10 +54,10 @@ class _RaceComparisonPageState extends State<RaceComparisonPage> {
     ) async {
       final stopwatch = Stopwatch()..start();
 
-      final validRaces = races.whereType<RaceAnalysis>();
+      final validRaces = races.whereType<RaceAnalyze>();
 
       final racesWithNames = await Future.wait(
-        validRaces.map((RaceAnalysis race) async {
+        validRaces.map((RaceAnalyze race) async {
           // Fetch swimmer name only if it's missing and a swimmerId is available.
           if ((race.swimmerName == null || race.swimmerName!.isEmpty) &&
               race.swimmerId != null &&
@@ -105,7 +105,7 @@ class _RaceComparisonPageState extends State<RaceComparisonPage> {
   }
 
   /// Pre-computes derived statistics for a single race analysis.
-  void _processAndCacheRaceData(RaceAnalysis race) {
+  void _processAndCacheRaceData(RaceAnalyze race) {
     // Cache segment lookups for efficiency
     final segmentsBySequence = {for (var s in race.segments) s.sequence: s};
     final wallSegments = race.segments
@@ -152,7 +152,7 @@ class _RaceComparisonPageState extends State<RaceComparisonPage> {
   /// Generates a PDF from the comparison data and opens the native share dialog.
   Future<void> _shareComparison(
     BuildContext context,
-    List<RaceAnalysis> races,
+    List<RaceAnalyze> races,
   ) async {
     // ---
     // --- FIX: Capture context-dependent variables BEFORE any awaits. ---
@@ -234,8 +234,7 @@ class _RaceComparisonPageState extends State<RaceComparisonPage> {
   }
 
   /// Builds the header for the PDF document, including icon and metadata.
-  pw.Widget _buildPdfHeader(
-    List<RaceAnalysis> races,
+  pw.Widget _buildPdfHeader(List<RaceAnalyze> races,
     pw.Font boldFont,
     pw.MemoryImage? icon,
     String swimmerNames,
@@ -274,8 +273,7 @@ class _RaceComparisonPageState extends State<RaceComparisonPage> {
     );
   }
 
-  pw.Widget _buildPdfTable(
-    List<RaceAnalysis> races,
+  pw.Widget _buildPdfTable(List<RaceAnalyze> races,
     ThemeData theme,
     pw.Font font,
     pw.Font boldFont,
@@ -700,7 +698,7 @@ class _RaceComparisonPageState extends State<RaceComparisonPage> {
           ),
         ],
       ),
-      body: FutureBuilder<List<RaceAnalysis>>(
+      body: FutureBuilder<List<RaceAnalyze>>(
         future: _racesFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting &&
@@ -728,7 +726,7 @@ class _RaceComparisonPageState extends State<RaceComparisonPage> {
     );
   }
 
-  Widget _buildComparisonTable(BuildContext context, List<RaceAnalysis> races) {
+  Widget _buildComparisonTable(BuildContext context, List<RaceAnalyze> races) {
     // Optimization: _buildStatRows is now much faster because it uses
     // pre-calculated data and doesn't perform heavy computations.
     final statRows = _buildStatRows(context, races);
@@ -761,7 +759,7 @@ class _RaceComparisonPageState extends State<RaceComparisonPage> {
     );
   }
 
-  List<DataColumn> _buildDataColumns(List<RaceAnalysis> races) {
+  List<DataColumn> _buildDataColumns(List<RaceAnalyze> races) {
     final bool showDiffColumn = races.length == 2;
     return [
       ...races.map((race) {
@@ -791,7 +789,7 @@ class _RaceComparisonPageState extends State<RaceComparisonPage> {
     ];
   }
 
-  List<DataRow> _buildStatRows(BuildContext context, List<RaceAnalysis> races) {
+  List<DataRow> _buildStatRows(BuildContext context, List<RaceAnalyze> races) {
     final bool showDiffColumn = races.length == 2;
     final bestValueStyle = TextStyle(
       fontWeight: FontWeight.bold,

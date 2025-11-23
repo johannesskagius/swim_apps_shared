@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:swim_apps_shared/race_analyzes/race_comparison_page.dart';
 
-import '../objects/analyzes/race_analyze_model.dart';
+import '../objects/analyzes/race_analyze.dart';
 import '../objects/user/coach.dart';
 import '../objects/user/swimmer.dart';
 import '../objects/user/user.dart';
@@ -261,7 +261,7 @@ class _RaceHistoryPageState extends State<RaceHistoryPage> {
   }
 
   Widget _buildRacesList(AnalyzesRepository raceRepository, String userId) {
-    return StreamBuilder<List<RaceAnalysis>>(
+    return StreamBuilder<List<RaceAnalyze>>(
       stream: raceRepository.getStreamOfRacesForUser(userId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -323,7 +323,7 @@ class _RaceHistoryPageState extends State<RaceHistoryPage> {
     );
   }
 
-  Widget _buildRaceTile(RaceAnalysis race, bool isSelected) {
+  Widget _buildRaceTile(RaceAnalyze race, bool isSelected) {
     final raceDateFormatted = race.raceDate != null
         ? DateFormat.yMMMd().format(race.raceDate!)
         : 'No Date';
