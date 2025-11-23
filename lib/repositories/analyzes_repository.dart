@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'package:swim_apps_shared/objects/user/swimmer.dart';
 
 import '../objects/analyzes/race_analyze.dart';
 import '../objects/analyzes/start_analyze.dart';
@@ -232,13 +233,36 @@ class AnalyzesRepository extends BaseRepository {
 
   Future<RaceAnalyze?> getRace(String raceId) async {
     try {
-      final doc = await _racesRef.doc(raceId).get();
+      final DocumentSnapshot<RaceAnalyze> doc = await _racesRef
+          .doc(raceId)
+          .get();
       return doc.data();
     } catch (e, s) {
       debugPrint("🔥 Error in getRace(id: $raceId): $e\n$s");
       return null;
     }
   }
+
+  ///Get the latest race analyze by Swimmer Id
+  Future<RaceAnalyze?> getLatestRaceAnalysis({required Swimmer swimmer}) async {
+    try {
+      final QuerySnapshot<RaceAnalyze> snapshot = await _racesRef
+          .where('swimmerId', isEqualTo: swimmer.id)
+          .orderBy('raceDate', descending: true)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isEmpty) return null;
+
+      // Return the model from the first (latest) doc
+      return snapshot.docs.first.data();
+    } catch (e, s) {
+      debugPrint(
+          "🔥 Error in getLatestRaceAnalysis(swimmerId: ${swimmer.id}): $e\n$s");
+      return null;
+    }
+  }
+
 
   Future<void> addRace(RaceAnalyze race) => _racesRef.add(race);
 

@@ -199,8 +199,10 @@ class RaceAnalyze with AnalyzableBase {
     return {'strokes': strokes, 'frequencies': frequencies, 'lengths': lengths};
   }
 
-  static List<int> _calculateStandardizedSplits(List<AnalyzedSegment> segments,
-      int intervalDistance,) {
+  static List<int> _calculateStandardizedSplits(
+    List<AnalyzedSegment> segments,
+    int intervalDistance,
+  ) {
     if (segments.isEmpty || intervalDistance <= 0) return [];
 
     final List<int> splits = [];

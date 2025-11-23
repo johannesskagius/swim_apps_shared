@@ -234,7 +234,8 @@ class _RaceComparisonPageState extends State<RaceComparisonPage> {
   }
 
   /// Builds the header for the PDF document, including icon and metadata.
-  pw.Widget _buildPdfHeader(List<RaceAnalyze> races,
+  pw.Widget _buildPdfHeader(
+    List<RaceAnalyze> races,
     pw.Font boldFont,
     pw.MemoryImage? icon,
     String swimmerNames,
@@ -273,7 +274,8 @@ class _RaceComparisonPageState extends State<RaceComparisonPage> {
     );
   }
 
-  pw.Widget _buildPdfTable(List<RaceAnalyze> races,
+  pw.Widget _buildPdfTable(
+    List<RaceAnalyze> races,
     ThemeData theme,
     pw.Font font,
     pw.Font boldFont,
