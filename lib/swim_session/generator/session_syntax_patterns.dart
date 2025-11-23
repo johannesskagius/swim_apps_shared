@@ -228,4 +228,23 @@ class SessionSyntaxPatterns {
       fontWeight: FontWeight.w500,
     ),
   };
+
+  /// 🔥 Canonical list of parser regex with explanations
+  /// This is the **single source of truth** for everything AI must follow.
+  static Map<RegExp, String> get aiRegexRules => {
+    sectionHeader:
+        "Section header must match allowed names exactly. '#group' may follow on the same line.",
+    groupTag:
+        "Group tag format: '#group Name'. Multiple groups allowed, comma-separated.",
+    subItemLine:
+        "Sub-items must begin with '- '. No parentheses or indentation-only formats.",
+    distance:
+        "Distance must appear at the start of a line: '100', '100m', '50fr', '25 fly'.",
+    interval: "Interval must be '@1:30' or '1:30'.",
+    intensityIndex: "Intensity index i1–i5.",
+    intensityWord:
+        "Intensity words such as 'easy', 'moderate', 'hard', 'max', 'race', 'sp1–sp3'.",
+    equipment:
+        "Equipment must appear inside brackets: [paddles], [fins, snorkel].",
+  };
 }
