@@ -22,6 +22,8 @@ export 'repositories/swimmer_focus_profile_repository.dart';
 export 'repositories/user_repository.dart';
 export 'results/result_service.dart';
 export 'results/set_item_result.dart';
+///Ai
+export 'support/ai/interpretation_service.dart';
 export 'support/my_support_requests.dart';
 export 'support/support_controller.dart';
 export 'support/support_detail.dart';
