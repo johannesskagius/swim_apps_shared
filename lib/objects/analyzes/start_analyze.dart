@@ -19,9 +19,6 @@ class StartAnalyze {
 
   String? aiInterpretation;
 
-  /// NEW → Precomputed table rows for result page
-  final List<TableRowData>? rows;
-
   final DateTime createdDate;
   final DateTime? updatedDate;
 
@@ -40,7 +37,6 @@ class StartAnalyze {
     this.swimmerName,
     this.jumpData,
     this.aiInterpretation,
-    this.rows,
   });
 
   // ---------------------------------------------------------------------------
@@ -59,7 +55,6 @@ class StartAnalyze {
     double? startHeight,
     Map<String, double>? jumpData,
     String? aiInterpretation,
-    List<TableRowData>? rows,
     DateTime? createdDate,
     DateTime? updatedDate,
   }) {
@@ -76,7 +71,6 @@ class StartAnalyze {
       startHeight: startHeight ?? this.startHeight,
       jumpData: jumpData ?? this.jumpData,
       aiInterpretation: aiInterpretation ?? this.aiInterpretation,
-      rows: rows ?? this.rows,
       createdDate: createdDate ?? this.createdDate,
       updatedDate: updatedDate ?? this.updatedDate,
     );
@@ -105,13 +99,6 @@ class StartAnalyze {
       jumpData: map['jumpData'] != null
           ? Map<String, double>.from(map['jumpData'] as Map)
           : null,
-
-      /// NEW — restore rows
-      rows: map['rows'] != null
-          ? (map['rows'] as List)
-                .map((e) => TableRowData.fromMap(Map<String, dynamic>.from(e)))
-                .toList()
-          : null,
     );
   }
 
@@ -133,43 +120,6 @@ class StartAnalyze {
       'startHeight': startHeight,
       'aiInterpretation': aiInterpretation,
       if (jumpData != null) 'jumpData': jumpData,
-
-      /// NEW
-      if (rows != null) 'rows': rows!.map((r) => r.toMap()).toList(),
     };
-  }
-}
-
-// ---------------------------------------------------------------------------
-// TABLE ROW DATA MODEL (move this to shared file)
-// ---------------------------------------------------------------------------
-
-class TableRowData {
-  final String label;
-  final double timeSeconds;
-  final double distanceMeters;
-  final double speed;
-
-  TableRowData({
-    required this.label,
-    required this.timeSeconds,
-    required this.distanceMeters,
-    required this.speed,
-  });
-
-  Map<String, dynamic> toMap() => {
-    "label": label,
-    "timeSeconds": timeSeconds,
-    "distanceMeters": distanceMeters,
-    "speed": speed,
-  };
-
-  factory TableRowData.fromMap(Map<String, dynamic> map) {
-    return TableRowData(
-      label: map["label"],
-      timeSeconds: (map["timeSeconds"] as num).toDouble(),
-      distanceMeters: (map["distanceMeters"] as num).toDouble(),
-      speed: (map["speed"] as num).toDouble(),
-    );
   }
 }
