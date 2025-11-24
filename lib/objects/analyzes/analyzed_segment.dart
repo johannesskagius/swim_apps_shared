@@ -39,6 +39,20 @@ class AnalyzedSegment {
     };
   }
 
+  Map<String, dynamic> toAiJson() {
+    return {
+      "sequence": sequence,
+      "checkPoint": checkPoint,
+      "distanceMeters": distanceMeters,
+      "splitTimeMillis": splitTimeMillis,
+      "totalTimeMillis": totalTimeMillis,
+      "strokes": strokes,
+      "dolphinKicks": dolphinKicks,
+      "strokeFrequency": strokeFrequency,
+      "strokeLengthMeters": strokeLengthMeters,
+    };
+  }
+
   /// Creates an AnalyzedSegment from a map (typically from Firestore).
   factory AnalyzedSegment.fromMap(Map<String, dynamic> map) {
     return AnalyzedSegment(
