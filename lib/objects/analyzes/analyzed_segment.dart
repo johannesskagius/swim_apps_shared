@@ -40,17 +40,31 @@ class AnalyzedSegment {
   }
 
   Map<String, dynamic> toAiJson() {
-    return {
+    final Map<String, dynamic> json = {
       "sequence": sequence,
       "checkPoint": checkPoint,
       "distanceMeters": distanceMeters,
       "splitTimeMillis": splitTimeMillis,
       "totalTimeMillis": totalTimeMillis,
-      "strokes": strokes,
-      "dolphinKicks": dolphinKicks,
-      "strokeFrequency": strokeFrequency,
-      "strokeLengthMeters": strokeLengthMeters,
     };
+
+    // Add only SAFE values
+    void addIfSafe(String key, dynamic value) {
+      if (value == null) return;
+
+      if (value is num) {
+        if (value.isNaN || value.isInfinite) return;
+      }
+
+      json[key] = value;
+    }
+
+    addIfSafe("strokes", strokes);
+    addIfSafe("dolphinKicks", dolphinKicks);
+    addIfSafe("strokeFrequency", strokeFrequency);
+    addIfSafe("strokeLengthMeters", strokeLengthMeters);
+
+    return json;
   }
 
   /// Creates an AnalyzedSegment from a map (typically from Firestore).
