@@ -1,4 +1,3 @@
-
 class StartAnalyze {
   final String id;
   final String title;
@@ -121,5 +120,39 @@ class StartAnalyze {
       'aiInterpretation': aiInterpretation,
       if (jumpData != null) 'jumpData': jumpData,
     };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// TABLE ROW DATA MODEL (move this to shared file)
+// ---------------------------------------------------------------------------
+
+class TableRowData {
+  final String label;
+  final double timeSeconds;
+  final double distanceMeters;
+  final double speed;
+
+  TableRowData({
+    required this.label,
+    required this.timeSeconds,
+    required this.distanceMeters,
+    required this.speed,
+  });
+
+  Map<String, dynamic> toMap() => {
+    "label": label,
+    "timeSeconds": timeSeconds,
+    "distanceMeters": distanceMeters,
+    "speed": speed,
+  };
+
+  factory TableRowData.fromMap(Map<String, dynamic> map) {
+    return TableRowData(
+      label: map["label"],
+      timeSeconds: (map["timeSeconds"] as num).toDouble(),
+      distanceMeters: (map["distanceMeters"] as num).toDouble(),
+      speed: (map["speed"] as num).toDouble(),
+    );
   }
 }
