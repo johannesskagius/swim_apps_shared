@@ -30,7 +30,7 @@ class StrokeAnalyze with AnalyzableBase {
   late final double startReaction;
   late final double turnTime;
 
-  final String? aiInterpretation;
+  String? aiInterpretation;
 
   StrokeAnalyze({
     String? id,
