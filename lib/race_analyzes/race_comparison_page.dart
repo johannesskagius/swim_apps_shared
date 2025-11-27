@@ -506,7 +506,7 @@ class _RaceComparisonPageState extends State<RaceComparisonPage> {
     // Optimization: This map is now built once and is much faster.
     final Map<int, String> masterCheckPointMap = {
       for (var r in races)
-        for (var s in r.segments) s.sequence: s.checkPoint,
+        for (var s in r.segments) s.sequence: s.checkPoint.name,
     }..removeWhere((k, v) => v == 'start');
     final sortedSequences = masterCheckPointMap.keys.toList()..sort();
 
@@ -1031,7 +1031,7 @@ class _RaceComparisonPageState extends State<RaceComparisonPage> {
       for (final segment in race.segments) {
         masterCheckPointMap.putIfAbsent(
           segment.sequence,
-          () => segment.checkPoint,
+          () => segment.checkPoint.name,
         );
       }
     }

@@ -1,6 +1,8 @@
+import 'package:swim_apps_shared/swim_session/events/checkpoint.dart';
+
 class AnalyzedSegment {
   final int sequence;
-  final String checkPoint;
+  final CheckPoint checkPoint;
   final double distanceMeters;
   final int totalTimeMillis;
   final int splitTimeMillis;
@@ -27,7 +29,7 @@ class AnalyzedSegment {
   Map<String, dynamic> toJson() {
     return {
       'sequence': sequence,
-      'checkPoint': checkPoint,
+      'checkPoint': checkPoint.name,
       'distanceMeters': distanceMeters,
       'totalTimeMillis': totalTimeMillis,
       'splitTimeMillis': splitTimeMillis,
@@ -42,7 +44,7 @@ class AnalyzedSegment {
   Map<String, dynamic> toAiJson() {
     final Map<String, dynamic> json = {
       "sequence": sequence,
-      "checkPoint": checkPoint,
+      "checkPoint": checkPoint.name,
       "distanceMeters": distanceMeters,
       "splitTimeMillis": splitTimeMillis,
       "totalTimeMillis": totalTimeMillis,
@@ -71,7 +73,8 @@ class AnalyzedSegment {
   factory AnalyzedSegment.fromMap(Map<String, dynamic> map) {
     return AnalyzedSegment(
       sequence: map['sequence'] as int,
-      checkPoint: map['checkPoint'] as String,
+      checkPoint: CheckPoint.values.firstWhere((
+          checkPointName) => checkPointName.name == map['checkPoint']),
       distanceMeters: (map['distanceMeters'] as num).toDouble(),
       totalTimeMillis: map['totalTimeMillis'] as int,
       splitTimeMillis: map['splitTimeMillis'] as int,
