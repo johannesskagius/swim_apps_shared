@@ -127,3 +127,30 @@ extension IntensityZoneParsingHelper on IntensityZone {
     return keywords.toSet().toList(); // Ensure unique
   }
 }
+
+extension IntensitySorting on IntensityZone {
+  int get sortOrder {
+    switch (this) {
+      case IntensityZone.drill:
+        return 0;
+      case IntensityZone.i1:
+        return 1;
+      case IntensityZone.i2:
+        return 2;
+      case IntensityZone.i3:
+        return 3;
+      case IntensityZone.i4:
+        return 4;
+      case IntensityZone.racePace:
+        return 5;
+      case IntensityZone.sp1:
+        return 6;
+      case IntensityZone.sp2:
+        return 7;
+      case IntensityZone.sp3:
+        return 8;
+      case IntensityZone.max:
+        return 9;
+    }
+  }
+}
