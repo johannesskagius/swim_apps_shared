@@ -126,7 +126,7 @@ class SwimSuiteTheme {
     colorScheme: const ColorScheme.light(
       primary: SwimSuiteColors.main,
       secondary: SwimSuiteColors.accent,
-      background: SwimSuiteColors.background,
+      surface: SwimSuiteColors.background,
       tertiary: SwimSuiteColors.success,
       error: Colors.red,
     ),

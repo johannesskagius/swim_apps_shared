@@ -1,0 +1,201 @@
+name: CI / Test / Auto-Merge + Tag + Release
+
+on:
+  push:
+    branches:
+      - develop
+      - feature/**
+  pull_request:
+
+jobs:
+  build:
+    name: Validate Build
+    runs-on: ubuntu-latest
+
+    steps:
+      # ---------------------------------------------------------
+      # CHECKOUT
+      # ---------------------------------------------------------
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ---------------------------------------------------------
+      # CACHE: Flutter SDK
+      # ---------------------------------------------------------
+      - name: Cache Flutter SDK
+        id: flutter-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.flutter-sdk
+          key: flutter-sdk-${{ runner.os }}-3.24.0
+
+      # ---------------------------------------------------------
+      # Install Flutter only if not cached
+      # ---------------------------------------------------------
+      - name: Install Flutter
+        if: steps.flutter-cache.outputs.cache-hit != 'true'
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+          cache: true
+
+      - name: Setup Flutter Path
+        run: echo "$HOME/.flutter-sdk/bin" >> $GITHUB_PATH
+
+      # ---------------------------------------------------------
+      # CACHE: Pub Packages
+      # ---------------------------------------------------------
+      - name: Cache Pub Dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            .dart_tool
+          key: pub-${{ runner.os }}-${{ hashFiles('pubspec.yaml') }}
+          restore-keys: |
+            pub-${{ runner.os }}-
+
+      # ---------------------------------------------------------
+      # Install Dependencies
+      # ---------------------------------------------------------
+      - name: Flutter Pub Get
+        run: flutter pub get
+
+      # ---------------------------------------------------------
+      # CACHE: Gradle (if Android gets built in the future)
+      # ---------------------------------------------------------
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/*.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      # ---------------------------------------------------------
+      # ANALYZE + TESTS
+      # ---------------------------------------------------------
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test --no-pub
+
+      # ---------------------------------------------------------
+      # VERSION BUMP
+      # ---------------------------------------------------------
+      - name: Bump version in pubspec.yaml
+        id: version_bump
+        run: |
+          echo "📦 Current version:"
+          grep '^version:' pubspec.yaml
+
+          VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //')
+          IFS='+' read -r SEMVER BUILD <<< "$VERSION"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$SEMVER"
+
+          PATCH=$((PATCH+1))
+          NEW_VERSION="$MAJOR.$MINOR.$PATCH+$BUILD"
+
+          sed -i "s/^version:.*/version: $NEW_VERSION/" pubspec.yaml
+
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$MAJOR.$MINOR.$PATCH" >> $GITHUB_OUTPUT
+
+      # ---------------------------------------------------------
+      # COMMIT VERSION BUMP
+      # ---------------------------------------------------------
+      - name: Commit version bump
+        run: |
+          git config --global user.email "ci@github.com"
+          git config --global user.name "GitHub Actions"
+          git add pubspec.yaml
+          git commit -m "CI: Bump version to ${{ steps.version_bump.outputs.new_version }}"
+
+      # ---------------------------------------------------------
+      # PUSH TEMP BRANCH
+      # ---------------------------------------------------------
+      - name: Push changes to temporary branch
+        run: |
+          TMP_BRANCH="ci/version-${{ steps.version_bump.outputs.new_version }}"
+          git checkout -b $TMP_BRANCH
+          git push origin $TMP_BRANCH
+
+      # ---------------------------------------------------------
+      # CREATE PR INTO MASTER
+      # ---------------------------------------------------------
+      - name: Create Pull Request
+        id: create_pr
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref_name }}
+          title: "CI Auto-Merge: Version ${{ steps.version_bump.outputs.new_version }}"
+          body: |
+            Automatic version bump and merge into master.
+            Version: **${{ steps.version_bump.outputs.new_version }}**
+          base: master
+
+      # ---------------------------------------------------------
+      # AUT0-MERGE PR
+      # ---------------------------------------------------------
+      - name: Enable automerge
+        if: steps.create_pr.outputs.pull-request-number != ''
+        uses: peter-evans/enable-pull-request-automerge@v3
+        with:
+          pull-request-number: ${{ steps.create_pr.outputs.pull-request-number }}
+          merge-method: squash
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  release:
+    name: Tag + Release
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      # ---------------------------------------------------------
+      # CHECKOUT
+      # ---------------------------------------------------------
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ---------------------------------------------------------
+      # CREATE GIT TAG
+      # ---------------------------------------------------------
+      - name: Create Tag
+        run: |
+          TAG=${{ needs.build.outputs.tag }}
+          echo "Creating tag: $TAG"
+          git tag $TAG
+          git push origin $TAG
+
+      # ---------------------------------------------------------
+      # CREATE RELEASE
+      # ---------------------------------------------------------
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.build.outputs.tag }}
+          name: "Release ${{ needs.build.outputs.tag }}"
+          body: |
+            ## SwimSuite Shared Release
+
+            🎉 Version `${{ needs.build.outputs.tag }}` has been published automatically!
+
+            ### CI Pipeline:
+            - Flutter analyze ✔️
+            - Tests ✔️
+            - Version bump ✔️
+            - Auto-merged into master ✔️
+            - Tag created ✔️
+            - Release published ✔️
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
