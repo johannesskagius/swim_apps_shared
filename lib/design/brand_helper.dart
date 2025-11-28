@@ -43,7 +43,7 @@ class SwimSuiteText {
     fontSize: 28,
     fontWeight: FontWeight.w700,
     height: 1.2,
-    color: SwimSuiteColors.main,
+    color: SwimSuiteColors.success,
   );
 
   static const TextStyle h2 = TextStyle(
@@ -51,7 +51,7 @@ class SwimSuiteText {
     fontSize: 22,
     fontWeight: FontWeight.w700,
     height: 1.25,
-    color: SwimSuiteColors.main,
+    color: SwimSuiteColors.success,
   );
 
   static const TextStyle h3 = TextStyle(
@@ -59,7 +59,7 @@ class SwimSuiteText {
     fontSize: 18,
     fontWeight: FontWeight.w600,
     height: 1.3,
-    color: SwimSuiteColors.main,
+    color: SwimSuiteColors.success,
   );
 
   // BODY
