@@ -11,12 +11,14 @@ jobs:
   build:
     name: Validate Build
     runs-on: ubuntu-latest
+
+    # 🟢 CRITICAL: This exposes the variable to the next job
     outputs:
       tag: ${{ steps.version_bump.outputs.tag }}
 
     permissions:
-      contents: write      # Required to push commits
-      pull-requests: write # Required to create PRs
+      contents: write        # Required to push commits
+      pull-requests: write   # Required to create PRs
 
     steps:
       # ---------------------------------------------------------
@@ -46,33 +48,41 @@ jobs:
       # ---------------------------------------------------------
       # ANALYZE + TESTS
       # ---------------------------------------------------------
-      #- name: Analyze
-      #  run: flutter analyze
+      # - name: Analyze
+      #   run: flutter analyze
 
       - name: Test
         run: flutter test --no-pub
 
       # ---------------------------------------------------------
-      # VERSION BUMP
+      # VERSION BUMP (clean x.y.z format)
       # ---------------------------------------------------------
       - name: Bump version in pubspec.yaml
         id: version_bump
         run: |
           echo "📦 Current version:"
           grep '^version:' pubspec.yaml
-
-          VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //')
-          IFS='+' read -r SEMVER BUILD <<< "$VERSION"
+          
+          # Extract version: remove 'version: ' prefix then trim after +
+          RAW_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //')
+          SEMVER="${RAW_VERSION%%+*}"   # strip +build if it exists
+          
+          echo "Current semver: $SEMVER"
+          
+          # Split semver
           IFS='.' read -r MAJOR MINOR PATCH <<< "$SEMVER"
-
+          
+          # Increment patch
           PATCH=$((PATCH+1))
-          NEW_VERSION="$MAJOR.$MINOR.$PATCH+$BUILD"
-
+          
+          NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+          
+          # Update pubspec.yaml
           sed -i "s/^version:.*/version: $NEW_VERSION/" pubspec.yaml
-
-          echo "✅ New Version: $NEW_VERSION"
+          
+          echo "🔼 New version: $NEW_VERSION"
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "tag=v$MAJOR.$MINOR.$PATCH" >> $GITHUB_OUTPUT
+          echo "tag=v$NEW_VERSION" >> $GITHUB_OUTPUT
 
       # ---------------------------------------------------------
       # CREATE PR (Action handles commit & push)
@@ -107,13 +117,17 @@ jobs:
     name: Tag + Release
     runs-on: ubuntu-latest
     needs: build
+
+    # 🟢 CRITICAL: This permission is required to push tags
     permissions:
       contents: write
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       # ---------------------------------------------------------
       # CONFIGURE GIT
       # ---------------------------------------------------------
@@ -123,48 +137,18 @@ jobs:
           git config --global user.name "GitHub Actions"
 
       # ---------------------------------------------------------
-      # FIND NEXT AVAILABLE TAG
-      # ---------------------------------------------------------
-      - name: Determine Next Available Tag
-        id: next_tag
-        run: |
-          # Starting point from version bump
-          BASE_TAG="${{ needs.build.outputs.tag }}"
-
-          echo "🔍 Checking available tags starting from $BASE_TAG"
-
-          TAG="$BASE_TAG"
-          COUNT=0
-
-          # Loop until we find a non-existing tag
-          while git rev-parse "$TAG" >/dev/null 2>&1; do
-            echo "⚠️ Tag $TAG already exists. Searching next..."
-
-            # Extract version numbers: vMAJOR.MINOR.PATCH
-            VERSION="${TAG#v}"
-            IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
-
-            PATCH=$((PATCH+1))
-            TAG="v$MAJOR.$MINOR.$PATCH"
-
-            COUNT=$((COUNT+1))
-            if [ "$COUNT" -gt 50 ]; then
-              echo "❌ Error: More than 50 versions attempted. Something is wrong."
-              exit 1
-            fi
-          done
-
-          echo "✅ Next available tag: $TAG"
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
-
-      # ---------------------------------------------------------
-      # CREATE GIT TAG (always unique)
+      # CREATE GIT TAG
       # ---------------------------------------------------------
       - name: Create Tag
         run: |
-          TAG="${{ steps.next_tag.outputs.tag }}"
+          TAG="${{ needs.build.outputs.tag }}"
+          
+          if [ -z "$TAG" ]; then
+            echo "❌ Error: Tag variable is empty."
+            exit 1
+          fi
 
-          echo "🏷 Creating tag: $TAG"
+          echo "✅ Creating tag: $TAG"
           git tag "$TAG"
           git push origin "$TAG"
 
@@ -174,10 +158,10 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.next_tag.outputs.tag }}
-          name: "Release ${{ steps.next_tag.outputs.tag }}"
+          tag_name: ${{ needs.build.outputs.tag }}
+          name: "Release ${{ needs.build.outputs.tag }}"
           body: |
             ## SwimSuite Shared Release
-            Generated automatically.
+            🎉 Version `${{ needs.build.outputs.tag }}` has been published automatically!
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
