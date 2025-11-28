@@ -30,7 +30,7 @@ jobs:
         with:
           path: |
             ~/.flutter-sdk
-          key: flutter-sdk-${{ runner.os }}-3.24.0
+          key: flutter-sdk-${{ runner.os }}-3.27.1
 
       # ---------------------------------------------------------
       # Install Flutter only if not cached
