@@ -12,13 +12,12 @@ jobs:
     name: Validate Build
     runs-on: ubuntu-latest
 
-    # 🟢 CRITICAL: This exposes the variable to the next job
     outputs:
       tag: ${{ steps.version_bump.outputs.tag }}
 
     permissions:
-      contents: write        # Required to push commits
-      pull-requests: write   # Required to create PRs
+      contents: write
+      pull-requests: write
 
     steps:
       # ---------------------------------------------------------
