@@ -104,7 +104,6 @@ class _SupportPageView extends StatelessWidget {
 
             const SizedBox(height: 12),
 
-            // RICH TEXT TOOLS
             Row(
               children: [
                 IconButton(

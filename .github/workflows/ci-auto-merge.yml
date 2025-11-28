@@ -1,0 +1,159 @@
+name: CI / Test / Auto-Merge + Tag + Release
+
+on:
+  push:
+    branches:
+      - develop
+      - feature/**
+  pull_request:
+
+jobs:
+  build:
+    name: Validate Build
+    runs-on: ubuntu-latest
+
+    # 🟢 CRITICAL: This exposes the variable to the next job
+    outputs:
+      tag: ${{ steps.version_bump.outputs.tag }}
+
+    permissions:
+      contents: write      # Required to push commits
+      pull-requests: write # Required to create PRs
+
+    steps:
+      # ---------------------------------------------------------
+      # CHECKOUT
+      # ---------------------------------------------------------
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ---------------------------------------------------------
+      # INSTALL FLUTTER
+      # ---------------------------------------------------------
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.27.1'
+          channel: 'stable'
+          cache: true
+
+      # ---------------------------------------------------------
+      # INSTALL DEPENDENCIES
+      # ---------------------------------------------------------
+      - name: Flutter Pub Get
+        run: flutter pub get
+
+      # ---------------------------------------------------------
+      # ANALYZE + TESTS
+      # ---------------------------------------------------------
+      #- name: Analyze
+      #  run: flutter analyze
+
+      - name: Test
+        run: flutter test --no-pub
+
+      # ---------------------------------------------------------
+      # VERSION BUMP
+      # ---------------------------------------------------------
+      - name: Bump version in pubspec.yaml
+        id: version_bump
+        run: |
+          echo "📦 Current version:"
+          grep '^version:' pubspec.yaml
+
+          VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //')
+          IFS='+' read -r SEMVER BUILD <<< "$VERSION"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$SEMVER"
+
+          PATCH=$((PATCH+1))
+          NEW_VERSION="$MAJOR.$MINOR.$PATCH+$BUILD"
+
+          sed -i "s/^version:.*/version: $NEW_VERSION/" pubspec.yaml
+
+          echo "✅ New Version: $NEW_VERSION"
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$MAJOR.$MINOR.$PATCH" >> $GITHUB_OUTPUT
+
+      # ---------------------------------------------------------
+      # CREATE PR (Action handles commit & push)
+      # ---------------------------------------------------------
+      - name: Create Pull Request
+        id: create_pr
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "CI: Bump version to ${{ steps.version_bump.outputs.new_version }}"
+          committer: GitHub <noreply@github.com>
+          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+          branch: ci/version-${{ steps.version_bump.outputs.new_version }}
+          delete-branch: true
+          title: "CI Auto-Merge: Version ${{ steps.version_bump.outputs.new_version }}"
+          body: |
+            Automatic version bump and merge into master.
+            Version: **${{ steps.version_bump.outputs.new_version }}**
+          base: master
+
+      # ---------------------------------------------------------
+      # MERGE PR (Force merge immediately)
+      # ---------------------------------------------------------
+      - name: Merge Pull Request
+        if: steps.create_pr.outputs.pull-request-number != ''
+        run: |
+          gh pr merge ${{ steps.create_pr.outputs.pull-request-number }} --squash --delete-branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  release:
+    name: Tag + Release
+    runs-on: ubuntu-latest
+    needs: build
+
+    # 🟢 CRITICAL: This permission is required to push tags
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ---------------------------------------------------------
+      # CONFIGURE GIT
+      # ---------------------------------------------------------
+      - name: Configure Git
+        run: |
+          git config --global user.email "ci@github.com"
+          git config --global user.name "GitHub Actions"
+
+      # ---------------------------------------------------------
+      # CREATE GIT TAG
+      # ---------------------------------------------------------
+      - name: Create Tag
+        run: |
+          TAG="${{ needs.build.outputs.tag }}"
+          
+          if [ -z "$TAG" ]; then
+            echo "❌ Error: Tag variable is empty."
+            exit 1
+          fi
+
+          echo "✅ Creating tag: $TAG"
+          git tag $TAG
+          git push origin $TAG
+
+      # ---------------------------------------------------------
+      # CREATE RELEASE
+      # ---------------------------------------------------------
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.build.outputs.tag }}
+          name: "Release ${{ needs.build.outputs.tag }}"
+          body: |
+            ## SwimSuite Shared Release
+            🎉 Version `${{ needs.build.outputs.tag }}` has been published automatically!
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
