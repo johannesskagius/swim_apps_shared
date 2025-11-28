@@ -1,11 +1,9 @@
 name: swim_apps_shared
 description: "A new Flutter package project."
-version: 0.0.2+
+version: 1.0.0
 
 environment:
-  # FIXED: Matches the Dart SDK inside Flutter 3.27.1
   sdk: ^3.6.0
-  # UPDATED: Matches your CI Flutter version
   flutter: ">=3.27.1"
 
 dependencies:
