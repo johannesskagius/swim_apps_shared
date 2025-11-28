@@ -1,11 +1,4 @@
-enum CheckPoint {
-  start,
-  offTheBlock,
-  breakOut,
-  fifteenMeterMark,
-  turn,
-  finish,
-}
+enum CheckPoint { start, offTheBlock, breakOut, fifteenMeterMark, turn, finish }
 
 extension CheckPointDisplay on CheckPoint {
   String toDisplayString() {
@@ -45,10 +38,10 @@ extension CheckPointDistance on CheckPoint {
         return 15;
 
       case CheckPoint.turn:
-      // 25m: only 1 turn (if >25)
-      // 50m: turn at 25
-      // 100m: turns at 25 + 75
-      // 200m: turns at 25 + 75 + 125 + 175
+        // 25m: only 1 turn (if >25)
+        // 50m: turn at 25
+        // 100m: turns at 25 + 75
+        // 200m: turns at 25 + 75 + 125 + 175
         return poolLengthMeters.toDouble();
 
       case CheckPoint.finish:
