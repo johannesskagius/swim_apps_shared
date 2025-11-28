@@ -52,36 +52,37 @@ jobs:
 
       - name: Test
         run: flutter test --no-pub
-
-      # ---------------------------------------------------------
-      # VERSION BUMP (clean x.y.z format)
-      # ---------------------------------------------------------
-      - name: Bump version in pubspec.yaml
-        id: version_bump
-        run: |
-          echo "📦 Current version:"
-          grep '^version:' pubspec.yaml
           
-          # Extract version: remove 'version: ' prefix then trim after +
-          RAW_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //')
-          SEMVER="${RAW_VERSION%%+*}"   # strip +build if it exists
           
-          echo "Current semver: $SEMVER"
-          
-          # Split semver
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$SEMVER"
-          
-          # Increment patch
-          PATCH=$((PATCH+1))
-          
-          NEW_VERSION="$MAJOR.$MINOR.$PATCH"
-          
-          # Update pubspec.yaml
-          sed -i "s/^version:.*/version: $NEW_VERSION/" pubspec.yaml
-          
-          echo "🔼 New version: $NEW_VERSION"
-          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "tag=v$NEW_VERSION" >> $GITHUB_OUTPUT
+          # ---------------------------------------------------------
+          # VERSION BUMP (clean x.y.z format)
+          # ---------------------------------------------------------
+               - name: Bump version in pubspec.yaml
+               id: version_bump
+               run: |
+                 echo "📦 Current version:"
+                 grep '^version:' pubspec.yaml
+                 
+                 # Extract version: remove 'version: ' prefix then trim after +
+                 RAW_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //')
+                 SEMVER="${RAW_VERSION%%+*}"   # strip +build if it exists
+                 
+                 echo "Current semver: $SEMVER"
+                 
+                 # Split semver
+                 IFS='.' read -r MAJOR MINOR PATCH <<< "$SEMVER"
+                 
+                 # Increment patch
+                 PATCH=$((PATCH+1))
+                 
+                 NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+                 
+                 # Update pubspec.yaml
+                 sed -i "s/^version:.*/version: $NEW_VERSION/" pubspec.yaml
+                 
+                 echo "🔼 New version: $NEW_VERSION"
+                 echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+                 echo "tag=v$NEW_VERSION" >> $GITHUB_OUTPUT
 
       # ---------------------------------------------------------
       # CREATE PR (Action handles commit & push)
