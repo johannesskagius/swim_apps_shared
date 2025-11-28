@@ -8,6 +8,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
+import 'package:swim_apps_shared/swim_session/events/checkpoint.dart';
 
 import '../objects/analyzes/race_analyze.dart';
 import '../repositories/analyzes_repository.dart';
@@ -109,7 +110,9 @@ class _RaceComparisonPageState extends State<RaceComparisonPage> {
     // Cache segment lookups for efficiency
     final segmentsBySequence = {for (var s in race.segments) s.sequence: s};
     final wallSegments = race.segments
-        .where((s) => ['start', 'turn', 'finish'].contains(s.checkPoint))
+        .where((s) =>
+        [CheckPoint.start, CheckPoint.turn, CheckPoint.finish].contains(
+            s.checkPoint))
         .sortedBy<num>((s) => s.sequence);
 
     // Pre-calculate totals to avoid repeated .map().sum calls
@@ -518,7 +521,8 @@ class _RaceComparisonPageState extends State<RaceComparisonPage> {
         .map(
           (race) => {
             for (var s in race.segments.where(
-              (s) => ['start', 'turn'].contains(s.checkPoint),
+                  (s) =>
+                  [CheckPoint.start, CheckPoint.turn].contains(s.checkPoint),
             ))
               s.sequence: s,
           },
@@ -1046,7 +1050,8 @@ class _RaceComparisonPageState extends State<RaceComparisonPage> {
         .map(
           (race) => {
             for (var s in race.segments.where(
-              (s) => ['start', 'turn'].contains(s.checkPoint),
+                  (s) =>
+                  [CheckPoint.start, CheckPoint.turn].contains(s.checkPoint),
             ))
               s.sequence: s,
           },
