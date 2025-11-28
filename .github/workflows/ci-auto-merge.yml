@@ -137,21 +137,42 @@ jobs:
           git config --global user.name "GitHub Actions"
 
       # ---------------------------------------------------------
-      # CREATE GIT TAG
+      # FIND NEXT AVAILABLE TAG
+      # ---------------------------------------------------------
+      - name: Determine Next Available Tag
+        id: next_tag
+        run: |
+          BASE_TAG="${{ needs.build.outputs.tag }}"
+
+          echo "🔍 Searching for next available tag starting from $BASE_TAG"
+
+          TAG="$BASE_TAG"
+
+          # Loop until a free tag is found
+          while git ls-remote --tags origin | grep -q "refs/tags/$TAG"; do
+            echo "⚠️ Tag $TAG already exists. Incrementing..."
+
+            VERSION="${TAG#v}"
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+
+            PATCH=$((PATCH + 1))
+            TAG="v$MAJOR.$MINOR.$PATCH"
+          done
+
+          echo "✅ Using available tag: $TAG"
+          echo "TAG=$TAG" >> $GITHUB_OUTPUT
+      
+
+      # ---------------------------------------------------------
+      # CREATE GIT TAG (guaranteed unique)
       # ---------------------------------------------------------
       - name: Create Tag
         run: |
-          TAG="${{ needs.build.outputs.tag }}"
-          
-          if [ -z "$TAG" ]; then
-            echo "❌ Error: Tag variable is empty."
-            exit 1
-          fi
+          TAG="${{ steps.next_tag.outputs.TAG }}"
 
-          echo "✅ Creating tag: $TAG"
+          echo "🏷 Creating tag $TAG"
           git tag "$TAG"
           git push origin "$TAG"
-
       # ---------------------------------------------------------
       # CREATE RELEASE
       # ---------------------------------------------------------
