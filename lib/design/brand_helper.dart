@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// ---------------------------------------------------------------------------
 ///  SWIMSUITE DESIGN SYSTEM
@@ -110,25 +111,146 @@ class SwimSuiteSpacing {
 /// ---------------------------------------------------------------------------
 class SwimSuiteTheme {
   static ThemeData light = ThemeData(
+    useMaterial3: true,
     brightness: Brightness.light,
+
+    // ------------------------------
+    // GLOBAL COLORS
+    // ------------------------------
     scaffoldBackgroundColor: SwimSuiteColors.background,
     primaryColor: SwimSuiteColors.main,
-    fontFamily: SwimSuiteText.bodyFont,
-    // BODY DEFAULT
-    textTheme: const TextTheme(
-      headlineMedium: SwimSuiteText.h1,
-      headlineSmall: SwimSuiteText.h2,
-      titleLarge: SwimSuiteText.h3,
-      bodyLarge: SwimSuiteText.body,
-      bodyMedium: SwimSuiteText.small,
-      bodySmall: SwimSuiteText.tiny,
-    ),
     colorScheme: const ColorScheme.light(
       primary: SwimSuiteColors.main,
       secondary: SwimSuiteColors.accent,
       surface: SwimSuiteColors.background,
       tertiary: SwimSuiteColors.success,
       error: Colors.red,
+    ),
+
+    // ------------------------------
+    // GLOBAL TYPOGRAPHY
+    // Default = Arial, Headlines = Montserrat
+    // ------------------------------
+    fontFamily: SwimSuiteText.bodyFont,
+    textTheme: const TextTheme(
+      headlineLarge: SwimSuiteText.h1,
+      headlineMedium: SwimSuiteText.h2,
+      headlineSmall: SwimSuiteText.h3,
+      bodyLarge: SwimSuiteText.body,
+      bodyMedium: SwimSuiteText.small,
+      bodySmall: SwimSuiteText.tiny,
+    ),
+
+    // ------------------------------
+    // APP BAR
+    // ------------------------------
+    appBarTheme: AppBarTheme(
+      backgroundColor: SwimSuiteColors.main,
+      foregroundColor: SwimSuiteColors.white,
+      elevation: 0,
+      centerTitle: true,
+      titleTextStyle: SwimSuiteText.h2,
+      systemOverlayStyle: SystemUiOverlayStyle.light,
+    ),
+
+    // ------------------------------
+    // NAVIGATION BAR (bottom)
+    // ------------------------------
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: SwimSuiteColors.white,
+      indicatorColor: SwimSuiteColors.accent.withAlpha(12),
+      labelTextStyle: WidgetStateProperty.all(
+        SwimSuiteText.small.copyWith(color: SwimSuiteColors.main),
+      ),
+      iconTheme: WidgetStateProperty.all(
+        const IconThemeData(color: SwimSuiteColors.grey700),
+      ),
+    ),
+
+    // ------------------------------
+    // ICON THEME
+    // ------------------------------
+    iconTheme: const IconThemeData(
+      color: SwimSuiteColors.main,
+      size: 24,
+    ),
+
+    // ------------------------------
+    // BUTTONS
+    // ------------------------------
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: SwimSuiteColors.main,
+        foregroundColor: SwimSuiteColors.white,
+        textStyle: SwimSuiteText.bodyBold,
+        minimumSize: const Size(120, 48),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+        ),
+      ),
+    ),
+
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        foregroundColor: SwimSuiteColors.accent,
+        textStyle: SwimSuiteText.bodyBold,
+      ),
+    ),
+
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        backgroundColor: SwimSuiteColors.accent,
+        foregroundColor: SwimSuiteColors.white,
+        textStyle: SwimSuiteText.bodyBold,
+      ),
+    ),
+
+    // ------------------------------
+    // INPUTS / TEXTFIELDS
+    // ------------------------------
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: SwimSuiteColors.white,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: SwimSuiteColors.grey300),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: SwimSuiteColors.accent, width: 2),
+      ),
+      labelStyle: SwimSuiteText.small,
+      hintStyle: SwimSuiteText.small,
+    ),
+
+    // ------------------------------
+    // DIVIDERS
+    // ------------------------------
+    dividerTheme: const DividerThemeData(
+      color: SwimSuiteColors.grey300,
+      thickness: 1,
+    ),
+
+    // ------------------------------
+    // PAGE TRANSITIONS (iOS-like smooth)
+    // ------------------------------
+    pageTransitionsTheme: const PageTransitionsTheme(
+      builders: {
+        TargetPlatform.android: ZoomPageTransitionsBuilder(),
+        TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+      },
+    ),
+
+    // ------------------------------
+    // TABS (optional if used)
+    // ------------------------------
+    tabBarTheme: TabBarThemeData(
+      labelColor: SwimSuiteColors.main,
+      unselectedLabelColor: SwimSuiteColors.grey700,
+      labelStyle: SwimSuiteText.bodyBold,
+      unselectedLabelStyle: SwimSuiteText.small,
+      indicatorColor: SwimSuiteColors.accent,
     ),
   );
 }
