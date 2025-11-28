@@ -12,6 +12,12 @@ jobs:
     name: Validate Build
     runs-on: ubuntu-latest
 
+    # 🟢 ADD THIS BLOCK -------------------
+    permissions:
+      contents: write      # Allows pushing code/tags
+      pull-requests: write # Allows creating/merging PRs
+      # -------------------------------------
+
     steps:
       # ---------------------------------------------------------
       # CHECKOUT
@@ -81,8 +87,8 @@ jobs:
       # ---------------------------------------------------------
       # ANALYZE + TESTS
       # ---------------------------------------------------------
-      #      - name: Analyze
-      #        run: flutter analyze
+      - name: Analyze
+        run: flutter analyze
 
       - name: Test
         run: flutter test --no-pub
