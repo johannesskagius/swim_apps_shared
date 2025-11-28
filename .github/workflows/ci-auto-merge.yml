@@ -152,28 +152,36 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
 
+    # 🟢 ADD THIS BLOCK (Gives permission to push tags/releases)
+    permissions:
+      contents: write
+
     steps:
-      # ---------------------------------------------------------
-      # CHECKOUT
-      # ---------------------------------------------------------
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # ---------------------------------------------------------
-      # CREATE GIT TAG
-      # ---------------------------------------------------------
+      # 🟢 ADD GIT CONFIG (Required to create/push tags)
+      - name: Configure Git
+        run: |
+          git config --global user.email "ci@github.com"
+          git config --global user.name "GitHub Actions"
+
       - name: Create Tag
         run: |
           TAG=${{ needs.build.outputs.tag }}
+          
+          # Safety check to ensure TAG is not empty
+          if [ -z "$TAG" ]; then
+            echo "Error: Tag is empty!"
+            exit 1
+          fi
+          
           echo "Creating tag: $TAG"
           git tag $TAG
           git push origin $TAG
 
-      # ---------------------------------------------------------
-      # CREATE RELEASE
-      # ---------------------------------------------------------
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -181,15 +189,6 @@ jobs:
           name: "Release ${{ needs.build.outputs.tag }}"
           body: |
             ## SwimSuite Shared Release
-
             🎉 Version `${{ needs.build.outputs.tag }}` has been published automatically!
-
-            ### CI Pipeline:
-            - Flutter analyze ✔️
-            - Tests ✔️
-            - Version bump ✔️
-            - Auto-merged into master ✔️
-            - Tag created ✔️
-            - Release published ✔️
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
