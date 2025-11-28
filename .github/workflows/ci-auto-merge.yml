@@ -94,7 +94,7 @@ jobs:
         run: flutter test --no-pub
 
       # ---------------------------------------------------------
-      # VERSION BUMP
+      # VERSION BUMP (Keep this step as is)
       # ---------------------------------------------------------
       - name: Bump version in pubspec.yaml
         id: version_bump
@@ -115,33 +115,21 @@ jobs:
           echo "tag=v$MAJOR.$MINOR.$PATCH" >> $GITHUB_OUTPUT
 
       # ---------------------------------------------------------
-      # COMMIT VERSION BUMP
-      # ---------------------------------------------------------
-      - name: Commit version bump
-        run: |
-          git config --global user.email "ci@github.com"
-          git config --global user.name "GitHub Actions"
-          git add pubspec.yaml
-          git commit -m "CI: Bump version to ${{ steps.version_bump.outputs.new_version }}"
-
-      # ---------------------------------------------------------
-      # PUSH TEMP BRANCH
-      # ---------------------------------------------------------
-      - name: Push changes to temporary branch
-        run: |
-          TMP_BRANCH="ci/version-${{ steps.version_bump.outputs.new_version }}"
-          git checkout -b $TMP_BRANCH
-          git push origin $TMP_BRANCH
-
-      # ---------------------------------------------------------
-      # CREATE PR INTO MASTER
+      # CREATE PR (Let the Action handle the commit & push)
       # ---------------------------------------------------------
       - name: Create Pull Request
         id: create_pr
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref_name }}
+          commit-message: "CI: Bump version to ${{ steps.version_bump.outputs.new_version }}"
+          committer: GitHub <noreply@github.com>
+          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+
+          # This creates the specific branch automatically
+          branch: ci/version-${{ steps.version_bump.outputs.new_version }}
+          delete-branch: true
+
           title: "CI Auto-Merge: Version ${{ steps.version_bump.outputs.new_version }}"
           body: |
             Automatic version bump and merge into master.
@@ -149,7 +137,7 @@ jobs:
           base: master
 
       # ---------------------------------------------------------
-      # AUT0-MERGE PR
+      # AUTO-MERGE PR
       # ---------------------------------------------------------
       - name: Enable automerge
         if: steps.create_pr.outputs.pull-request-number != ''
