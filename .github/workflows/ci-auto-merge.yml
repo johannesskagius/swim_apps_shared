@@ -123,20 +123,50 @@ jobs:
           git config --global user.name "GitHub Actions"
 
       # ---------------------------------------------------------
-      # CREATE GIT TAG
+      # FIND NEXT AVAILABLE TAG
+      # ---------------------------------------------------------
+      - name: Determine Next Available Tag
+        id: next_tag
+        run: |
+          # Starting point from version bump
+          BASE_TAG="${{ needs.build.outputs.tag }}"
+
+          echo "🔍 Checking available tags starting from $BASE_TAG"
+
+          TAG="$BASE_TAG"
+          COUNT=0
+
+          # Loop until we find a non-existing tag
+          while git rev-parse "$TAG" >/dev/null 2>&1; do
+            echo "⚠️ Tag $TAG already exists. Searching next..."
+
+            # Extract version numbers: vMAJOR.MINOR.PATCH
+            VERSION="${TAG#v}"
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+
+            PATCH=$((PATCH+1))
+            TAG="v$MAJOR.$MINOR.$PATCH"
+
+            COUNT=$((COUNT+1))
+            if [ "$COUNT" -gt 50 ]; then
+              echo "❌ Error: More than 50 versions attempted. Something is wrong."
+              exit 1
+            fi
+          done
+
+          echo "✅ Next available tag: $TAG"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+      # ---------------------------------------------------------
+      # CREATE GIT TAG (always unique)
       # ---------------------------------------------------------
       - name: Create Tag
         run: |
-          TAG="${{ needs.build.outputs.tag }}"
-          
-          if [ -z "$TAG" ]; then
-            echo "❌ Error: Tag variable is empty."
-            exit 1
-          fi
+          TAG="${{ steps.next_tag.outputs.tag }}"
 
-          echo "✅ Creating tag: $TAG"
-          git tag $TAG
-          git push origin $TAG
+          echo "🏷 Creating tag: $TAG"
+          git tag "$TAG"
+          git push origin "$TAG"
 
       # ---------------------------------------------------------
       # CREATE RELEASE
@@ -144,10 +174,10 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ needs.build.outputs.tag }}
-          name: "Release ${{ needs.build.outputs.tag }}"
+          tag_name: ${{ steps.next_tag.outputs.tag }}
+          name: "Release ${{ steps.next_tag.outputs.tag }}"
           body: |
             ## SwimSuite Shared Release
-            🎉 Version `${{ needs.build.outputs.tag }}` has been published automatically!
+            Generated automatically.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
