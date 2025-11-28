@@ -20,7 +20,7 @@ dependencies:
   intl: ^0.19.0 # NOTE: Downgraded from 0.20.2 (which doesn't exist yet) to stable
   provider: ^6.1.2
   cloud_functions: ^6.0.4
-  collection: ^1.19.1
+  collection: ^1.19.0
   rxdart: ^0.28.0
   package_info_plus: ^8.0.0 # NOTE: Checked recent versions, 9.0.0 may be too high
   device_info_plus: ^10.0.0
