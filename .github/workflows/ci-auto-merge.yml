@@ -152,7 +152,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
 
-    # 🟢 ADD THIS BLOCK (Gives permission to push tags/releases)
+    # 🔴 THIS IS REQUIRED TO FIX THE 403 ERROR
     permissions:
       contents: write
 
@@ -162,7 +162,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      # 🟢 ADD GIT CONFIG (Required to create/push tags)
+      # 🔴 GIT CONFIG IS REQUIRED TO CREATE A TAG
       - name: Configure Git
         run: |
           git config --global user.email "ci@github.com"
@@ -172,13 +172,13 @@ jobs:
         run: |
           TAG=${{ needs.build.outputs.tag }}
           
-          # Safety check to ensure TAG is not empty
+          # Safety Check: Stop if TAG is empty
           if [ -z "$TAG" ]; then
-            echo "Error: Tag is empty!"
+            echo "❌ Error: Tag variable is empty. Build job did not output a tag."
             exit 1
           fi
           
-          echo "Creating tag: $TAG"
+          echo "✅ Creating tag: $TAG"
           git tag $TAG
           git push origin $TAG
 
