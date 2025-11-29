@@ -253,4 +253,173 @@ class SwimSuiteTheme {
       indicatorColor: SwimSuiteColors.accent,
     ),
   );
+
+// ---------------------------------------------------------------------------
+// SWIMSUITE DARK THEME
+// ---------------------------------------------------------------------------
+  static ThemeData dark = ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.dark,
+
+    // -----------------------------------------------------------------------
+    // GLOBAL COLORS
+    // -----------------------------------------------------------------------
+    scaffoldBackgroundColor: const Color(0xFF0E1A2B),
+    // Deep navy variant
+    primaryColor: SwimSuiteColors.main,
+    colorScheme: const ColorScheme.dark(
+      primary: SwimSuiteColors.accent,
+      secondary: SwimSuiteColors.main,
+      surface: Color(0xFF101824),
+      tertiary: SwimSuiteColors.success,
+      error: Colors.red,
+    ),
+
+    // -----------------------------------------------------------------------
+    // GLOBAL TYPOGRAPHY
+    // -----------------------------------------------------------------------
+    fontFamily: SwimSuiteText.bodyFont,
+    textTheme: const TextTheme(
+      headlineLarge: SwimSuiteText.h1,
+      // White already in style
+      headlineMedium: SwimSuiteText.h2,
+      headlineSmall: SwimSuiteText.h3,
+      bodyLarge: SwimSuiteText.body,
+      // Will override color below
+      bodyMedium: SwimSuiteText.small,
+      bodySmall: SwimSuiteText.tiny,
+    ).apply(
+      bodyColor: SwimSuiteColors.grey100,
+      displayColor: SwimSuiteColors.white,
+    ),
+
+    // -----------------------------------------------------------------------
+    // APP BAR
+    // -----------------------------------------------------------------------
+    appBarTheme: const AppBarTheme(
+      backgroundColor: SwimSuiteColors.main,
+      foregroundColor: SwimSuiteColors.white,
+      elevation: 0,
+      centerTitle: true,
+      systemOverlayStyle: SystemUiOverlayStyle.light,
+      titleTextStyle: SwimSuiteText.h2,
+    ),
+
+    // -----------------------------------------------------------------------
+    // BOTTOM NAVIGATION BAR
+    // -----------------------------------------------------------------------
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: const Color(0xFF0D1520),
+      indicatorColor: SwimSuiteColors.accent.withValues(alpha: 0.18),
+      labelTextStyle: WidgetStateProperty.all(
+        SwimSuiteText.small.copyWith(color: SwimSuiteColors.grey100),
+      ),
+      iconTheme: WidgetStateProperty.all(
+        const IconThemeData(color: SwimSuiteColors.grey300),
+      ),
+    ),
+
+    // -----------------------------------------------------------------------
+    // ICONS
+    // -----------------------------------------------------------------------
+    iconTheme: const IconThemeData(
+      color: SwimSuiteColors.grey100,
+      size: 24,
+    ),
+
+    // -----------------------------------------------------------------------
+    // BUTTONS
+    // -----------------------------------------------------------------------
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: SwimSuiteColors.accent,
+        foregroundColor: SwimSuiteColors.white,
+        textStyle: SwimSuiteText.bodyBold,
+        minimumSize: const Size(120, 48),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+        ),
+        shadowColor: SwimSuiteColors.accent,
+      ),
+    ),
+
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        foregroundColor: SwimSuiteColors.accent,
+        textStyle: SwimSuiteText.bodyBold.copyWith(
+          color: SwimSuiteColors.accent,
+        ),
+      ),
+    ),
+
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        backgroundColor: SwimSuiteColors.main,
+        foregroundColor: SwimSuiteColors.white,
+        textStyle: SwimSuiteText.bodyBold,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+        ),
+      ),
+    ),
+
+    // -----------------------------------------------------------------------
+    // INPUT FIELDS
+    // -----------------------------------------------------------------------
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: const Color(0xFF1A2433),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: SwimSuiteColors.grey700),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: SwimSuiteColors.accent, width: 2),
+      ),
+      labelStyle: SwimSuiteText.small.copyWith(color: SwimSuiteColors.grey300),
+      hintStyle: SwimSuiteText.small.copyWith(color: SwimSuiteColors.grey500),
+    ),
+
+    // -----------------------------------------------------------------------
+    // DIVIDERS
+    // -----------------------------------------------------------------------
+    dividerTheme: const DividerThemeData(
+      color: SwimSuiteColors.grey700,
+      thickness: 1,
+    ),
+
+    // -----------------------------------------------------------------------
+    // CARD / SURFACE BACKGROUNDS
+    // -----------------------------------------------------------------------
+    cardColor: const Color(0xFF182233),
+    // Navy card
+    popupMenuTheme: const PopupMenuThemeData(
+      color: Color(0xFF16202E),
+      surfaceTintColor: Colors.transparent,
+    ),
+
+    // -----------------------------------------------------------------------
+    // PAGE TRANSITIONS
+    // -----------------------------------------------------------------------
+    pageTransitionsTheme: const PageTransitionsTheme(
+      builders: {
+        TargetPlatform.android: ZoomPageTransitionsBuilder(),
+        TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+      },
+    ),
+
+    // -----------------------------------------------------------------------
+    // TABS
+    // -----------------------------------------------------------------------
+    tabBarTheme: TabBarThemeData(
+      labelColor: SwimSuiteColors.accent,
+      unselectedLabelColor: SwimSuiteColors.grey500,
+      labelStyle: SwimSuiteText.bodyBold.copyWith(color: SwimSuiteColors.white),
+      unselectedLabelStyle:
+          SwimSuiteText.small.copyWith(color: SwimSuiteColors.grey500),
+      indicatorColor: SwimSuiteColors.accent,
+    ),
+  );
 }
