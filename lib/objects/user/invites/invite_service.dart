@@ -315,29 +315,18 @@ class InviteService {
 
   /// Revokes (declines) an invite via the same backend function.
   /// Use this when the user explicitly declines or cancels an invitation.
-  Future<void> revokeInvite(String inviteId) async {
-    final user = _auth.currentUser;
-    if (user == null) throw Exception('No logged-in user.');
-
+  Future<void> revokeInvite({required String inviteId}) async {
     try {
-      final callable = _functions.httpsCallable('respondToInvite');
-      final result = await callable.call({
-        'inviteId': inviteId,
-        'action': 'decline',
-        'userId': user.uid,
+      await _inviteRepository.collection.doc(inviteId).update({
+        'accepted': false,
+        'acceptedAt': null,
+        'acceptedUserId': null,
+        'revokedAt': FieldValue.serverTimestamp(),
       });
 
-      final data = Map<String, dynamic>.from(result.data ?? {});
-      if (data['success'] != true) {
-        throw Exception(data['message'] ?? 'Failed to decline invite.');
-      }
-
-      debugPrint('🚫 Invite $inviteId declined successfully by ${user.uid}');
-    } on FirebaseFunctionsException catch (e) {
-      debugPrint('❌ FirebaseFunctionsException: ${e.code} - ${e.message}');
-      rethrow;
+      debugPrint("🚫 Access revoked for invite $inviteId");
     } catch (e, st) {
-      debugPrint('❌ Error in revokeInvite: $e\n$st');
+      debugPrint("❌ Error revoking invite: $e\n$st");
       rethrow;
     }
   }
