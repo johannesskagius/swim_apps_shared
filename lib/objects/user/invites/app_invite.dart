@@ -1,6 +1,8 @@
-import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
+import 'package:swim_apps_shared/repositories/user_repository.dart';
 
+import '../user.dart';
 import 'app_enums.dart';
 import 'invite_type.dart';
 
@@ -59,11 +61,11 @@ class AppInvite {
       inviterEmail: json['inviterEmail'] as String? ?? '',
       inviteeEmail: json['inviteeEmail'] as String,
       type: InviteType.values.firstWhere(
-            (e) => e.name == json['type'],
+        (e) => e.name == json['type'],
         orElse: () => InviteType.coachToSwimmer,
       ),
       app: App.values.firstWhere(
-            (e) => e.name == json['app'],
+        (e) => e.name == json['app'],
         orElse: () => App.swimAnalyzer,
       ),
       createdAt: parseDate(json['createdAt']),
@@ -74,7 +76,6 @@ class AppInvite {
       acceptedAt: parseDateNullable(json['acceptedAt']),
     );
   }
-
 
   Map<String, dynamic> toJson() {
     return {
@@ -119,5 +120,35 @@ class AppInvite {
       relatedEntityId: relatedEntityId ?? this.relatedEntityId,
       acceptedAt: acceptedAt ?? this.acceptedAt,
     );
+  }
+}
+
+extension AppInviteOtherPartyUser on AppInvite {
+  /// Returns the *other AppUser* involved in this invite.
+  ///
+  /// Uses UserService to fetch the user document.
+  ///
+  /// Returns:
+  /// - AppUser if the other user can be resolved
+  /// - null if the invite is incomplete or user is not found
+  Future<AppUser?> otherPartyUser({
+    required String currentUserId,
+    required UserRepository userRepo,
+  }) async {
+    String? otherId;
+
+    // User is the inviter
+    if (inviterId == currentUserId) {
+      otherId = acceptedUserId;
+    }
+    // User is the accepted user
+    else if (acceptedUserId == currentUserId) {
+      otherId = inviterId;
+    }
+
+    // No valid match or missing ID
+    if (otherId == null || otherId.isEmpty) return null;
+
+    return userRepo.getUserDocument(otherId);
   }
 }
