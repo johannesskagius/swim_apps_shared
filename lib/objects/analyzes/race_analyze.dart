@@ -15,8 +15,7 @@ class RaceAnalyze with AnalyzableBase {
   Stroke? stroke;
   int? distance;
   List<AnalyzedSegment> segments;
-  final String? aiInterpretation; // NEW
-
+  final String? aiInterpretation;
 
   // --- OVERALL RACE SUMMARY STATS ---
   int finalTime; // Total race time in milliseconds

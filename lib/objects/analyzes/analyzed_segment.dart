@@ -69,12 +69,31 @@ class AnalyzedSegment {
     return json;
   }
 
-  /// Creates an AnalyzedSegment from a map (typically from Firestore).
   factory AnalyzedSegment.fromMap(Map<String, dynamic> map) {
+    final raw = map['checkPoint'];
+
+    // New format: exact enum name string (fast path)
+    if (raw is String && CheckPoint.values.any((e) => e.name == raw)) {
+      return AnalyzedSegment(
+        sequence: map['sequence'] as int,
+        checkPoint: CheckPoint.values.firstWhere((e) => e.name == raw),
+        distanceMeters: (map['distanceMeters'] as num).toDouble(),
+        totalTimeMillis: map['totalTimeMillis'] as int,
+        splitTimeMillis: map['splitTimeMillis'] as int,
+        dolphinKicks: map['dolphinKicks'] as int?,
+        strokes: map['strokes'] as int?,
+        breaths: map['breaths'] as int?,
+        strokeFrequency: (map['strokeFrequency'] as num?)?.toDouble(),
+        strokeLengthMeters: (map['strokeLengthMeters'] as num?)?.toDouble(),
+      );
+    }
+
+    // Legacy format: string may contain multiple occurrences of enum names
+    final legacyCheckPoint = _CheckPointHelper.findLastMatch(raw?.toString());
+
     return AnalyzedSegment(
       sequence: map['sequence'] as int,
-      checkPoint: CheckPoint.values.firstWhere((
-          checkPointName) => checkPointName.name == map['checkPoint']),
+      checkPoint: legacyCheckPoint,
       distanceMeters: (map['distanceMeters'] as num).toDouble(),
       totalTimeMillis: map['totalTimeMillis'] as int,
       splitTimeMillis: map['splitTimeMillis'] as int,
@@ -84,5 +103,28 @@ class AnalyzedSegment {
       strokeFrequency: (map['strokeFrequency'] as num?)?.toDouble(),
       strokeLengthMeters: (map['strokeLengthMeters'] as num?)?.toDouble(),
     );
+  }
+}
+
+class _CheckPointHelper {
+  /// Finds all enum names occurring inside a legacy string
+  /// and returns the LAST occurrence.
+  static CheckPoint findLastMatch(String? rawString) {
+    if (rawString == null || rawString.isEmpty) {
+      return CheckPoint.start; // safe fallback
+    }
+
+    final lower = rawString.toLowerCase();
+
+    CheckPoint? lastMatch;
+
+    for (final cp in CheckPoint.values) {
+      // Look for occurrences of the enum name inside the string
+      if (lower.contains(cp.name.toLowerCase())) {
+        lastMatch = cp; // keep overwriting → last one wins
+      }
+    }
+
+    return lastMatch ?? CheckPoint.start; // fallback
   }
 }
