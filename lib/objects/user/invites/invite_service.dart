@@ -396,8 +396,58 @@ class InviteService {
     }
   }
 
-  Future<String?> getAppForInviteEmail(String email) async {
+  Future<String?> getAppForInviteEmail({required String email}) async {
     final invite = await getInviteByEmail(email);
     return invite?.app.name;
+  }
+
+  Future<bool> hasActiveLinkBetween({
+    required String userId,
+    required String otherEmail,
+    required App app,
+  }) async {
+    final normalized = otherEmail.trim().toLowerCase();
+
+    // 1️⃣ Get all accepted invites in this app
+    final snap = await _firestore
+        .collection('invites')
+        .where('accepted', isEqualTo: true)
+        .where('app', isEqualTo: app.name)
+        .get();
+
+    // 2️⃣ Check BOTH sides of the relationship
+    for (final doc in snap.docs) {
+      final invite = AppInvite.fromJson(doc.id, doc.data());
+
+      // CASE A: user invited the other person
+      final caseA = invite.inviterId == userId &&
+          invite.inviteeEmail.toLowerCase() == normalized;
+
+      // CASE B: other person invited the user
+      final caseB = invite.inviterEmail.toLowerCase() == normalized &&
+          invite.acceptedUserId == userId;
+
+      if (caseA || caseB) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  Future<bool> hasPendingInviteTo({
+    required String senderId,
+    required String inviteeEmail,
+    required InviteType type,
+  }) async {
+    final snap = await _inviteRepository.collection
+        .where('senderId', isEqualTo: senderId)
+        .where('inviteType', isEqualTo: type.name)
+        .where('inviteeEmail', isEqualTo: inviteeEmail)
+        .where('isAccepted', isEqualTo: false)
+        .limit(1)
+        .get();
+
+    return snap.docs.isNotEmpty;
   }
 }

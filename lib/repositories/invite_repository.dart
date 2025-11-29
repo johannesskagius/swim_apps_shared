@@ -14,7 +14,7 @@ class InviteRepository {
   InviteRepository({FirebaseFirestore? firestore})
       : _firestore = firestore ?? FirebaseFirestore.instance;
 
-  CollectionReference<Map<String, dynamic>> get _collection =>
+  CollectionReference<Map<String, dynamic>> get collection =>
       _firestore.collection(_collectionPath);
 
   // --------------------------------------------------------------------------
@@ -24,7 +24,7 @@ class InviteRepository {
   /// 📩 Send (create) an invite.
   Future<void> sendInvite(AppInvite invite) async {
     try {
-      await _collection.doc(invite.id).set(invite.toJson());
+      await collection.doc(invite.id).set(invite.toJson());
       debugPrint('✅ Invite sent: ${invite.id}');
     } on FirebaseException catch (e) {
       debugPrint('🔥 Firestore error sending invite: ${e.message}');
@@ -35,7 +35,7 @@ class InviteRepository {
   /// ✅ Accept an invite.
   Future<void> acceptInvite(String inviteId, String acceptedUserId) async {
     try {
-      await _collection.doc(inviteId).update({
+      await collection.doc(inviteId).update({
         'accepted': true,
         'acceptedUserId': acceptedUserId,
         'acceptedAt': FieldValue.serverTimestamp(),
@@ -50,7 +50,7 @@ class InviteRepository {
   /// 🚫 Revoke or delete an invite.
   Future<void> revokeInvite(String inviteId) async {
     try {
-      await _collection.doc(inviteId).update({'accepted': false});
+      await collection.doc(inviteId).update({'accepted': false});
       debugPrint('🚫 Invite revoked: $inviteId');
     } on FirebaseException catch (e) {
       debugPrint('🔥 Firestore error revoking invite: ${e.message}');
@@ -67,7 +67,7 @@ class InviteRepository {
       {bool? accepted}) async {
     try {
       Query<Map<String, dynamic>> query =
-      _collection.where('inviterId', isEqualTo: inviterId);
+          collection.where('inviterId', isEqualTo: inviterId);
       if (accepted != null) query = query.where('accepted', isEqualTo: accepted);
 
       final snapshot = await query.get();
@@ -86,7 +86,7 @@ class InviteRepository {
     try {
       final normalized = email.trim().toLowerCase();
       Query<Map<String, dynamic>> query =
-      _collection.where('receiverEmail', isEqualTo: normalized);
+          collection.where('receiverEmail', isEqualTo: normalized);
       if (isAccepted != null) {
         query = query.where('accepted', isEqualTo: isAccepted);
       }
@@ -115,14 +115,14 @@ class InviteRepository {
     final normalizedEmail = email.trim().toLowerCase();
 
     // Stream where user is the RECEIVER (someone invited them)
-    final incoming = _collection
+    final incoming = collection
         .where('receiverEmail', isEqualTo: normalizedEmail)
         .where('status', isEqualTo: 'accepted')
         .where('app', isEqualTo: app.name)
         .snapshots();
 
     // Stream where user is the SENDER (they invited someone else)
-    final outgoing = _collection
+    final outgoing = collection
         .where('senderId', isEqualTo: userId)
         .where('status', isEqualTo: 'accepted')
         .where('app', isEqualTo: app.name)
@@ -152,8 +152,8 @@ class InviteRepository {
     try {
       final normalized = email.trim().toLowerCase();
 
-      final snapshot = await _collection
-          .where('receiverEmail', isEqualTo: normalized)
+      final snapshot =
+          await collection.where('receiverEmail', isEqualTo: normalized)
           .get();
 
       return snapshot.docs
@@ -174,7 +174,7 @@ class InviteRepository {
   /// 🔍 Get all accepted swimmers for a given coach.
   Future<List<AppInvite>> getAcceptedSwimmersForCoach(String coachId) async {
     try {
-      final snapshot = await _collection
+      final snapshot = await collection
           .where('inviterId', isEqualTo: coachId)
           .where('type', isEqualTo: InviteType.coachToSwimmer.name)
           .where('accepted', isEqualTo: true)
@@ -192,7 +192,7 @@ class InviteRepository {
   /// 🔍 Get all accepted coaches for a given swimmer.
   Future<List<AppInvite>> getAcceptedCoachesForSwimmer(String swimmerId) async {
     try {
-      final snapshot = await _collection
+      final snapshot = await collection
           .where('acceptedUserId', isEqualTo: swimmerId)
           .where('type', isEqualTo: InviteType.coachToSwimmer.name)
           .where('accepted', isEqualTo: true)
@@ -213,7 +213,7 @@ class InviteRepository {
     required String acceptedUserId,
   }) async {
     try {
-      final snapshot = await _collection
+      final snapshot = await collection
           .where('inviterId', isEqualTo: inviterId)
           .where('acceptedUserId', isEqualTo: acceptedUserId)
           .where('accepted', isEqualTo: true)
@@ -229,7 +229,7 @@ class InviteRepository {
 
   /// 🔁 Stream accepted invites (for live UI updates).
   Stream<List<AppInvite>> streamAcceptedInvitesForCoach(String coachId) {
-    return _collection
+    return collection
         .where('inviterId', isEqualTo: coachId)
         .where('accepted', isEqualTo: true)
         .snapshots()
@@ -244,7 +244,7 @@ class InviteRepository {
   /// 📋 Get all *pending* invites associated with a specific club.
   Future<List<AppInvite>> getPendingInvitesByClub(String clubId) async {
     try {
-      final snapshot = await _collection
+      final snapshot = await collection
           .where('clubId', isEqualTo: clubId)
           .where('accepted', isEqualTo: false)
           .orderBy('createdAt', descending: true)
