@@ -82,6 +82,7 @@ class Coach extends AppUser {
     List<String>? memberOfTeams,
     List<String>? ownerOfTeams,
     bool? isAccountHolder,
+    bool? isBetaUser,
   }) {
     final coach = Coach(
       id: id ?? this.id,
@@ -99,6 +100,7 @@ class Coach extends AppUser {
       isAccountHolder: isAccountHolder ?? this.isAccountHolder,
     );
 
+    coach.isBetaUser = isBetaUser ?? false;
     coach.isSwimCoachSupportUser =
         isSwimCoachSupportUser ?? this.isSwimCoachSupportUser;
     coach.isSwimAnalyzerProUser =

@@ -29,7 +29,8 @@ class Swimmer extends AppUser {
     // Defensive cast for list/map variations (web safe)
     List<String> parseStringList(dynamic value) {
       if (value == null) return [];
-      if (value is List) return List<String>.from(value.map((e) => e.toString()));
+      if (value is List)
+        return List<String>.from(value.map((e) => e.toString()));
       if (value is Map) return value.values.map((e) => e.toString()).toList();
       return [];
     }
@@ -85,6 +86,7 @@ class Swimmer extends AppUser {
     String? thirdCoachId,
     List<String>? memberOfTeams,
     List<String>? mainEventIds,
+    bool? isBetaUser,
   }) {
     final swimmer = Swimmer(
       id: id ?? this.id,
@@ -110,6 +112,7 @@ class Swimmer extends AppUser {
     swimmer.isSwimAnalyzerProUser =
         isSwimAnalyzerProUser ?? this.isSwimAnalyzerProUser;
 
+    swimmer.isBetaUser = isBetaUser ?? false;
     // ✅ Preserve additional field
     swimmer.headCoachId = headCoachId ?? this.headCoachId;
 

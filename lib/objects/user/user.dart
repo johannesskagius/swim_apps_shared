@@ -74,16 +74,20 @@ abstract class AppUser {
     final bool usedAnalyzerApp =
         json['isSwimAnalyzerProUser'] as bool? ?? false;
 
+    final bool isBetaUser = json['isBetaUser'] as bool? ?? false;
+
     switch (detectedUserType) {
       case UserType.coach:
         return Coach.fromJson(docId, json).copyWith(
           isSwimCoachSupportUser: usedCoachApp,
           isSwimAnalyzerProUser: usedAnalyzerApp,
+          isBetaUser: isBetaUser,
         );
       case UserType.swimmer:
         return Swimmer.fromJson(docId, json).copyWith(
           isSwimCoachSupportUser: usedCoachApp,
           isSwimAnalyzerProUser: usedAnalyzerApp,
+          isBetaUser: isBetaUser,
         );
     }
   }
