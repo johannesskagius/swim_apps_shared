@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:swim_apps_shared/objects/user/user.dart';
-import 'package:swim_apps_shared/support/support_request_detail.dart';
+import 'package:swim_apps_shared/support/full_page_widget/support_request_detail.dart';
 
 class MySupportRequestsPage extends StatelessWidget {
   final AppUser user;

@@ -25,12 +25,12 @@ export 'results/result_service.dart';
 export 'results/set_item_result.dart';
 ///Ai
 export 'support/ai/interpretation_service.dart';
-export 'support/my_support_requests.dart';
+export 'support/full_page_widget/my_support_requests.dart';
+export 'support/full_page_widget/support_detail.dart';
+export 'support/full_page_widget/support_list.dart';
+export 'support/full_page_widget/support_request_detail.dart';
+export 'support/full_page_widget/support_ui.dart';
 export 'support/support_controller.dart';
-export 'support/support_detail.dart';
-export 'support/support_list.dart';
-export 'support/support_request_detail.dart';
-export 'support/support_ui.dart';
 export 'swim_session/generator/config/advanced_generator_config.dart';
 export 'swim_session/generator/config/setconfig_to_text_parser.dart';
 // --- EVENTS ---

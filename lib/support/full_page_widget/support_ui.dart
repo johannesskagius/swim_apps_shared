@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:swim_apps_shared/objects/user/coach.dart';
 import 'package:swim_apps_shared/objects/user/user.dart';
-import 'package:swim_apps_shared/support/support_list.dart';
+import 'package:swim_apps_shared/support/full_page_widget/support_list.dart';
 
-import 'support_controller.dart';
+import '../support_controller.dart';
 
 class SupportPage extends StatelessWidget {
   final AppUser user;

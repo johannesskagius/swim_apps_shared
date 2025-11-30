@@ -17,6 +17,7 @@ abstract class AppUser {
   DateTime? updatedAt;
   String? clubId;
   String? creatorId;
+  bool isBetaUser;
 
   /// ✅ New app flags
   bool isSwimCoachSupportUser;
@@ -36,6 +37,7 @@ abstract class AppUser {
     this.creatorId,
     this.isSwimCoachSupportUser = false,
     this.isSwimAnalyzerProUser = false,
+    this.isBetaUser = false,
   });
 
   Map<String, dynamic> toJson() {

@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:swim_apps_shared/support/support_detail.dart';
+import 'package:swim_apps_shared/support/full_page_widget/support_detail.dart';
 
 class SupportListPage extends StatelessWidget {
   final String userId;
