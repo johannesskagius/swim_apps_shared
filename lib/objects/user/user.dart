@@ -19,6 +19,8 @@ abstract class AppUser {
   String? creatorId;
   bool isBetaUser;
 
+  bool isReviewer;
+
   /// ✅ New app flags
   bool isSwimCoachSupportUser;
   bool isSwimAnalyzerProUser;
@@ -38,6 +40,7 @@ abstract class AppUser {
     this.isSwimCoachSupportUser = false,
     this.isSwimAnalyzerProUser = false,
     this.isBetaUser = false,
+    this.isReviewer = false,
   });
 
   Map<String, dynamic> toJson() {
@@ -73,6 +76,7 @@ abstract class AppUser {
     final bool usedCoachApp = json['isSwimCoachSupportUser'] as bool? ?? false;
     final bool usedAnalyzerApp =
         json['isSwimAnalyzerProUser'] as bool? ?? false;
+    final bool isReviewer = json['isReviewer'] as bool? ?? false;
 
     final bool isBetaUser = json['isBetaUser'] as bool? ?? false;
 
@@ -82,7 +86,7 @@ abstract class AppUser {
           isSwimCoachSupportUser: usedCoachApp,
           isSwimAnalyzerProUser: usedAnalyzerApp,
           isBetaUser: isBetaUser,
-        );
+            isReviewer: isReviewer);
       case UserType.swimmer:
         return Swimmer.fromJson(docId, json).copyWith(
           isSwimCoachSupportUser: usedCoachApp,
