@@ -21,6 +21,15 @@ enum Stroke {
       return null; // Or a default, or rethrow
     }
   }
+
+  // 🔥 The proper way: returns a Set
+  static Set<Stroke> get all => {
+        Stroke.butterfly,
+        Stroke.freestyle,
+        Stroke.backstroke,
+        Stroke.breaststroke,
+        Stroke.medley,
+      };
 }
 
 extension StrokeParsingHelper on Stroke {
