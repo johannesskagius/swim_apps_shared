@@ -1,6 +1,8 @@
 // --- REPOSITORIES ---
 // Note: Repositories seem to be in the repositories folder based on your example.
 export 'design/brand_helper.dart';
+export 'objects/analyzes/analysis_requests/analysis_request.dart';
+export 'objects/analyzes/analysis_requests/analysis_request_repository.dart';
 export 'objects/analyzes/race_analyze.dart';
 export 'objects/analyzes/start_analyze.dart';
 export 'objects/analyzes/stroke_analyze.dart';
