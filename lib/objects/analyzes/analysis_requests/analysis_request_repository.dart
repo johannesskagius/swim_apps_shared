@@ -80,4 +80,17 @@ class AnalysisRequestRepository {
   Future<void> delete(String id) async {
     await _col.doc(id).delete();
   }
+
+  /// -------------------------
+  ///  STREAM unprocessed
+  ///_________________________
+  Stream<List<AnalysisRequest>> streamUnprocessed() {
+    return _col
+        .where('processed', isEqualTo: false)
+        .orderBy('createdAt', descending: false) // oldest first
+        .snapshots()
+        .map((snap) => snap.docs
+            .map((d) => AnalysisRequest.fromJson(d.data(), d.id))
+            .toList());
+  }
 }
