@@ -93,4 +93,16 @@ class AnalysisRequestRepository {
             .map((d) => AnalysisRequest.fromJson(d.data(), d.id))
             .toList());
   }
+
+  /// -------------------------
+  ///  STREAM all by created date
+  ///_________________________
+  Stream<List<AnalysisRequest>> streamAllByCreatedDate() {
+    return _col
+        .orderBy('createdAt', descending: false) // oldest first
+        .snapshots()
+        .map((snap) => snap.docs
+        .map((d) => AnalysisRequest.fromJson(d.data(), d.id))
+        .toList());
+  }
 }
